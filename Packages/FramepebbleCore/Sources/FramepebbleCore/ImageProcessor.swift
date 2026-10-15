@@ -261,16 +261,24 @@ extension ImageProcessor {
         try Task.checkCancellation()
         let data = try Data(contentsOf: sourceURL, options: .mappedIfSafe)
         guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetStatus(source) == .statusComplete,
-          CGImageSourceGetCount(source) == 1, let type = CGImageSourceGetType(source) as String?,
-          let format = OutputFormat.allCases.first(where: { $0.typeIdentifier == type }) else { throw ProcessingError.validation }
+          let type = CGImageSourceGetType(source) as String? else { throw ProcessingError.validation }
+        let isGIF = type == UTType.gif.identifier
+        let format = OutputFormat.allCases.first(where: { $0.typeIdentifier == type })
+        guard isGIF || (CGImageSourceGetCount(source) == 1 && format != nil) else { throw ProcessingError.validation }
+        for index in 0..<CGImageSourceGetCount(source) {
+            try Task.checkCancellation()
+            try autoreleasepool {
+                guard CGImageSourceCreateImageAtIndex(source, index, [kCGImageSourceShouldCache: false] as CFDictionary) != nil else { throw ProcessingError.validation }
+            }
+        }
         let staging = directory.appendingPathComponent(".framepebble-" + UUID().uuidString + ".tmp")
         try StagingWriter.write(data, to: staging)
         defer { try? FileManager.default.removeItem(at: staging) }
         guard let check = CGImageSourceCreateWithURL(staging as CFURL, nil), CGImageSourceGetStatus(check) == .statusComplete else { throw ProcessingError.validation }
         var profile = ExportProfile(); profile.suffix = ""; profile.namingTemplate = "{name}"
         let asset = SourceAsset(url: sourceURL)
-        let stem = (Self.proposedFilename(asset: asset, profile: profile, format: format) as NSString).deletingPathExtension
-        return try publishStaging(staging, sourceURL: sourceURL, stem: stem, fileExtension: format.fileExtension, directory: directory)
+        let stem = (Self.proposedFilename(asset: asset, profile: profile, format: format ?? .png) as NSString).deletingPathExtension
+        return try publishStaging(staging, sourceURL: sourceURL, stem: stem, fileExtension: isGIF ? "gif" : (format ?? .png).fileExtension, directory: directory)
     }
     public nonisolated static func proposedFilename(asset: SourceAsset, profile: ExportProfile, format: OutputFormat) -> String {
         let raw = (asset.name as NSString).deletingPathExtension

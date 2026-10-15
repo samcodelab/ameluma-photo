@@ -6,7 +6,7 @@ public enum AnnotationTextAlignment: String, Codable, Sendable, CaseIterable {
   case leading, centre, trailing
 }
 public enum AnnotationKind: String, Codable, Sendable, CaseIterable {
-  case text, arrow, line, rectangle, ellipse, freehand
+  case text, speechBubble, arrow, line, rectangle, ellipse, freehand
 }
 /// Normalised final-output geometry. Text uses the same CoreText stamp renderer as watermarks.
 public struct Annotation: Codable, Sendable, Equatable, Identifiable {
@@ -111,7 +111,14 @@ public enum AnnotationRenderer {
       ctx.setLineCap(.round)
       ctx.setLineJoin(.round)
       switch a.kind {
-      case .text:
+      case .text, .speechBubble:
+        if a.kind == .speechBubble {
+          ctx.addPath(CGPath(roundedRect: r.insetBy(dx: -4, dy: -4), cornerWidth: r.height * 0.15, cornerHeight: r.height * 0.15, transform: nil))
+          ctx.move(to: CGPoint(x: r.midX, y: r.maxY + 4))
+          ctx.addLine(to: CGPoint(x: r.midX - r.width * 0.12, y: r.maxY + r.height * 0.3))
+          ctx.addLine(to: CGPoint(x: r.midX - r.width * 0.16, y: r.maxY + 4))
+          ctx.strokePath()
+        }
         guard !a.text.isEmpty, a.text.count <= 1024 else {
           throw ProcessingError.invalidConfiguration
         }

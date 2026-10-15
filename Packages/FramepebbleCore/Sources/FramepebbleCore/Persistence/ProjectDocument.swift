@@ -15,6 +15,8 @@ public struct ExportRequest: Identifiable, Codable, Sendable {
     public init(source: SourceAsset, configuration: ProcessingConfiguration, profile: ExportProfile) { self.source = source; self.configuration = configuration; self.profile = profile }
 }
 public struct ProjectDocument: Codable, Sendable {
+    public var gifProject: GIFProject?
+    public var workspaceSelection: [UUID] = []
     public var name = "Untitled Project"
     public var version = 4
     /// Optional UI session state; sources and edits remain independent of open tabs.
@@ -41,9 +43,11 @@ public struct ProjectDocument: Codable, Sendable {
     public var pendingExports: [ExportRequest] = []
     public var completedJobs: [ProcessingJob] = []
     public init() {}
-    private enum CodingKeys: String, CodingKey { case batchInputIDs, name, privacyCoverageReviewIDs, collages, openCollageIDs, activeCollageID, version, editorTabIDs, activeEditorPhotoID, sources, edits, favourites, classifications, proposals, profiles, namingTemplate, selectedProfiles, watermarkPresets, privateEditing, requirePrivacyReview, collageOutputs, collage, pendingExports, completedJobs }
+    private enum CodingKeys: String, CodingKey { case gifProject, workspaceSelection, batchInputIDs, name, privacyCoverageReviewIDs, collages, openCollageIDs, activeCollageID, version, editorTabIDs, activeEditorPhotoID, sources, edits, favourites, classifications, proposals, profiles, namingTemplate, selectedProfiles, watermarkPresets, privateEditing, requirePrivacyReview, collageOutputs, collage, pendingExports, completedJobs }
     public init(from decoder: Decoder) throws {
         self.init(); let c = try decoder.container(keyedBy: CodingKeys.self)
+        gifProject = try c.decodeIfPresent(GIFProject.self, forKey: .gifProject)
+        workspaceSelection = try c.decodeIfPresent([UUID].self, forKey: .workspaceSelection) ?? []
         batchInputIDs = try c.decodeIfPresent(Set<UUID>.self, forKey: .batchInputIDs)
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? name
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? version
