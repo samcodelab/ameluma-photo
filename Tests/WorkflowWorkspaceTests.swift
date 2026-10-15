@@ -14,6 +14,72 @@ import XCTest
     model.selected = model.assets[0].id
     return model
   }
+  func testDirectCropPreservesScopeOtherPhotosAndUnrelatedEdits() throws {
+    let model = try makeModel()
+    let id = model.assets[0].id
+    var value = model.configuration(forID: id)
+    value.masks = [PrivacyMask()]; value.annotations = [Annotation()]
+    value.adjustments.exposure = 0.6; value.width = 1200
+    model.setImageConfiguration(value, for: id)
+    model.scope = .all; model.switchWorkflow(.photo)
+    let others = model.configuration(forID: model.assets[1].id)
+    let before = model.edits
+    model.applyPhotoCrop(CGRect(x: 100, y: 200, width: 600, height: 400), sourceSize: CGSize(width: 1000, height: 800), id: id)
+    let result = model.configuration(forID: id)
+    XCTAssertEqual(result.height, 800)
+    XCTAssertEqual(result.width, value.width)
+    XCTAssertEqual(result.masks, value.masks)
+    XCTAssertEqual(result.annotations, value.annotations)
+    XCTAssertEqual(result.adjustments, value.adjustments)
+    XCTAssertEqual(model.scope, .all)
+    XCTAssertEqual(model.configuration(forID: model.assets[1].id), others)
+    model.undo(); XCTAssertEqual(model.edits, before)
+    model.persistenceTask?.cancel()
+  }
+  func testPurposeSpecificResetsPreserveUnrelatedWorkAndProfiles() throws {
+    let model = try makeModel()
+    let id = model.assets[0].id
+    model.rotatePhoto(id)
+    model.settings.adjustments.exposure = 0.7
+    let override = model.edits.overrides[id]
+    var profile = ExportProfile(); profile.name = "Retained profile"
+    model.profiles = [profile]; model.exportProfiles = [profile.id]
+    model.resetBatchSettingsOnly()
+    XCTAssertEqual(model.edits.settings, ProcessingConfiguration())
+    XCTAssertEqual(model.edits.overrides[id], override)
+    model.restoreLibraryOriginalAppearance()
+    for asset in model.assets {
+      let value = model.configuration(for: asset)
+      XCTAssertEqual(value.quarterTurns, 0)
+      XCTAssertEqual(value.percentage, 100)
+      XCTAssertEqual(value.crop.mode, .preserveAspectRatio)
+    }
+    XCTAssertEqual(model.exportProfiles, [profile.id])
+    model.undo()
+    XCTAssertEqual(model.edits.overrides[id], override)
+    model.removeAllIndividualOverrides()
+    XCTAssertTrue(model.edits.overrides.isEmpty)
+    XCTAssertEqual(model.settings, ProcessingConfiguration())
+    model.persistenceTask?.cancel()
+  }
+  func testScopeHeadingMatchesActualTargetsAndLayoutApplicationKeepsDocument() throws {
+    let model = try makeModel()
+    model.workflow = .batch; model.scope = .all
+    model.selection = [model.assets[0].id]
+    XCTAssertEqual(model.editScopeHeading, "Editing all 5 imported photos")
+    model.scope = .selected
+    XCTAssertEqual(model.editScopeHeading, "Editing 1 selected photo")
+    model.switchWorkflow(.collages)
+    model.ensureCollageDocument()
+    let id = model.activeCollageID, count = model.savedCollages.count
+    let before = model.collage
+    model.applyCollageTemplate(CollageTemplate.catalog.last!)
+    XCTAssertEqual(model.activeCollageID, id)
+    XCTAssertEqual(model.savedCollages.count, count)
+    model.undoCollage()
+    XCTAssertEqual(model.collage, before)
+    model.persistenceTask?.cancel()
+  }
   func testSelectedExposurePreservesEachPhotoAndMixedValuesIncludingEqualRepresentativeValue()
     throws
   {
@@ -442,6 +508,253 @@ extension WorkflowWorkspaceTests {
     let old = try JSONDecoder().decode(ProjectDocument.self, from: JSONSerialization.data(withJSONObject: legacy))
     XCTAssertTrue(old.editorTabIDs.isEmpty)
     XCTAssertEqual(old.edits, document.edits)
+    model.persistenceTask?.cancel()
+  }
+}
+
+extension WorkflowWorkspaceTests {
+  func testRestoreOriginalOnlyActivePhotoPreservesExportOptionsAndSupportsUndo() async throws {
+    let model = try makeModel()
+    let helper = WorkspaceTests()
+    let url = try helper.source(at: model.directory)
+    model.assets[0].url = url
+    let a = model.assets[0], b = model.assets[1]
+    let originalBytes = try Data(contentsOf: url)
+    var batch = model.settings
+    batch.adjustments.exposure = 1
+    batch.quarterTurns = 1
+    batch.crop.mode = .fill
+    batch.watermark.enabled = true
+    batch.masks = [PrivacyMask()]
+    batch.annotations = [Annotation()]
+    batch.format = .png
+    batch.quality = 0.61
+    batch.metadata = .removeLocation
+    batch.privacyExport = true
+    model.settings = batch
+    model.setImageAspect(1, for: a.id)
+    model.openPhoto(a)
+    let before = model.edits
+    let other = model.configuration(for: b)
+    model.restoreOriginalPhoto(b.id)
+    XCTAssertEqual(model.edits, before, "An editor action cannot reset an unrelated tab")
+    model.restoreOriginalPhoto(a.id)
+    let result = model.configuration(for: a)
+    XCTAssertEqual(result.adjustments, PhotoAdjustments())
+    XCTAssertEqual(result.quarterTurns, 0)
+    XCTAssertEqual(result.crop.mode, .preserveAspectRatio)
+    XCTAssertEqual(result.resizeBasis, .percentage)
+    XCTAssertEqual(result.percentage, 100)
+    XCTAssertFalse(result.watermark.enabled)
+    XCTAssertTrue(result.masks.isEmpty)
+    XCTAssertTrue(result.annotations.isEmpty)
+    XCTAssertTrue(result.privacyExport, "Restoring appearance must not weaken metadata protection")
+    XCTAssertEqual(result.format, .png)
+    XCTAssertEqual(result.quality, 0.61)
+    XCTAssertEqual(result.metadata, .removeLocation)
+    XCTAssertEqual(model.configuration(for: b), other)
+    XCTAssertEqual(model.settings, before.settings)
+    let image = try await model.processor.render(url, configuration: result)
+    XCTAssertEqual(image.width, 80)
+    XCTAssertEqual(image.height, 40)
+    XCTAssertEqual(try Data(contentsOf: url), originalBytes)
+    let restored = model.edits
+    model.undo(); XCTAssertEqual(model.edits, before)
+    model.redo(); XCTAssertEqual(model.edits, restored)
+    model.persistenceTask?.cancel()
+  }
+}
+
+
+extension WorkflowWorkspaceTests {
+  func testUncropRestoresWholeSourceWhileRetainingOtherEditsAndBatchScope() async throws {
+    let model = try makeModel()
+    let url = try WorkspaceTests().source(at: model.directory)
+    model.assets[0].url = url
+    let a = model.assets[0], b = model.assets[1]
+    let originalBytes = try Data(contentsOf: url)
+    var c = model.configuration(for: a)
+    c.crop.mode = .manualCrop; c.crop.zoom = 3
+    c.crop.centerX = 0.8; c.crop.centerY = 0.2
+    c.crop.quarterTurns = 1
+    c.adjustments.exposure = 0.4
+    c.masks = [PrivacyMask()]; c.annotations = [Annotation()]
+    c.watermark.enabled = true; c.format = .png; c.quality = 0.7
+    model.setImageConfiguration(c, for: a.id)
+    model.setImageAspect(1, for: a.id)
+    model.scope = .selected; model.selection = [a.id, b.id]
+    model.selected = a.id
+    let before = model.edits
+    let other = model.configuration(for: b)
+    await model.restoreFullImageCrop(a.id)
+    let result = model.configuration(for: a)
+    XCTAssertEqual(result.crop.zoom, 1)
+    XCTAssertNil(result.crop.aspectRatio)
+    XCTAssertNil(model.edits.overrides[a.id]?.dimensions)
+    XCTAssertEqual(result.adjustments, c.adjustments)
+    XCTAssertEqual(result.masks, c.masks)
+    XCTAssertEqual(result.annotations, c.annotations)
+    XCTAssertEqual(result.watermark, c.watermark)
+    XCTAssertEqual(result.crop.quarterTurns, 1)
+    XCTAssertEqual(result.format, c.format)
+    XCTAssertEqual(result.quality, c.quality)
+    XCTAssertEqual(model.configuration(for: b), other)
+    XCTAssertEqual(model.scope, .selected)
+    XCTAssertEqual(model.selection, [a.id, b.id])
+    let image = try await model.processor.render(url, configuration: result)
+    XCTAssertEqual(image.width, 40); XCTAssertEqual(image.height, 80)
+    var recrop = result
+    recrop.crop = CropGeometry.zoomed(result.crop, factor: 2)
+    XCTAssertEqual(ImageProcessor.outputSize(source: CGSize(width: 40, height: 80), configuration: recrop), CGSize(width: 40, height: 80), "Recropping must keep the restored viewport, not the previous square output")
+    XCTAssertEqual(try Data(contentsOf: url), originalBytes)
+    let restored = model.edits
+    model.undo(); XCTAssertEqual(model.edits, before)
+    model.redo(); XCTAssertEqual(model.edits, restored)
+    model.persistenceTask?.cancel()
+  }
+}
+
+extension WorkflowWorkspaceTests {
+  func testResetAllBatchChangesIsOneUndoableStepAndRetainsLibraryAndOtherWorkspaces() throws {
+    let model = try makeModel()
+    let a = model.assets[0], b = model.assets[1]
+    var settings = model.settings
+    settings.adjustments.exposure = 0.7
+    settings.crop.mode = .fill
+    settings.format = .png
+    model.settings = settings
+    var photo = model.configuration(for: a)
+    photo.masks = [PrivacyMask()]; photo.annotations = [Annotation()]
+    photo.quarterTurns = 1
+    model.setImageConfiguration(photo, for: a.id)
+    model.setImageAspect(1, for: b.id)
+    model.profiles = Workspace.defaultProfiles()
+    model.exportProfiles = [model.profiles[0].id]
+    model.selection = [a.id]; model.scope = .selected
+    model.favourites = [b.id]
+    model.collage.title = "Keep my composition"
+    model.showLibrary(.favourites)
+    model.editSelectedBatch()
+    model.switchWorkflow(.batch)
+    let before = model.edits
+    let sources = model.assets
+    let collage = model.collage
+    let profiles = model.exportProfiles
+    let historyCount = model.history.steps.count
+    model.proposals[a.id] = FramingProposal(crop: photo.crop, subjects: [], reviewReasons: ["Review crop"])
+    model.resetAllProcessingChanges()
+    XCTAssertEqual(model.edits, EditingSnapshot())
+    XCTAssertTrue(model.proposals.isEmpty)
+    XCTAssertEqual(model.assets, sources)
+    XCTAssertEqual(model.collage, collage)
+    XCTAssertEqual(model.exportProfiles, profiles)
+    XCTAssertEqual(model.favourites, [b.id])
+    XCTAssertEqual(model.history.steps.count, historyCount + 1)
+    XCTAssertTrue(model.history.steps.last?.title.contains("Reset All Changes") == true)
+    model.undo(); XCTAssertEqual(model.edits, before)
+    model.redo(); XCTAssertEqual(model.edits, EditingSnapshot())
+    model.persistenceTask?.cancel()
+  }
+  func testHistoryJumpRestoresBatchAndPhotoStateAndKeepsRedoBranch() throws {
+    let model = try makeModel()
+    let start = try XCTUnwrap(model.history.steps.first?.id)
+    var settings = model.settings; settings.adjustments.exposure = 0.5
+    model.settings = settings
+    let exposure = try XCTUnwrap(model.history.steps.last?.id)
+    let exposureState = model.edits
+    model.rotatePhoto(model.assets[1].id)
+    let rotated = model.edits
+    let rotation = try XCTUnwrap(model.history.steps.last?.id)
+    model.moveEditingHistory(to: start)
+    XCTAssertEqual(model.edits, EditingSnapshot())
+    XCTAssertTrue(model.canRedo)
+    model.moveEditingHistory(to: exposure)
+    XCTAssertEqual(model.edits, exposureState)
+    model.moveEditingHistory(to: rotation)
+    XCTAssertEqual(model.edits, rotated)
+    model.moveEditingHistory(to: exposure)
+    model.rotatePhoto(model.assets[0].id)
+    XCTAssertFalse(model.canRedo)
+    XCTAssertFalse(model.history.steps.contains { $0.id == rotation })
+    model.persistenceTask?.cancel()
+  }
+}
+
+extension WorkflowWorkspaceTests {
+  func testMultipleCollagesKeepSeparateEditsHistoryAndClosedCompositions() throws {
+    let model=try makeModel()
+    model.selection=Set(model.assets.prefix(3).map(\.id))
+    model.ensureCollageDocument()
+    let first=try XCTUnwrap(model.activeCollageID)
+    var p=model.collage;p.title="First composition";model.changeCollage(p)
+    model.renameCollage("Holiday")
+    model.newCollage(template:CollageTemplate.catalog[0])
+    let second=try XCTUnwrap(model.activeCollageID)
+    XCTAssertNotEqual(first,second)
+    var other=model.collage;other.title="Second composition";model.changeCollage(other)
+    model.activateCollage(first)
+    XCTAssertEqual(model.collage.title,"First composition")
+    model.activateCollage(first)
+    XCTAssertEqual(model.collage.title,"First composition","Clicking the active tab must not reload stale edits")
+    model.undoCollage();XCTAssertEqual(model.collage.title,"")
+    model.redoCollage();XCTAssertEqual(model.collage.title,"First composition")
+    model.activateCollage(second)
+    XCTAssertEqual(model.collage.title,"Second composition")
+    model.closeCollageTab(first)
+    XCTAssertFalse(model.openCollageIDs.contains(first))
+    XCTAssertEqual(model.savedCollages.first {$0.id==first}?.project.title,"First composition")
+    model.closeCollageTab(second)
+    XCTAssertNil(model.activeCollageID)
+    XCTAssertEqual(model.savedCollages.count,2)
+    let doc=try JSONDecoder().decode(ProjectDocument.self,from:JSONEncoder().encode(model.document()))
+    model.restoreCollageDocuments(doc)
+    XCTAssertTrue(model.openCollageIDs.isEmpty)
+    XCTAssertNil(model.activeCollageID)
+    model.activateCollage(first)
+    XCTAssertEqual(model.activeCollageName,"Holiday")
+    XCTAssertEqual(model.collage.title,"First composition")
+    XCTAssertEqual(model.assets.count,5)
+    model.persistenceTask?.cancel()
+  }
+  func testLegacyCollageMigrationAndArtGenerationCancellation() async throws {
+    let model=try makeModel()
+    var legacy=ProjectDocument(), p=CollageProject()
+    p.arrange(model.assets.map(\.id),layout:.magazine);p.title="Legacy"
+    legacy.collage=p
+    model.restoreCollageDocuments(legacy)
+    XCTAssertEqual(model.collage,p)
+    XCTAssertEqual(model.openCollageIDs.count,1)
+    let before=model.collage
+    model.generateCollageArt(shape:.heart,text:"",sourceIDs:Set(model.assets.map(\.id)),count:1000,referenceID:nil,reuse:true)
+    model.collageGenerationTask?.cancel()
+    await model.collageGenerationTask?.value
+    XCTAssertEqual(model.collage,before)
+    XCTAssertFalse(model.collageGenerating)
+    model.generateCollageArt(shape:.text,text:"HELLO",sourceIDs:Set(model.assets.map(\.id)),count:100,referenceID:nil,reuse:true)
+    await model.collageGenerationTask?.value
+    XCTAssertEqual(model.collage.cells.count,100)
+    XCTAssertEqual(model.collage.silhouette,.text)
+    model.undoCollage();XCTAssertEqual(model.collage,before)
+    model.persistenceTask?.cancel()
+  }
+}
+
+
+extension WorkflowWorkspaceTests {
+  func testCollageKeyboardUndoRoutingKeepsPhotoHistorySeparate() throws {
+    let model=try makeModel()
+    model.rotatePhoto(model.assets[0].id)
+    let photoEdits=model.edits
+    model.switchWorkflow(.collages);model.ensureCollageDocument()
+    var p=model.collage;p.title="Title";model.changeCollage(p)
+    XCTAssertTrue(model.canUndoActiveWorkspace)
+    model.undoActiveWorkspace()
+    XCTAssertEqual(model.collage.title,"")
+    XCTAssertEqual(model.edits,photoEdits)
+    model.redoActiveWorkspace();XCTAssertEqual(model.collage.title,"Title")
+    model.showLibrary();model.undoActiveWorkspace()
+    XCTAssertEqual(model.edits,EditingSnapshot())
+    XCTAssertEqual(model.collage.title,"Title")
     model.persistenceTask?.cancel()
   }
 }

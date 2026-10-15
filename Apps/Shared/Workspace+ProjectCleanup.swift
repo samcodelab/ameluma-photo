@@ -21,6 +21,7 @@ extension Workspace {
             let objects = try reusable.mapValues { try JSONSerialization.jsonObject(with: $0) }
             let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONSerialization.data(withJSONObject: objects))
             resetEditorTabs()
+            resetCollageDocuments()
             assets = []; selected = nil; selection = []; selecting = false
             edits = EditingSnapshot(); history = EditingHistory(); favourites = []
             sensitivity = SensitiveReviewState(); proposals = [:]; index = ClassificationIndex()

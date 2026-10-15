@@ -1,4 +1,4 @@
-# Using Framepebble
+# Using Ameluma Photo
 
 Import photos/files or a folder. The app makes local source copies and begins on-device classification. Existing editing settings remain in place when adding images.
 
@@ -26,7 +26,7 @@ Adjust sliders show neutral values and individual resets. Quick Fix applies cons
 
 ## Collages and overlays
 
-Use Collages and Choose Source Photos independently of batch inputs, choose one of three layouts, select a cell and drag its photograph. Zoom/position controls provide alternatives. Change its source or swap with the next cell; freeform adds placement/rotation. Add titles/captions, spacing/background/borders/corners/shadows, then render and review/share. The project remains editable.
+Use Collages and Choose Source Photos independently of batch inputs, choose a quick layout or open the 74-layout gallery, select a cell and drag its photograph. Zoom/position controls provide alternatives. Change its source or swap with the next cell; freeform adds placement/rotation. Add titles/captions, spacing/background/borders/corners/shadows, then render and review/share. The project remains editable.
 
 Privacy Review is a library filter for flagged photos. Privacy is a tool inside Editor. Right-click (or long-press) a photo and choose Edit with Privacy Tool; flagged photos use Reveal & Edit with Privacy Tool. If nothing is flagged, show All Photos and flag or edit a photo from its context menu. Automatic findings require Apple’s capability and system settings; manual flags remain available.
 
@@ -50,13 +50,13 @@ The menu bar remains available with Studio closed. Quit stops monitoring. Missin
 
 ## Browser images and network folders on Mac
 
-Drag the image itself from a browser. Framepebble uses supplied image bytes first, or downloads an explicitly dropped HTTPS image address without browser cookies or saved credentials. Browser downloads are limited to 25 MB. Login-protected, HTTP-only or page links may need to be saved in the browser first.
+Drag the image itself from a browser. Ameluma Photo uses supplied image bytes first, or downloads an explicitly dropped HTTPS image address without browser cookies or saved credentials. Browser downloads are limited to 25 MB. Login-protected, HTTP-only or page links may need to be saved in the browser first.
 
 File/folder imports show copy progress below the grid. The first completed image appears immediately; further arrivals are published in batches of at most 64, with a 150 ms publication timer. you can scroll, crop and reframe them while the remaining files copy. Folder totals are discovered as the import runs. Cancel retains completed images. A stalled NAS read may take time to respond to cancellation. Vision search indexing starts after acquisition finishes.
 
 ## Preview size and workspace cleanup
 
-Use Preview size above the gallery to enlarge or shrink tiles. This changes display size only; exported dimensions and crop geometry are unchanged. In Projects, Close Project saves work to Recent Projects and empties the workspace. Clear Imported Photos discards current edits after confirmation, stops processing, saves an empty session and removes unused UUID-named regular snapshots only from Framepebble’s private Sources folder. Originals, exports, saved project files and snapshots they reference are retained. Symlinks and unknown filenames are skipped. An unreadable saved project stops cleanup. There is no secure-deletion claim. To preserve current edits, save a project copy before clearing.
+Use Preview size above the gallery to enlarge or shrink tiles. This changes display size only; exported dimensions and crop geometry are unchanged. In Projects, Close Project saves work to Recent Projects and empties the workspace. Clear Imported Photos discards current edits after confirmation, stops processing, saves an empty session and removes unused UUID-named regular snapshots only from Ameluma Photo’s private Sources folder. Originals, exports, saved project files and snapshots they reference are retained. Symlinks and unknown filenames are skipped. An unreadable saved project stops cleanup. There is no secure-deletion claim. To preserve current edits, save a project copy before clearing.
 
 ## Gallery and selection
 
@@ -104,3 +104,38 @@ When the editing toolbar cannot fit, use **More** for the remaining tools. At ac
 Double-click a library photo (tap on iPhone) to open it in Editor. Reopening the same photo activates its existing tab. Tabs retain their own tool context while the app is running. Close a tab to close its view; its edits remain in the project, and original files are never deleted. Closing the last tab returns to the library. Mac Command-W closes the current photo tab. Open-photo IDs and the active tab are saved with the project; older projects open normally with no tabs. Tool context starts with Adjust after reopening a saved project.
 
 Privacy Review remains a gallery filter, not a separate editing workflow. Right-click/long-press **Edit with Privacy Tool** opens that photo’s editor tab with Privacy active. Apply or Cancel the privacy/annotation draft before changing tabs. Batch selection and export scope are not changed by opening or closing a photo tab. Library filtering still removes hidden photos from the explicit selected group.
+
+
+### Restore an original photo
+
+In Editor, choose **Restore Original…** below the preview (on iPhone or in a narrow window, open **Edits**). Confirm to restore the active photo’s uncropped, unrotated appearance and native dimensions, removing lighting/colour adjustments, canvas effects, watermarks, annotations and privacy masks. Other photos and batch defaults remain unchanged. Export format, compression and metadata protection remain as configured. The Original comparison toggle only previews the source; Restore Original changes the editing instructions. Undo brings back the previous edits. Neither action modifies the original file.
+
+
+### Expand a crop back to the full image
+
+In Crop & Frame, choose **Reset Crop · Full Image** (also available as **Original · Full Image** in Output aspect ratio). This reveals the complete source at native dimensions while retaining rotation, adjustments, watermarks, masks, annotations and export settings. Undo restores the previous crop. **Use Batch Framing** instead returns to inherited batch framing; **Restore Original** removes all visual edits. Crops never discard the source pixels. Masks and annotations retain their normalised output positions; review their placement after changing framing.
+
+
+### Undo History and Reset Changes
+
+Batch Edit has visible **Undo History…** and **Reset Changes…** controls. The photo-edit timeline is shared by batch changes and individual editor tabs. Choose a history row to return to its state, then use later rows or Redo to move forward again. A new edit removes the redo branch. History holds up to 80 Undo steps for the current session; reopening a project starts history at its saved state. Imports, exports, collages and automation recipes have separate lifecycles and are not part of this timeline. Editor’s Edits menu and the Mac Edit menu also open history.
+
+Reset Changes offers three explicit actions for every imported photo, including hidden photos. **Restore Original Appearance** removes visual edits and restores native size while retaining encoding and metadata protection. **Reset Batch Settings** restores shared defaults (1600 × 1200 Fit, JPEG) while retaining individual overrides. **Remove Individual Overrides** makes photos inherit current batch settings; it does not restore originals. Each action supports Undo. Original files, collages, automation recipes and saved profiles remain intact. Checked export profiles still apply at export; inspect the output plan or choose Current edits separately. Reset selected edits removes only the selected photos’ overrides.
+
+
+### Multiple collages and art collages
+
+Use New Collage for a separate composition. Close a tab without deleting it; reopen it from Layout Gallery → Your Collages. Mac Command-W closes the current collage tab. Each composition keeps its own session Undo/Redo history, and projects save the compositions and open tabs.
+
+Layout Gallery contains 74 arrangements with category/search controls. A card starts a new collage; right-click/long-press can apply it to the current collage. Source and reference choosers show thumbnails.
+
+Expand Art Collages for Shape, Text and Photomosaic. Shape/Text fill a silhouette with your chosen number of photo tiles, repeating selected photos when needed. All photo frames changes individual tile shapes; selected tiles have their own frame-shape control. Use HELLO or other short outline text to create photo-filled lettering. For a reference mosaic, import the reference, choose it visually, select candidate photos or Use entire photo library, and Generate. Colour/tone matching is approximate and depends on the photo palette. Disable reuse only when there are enough distinct usable photos. Generation shows progress and supports Cancel; Undo restores the previous arrangement. Up to 10,000 tiles are supported within output size limits. Very thin text may need fewer tiles. Only the active composition is exported as one PNG; originals are untouched.
+
+
+### Direct crop boundaries and contextual tools
+
+In Editor → Crop & Frame, drag the crop boundary’s corners or edges to select a freeform crop; drag inside to move it. The output width is retained and height follows the new aspect ratio. Changes commit as one Undo step when the gesture ends. The full transformed, adjusted source remains visible around the boundary. This labelled Crop view omits masks, annotations, watermark and canvas decoration; switch to Edited preview to review their final output placement. Numeric precision controls remain available. Batch Frame continues to move the photograph inside a fixed output frame.
+
+Privacy and Annotate retain the open-photo strip (and sidebar on Mac/iPad) while editing a draft. Tab navigation is locked until Apply or Cancel, so changes cannot accidentally target a different document. Closing the draft does not close the photo tab.
+
+Collages offers visible Photo Layout, Shape Collage, Text Collage and Photo Mosaic creation choices. Shape/text/mosaic choices open their setup controls directly. The layout gallery defaults to Apply to Current Collage when a composition is open; choose Create New Collage for a separate tab. Applying a layout supports Undo.

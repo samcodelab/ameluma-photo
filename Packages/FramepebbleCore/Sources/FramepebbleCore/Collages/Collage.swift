@@ -16,6 +16,7 @@ public struct CollageCell: Codable, Sendable, Equatable, Identifiable {
   public var height: Double
   public var rotation = 0.0
   public var crop = CropConfiguration()
+  public var shape: CollageShape?
   public init(sourceID: UUID, x: Double, y: Double, width: Double, height: Double) {
     self.sourceID = sourceID
     self.x = x
@@ -26,6 +27,11 @@ public struct CollageCell: Codable, Sendable, Equatable, Identifiable {
   }
 }
 public struct CollageProject: Codable, Sendable, Equatable {
+  public static let maximumCells = 10_000
+  public var templateID: String?
+  public var silhouette: CollageShape?
+  public var silhouetteText = "HELLO"
+  public var mosaicReferenceID: UUID?
   public var width = 2048
   public var height = 2048
   public var spacing = 0.012
@@ -39,12 +45,16 @@ public struct CollageProject: Codable, Sendable, Equatable {
   public var shadow = false
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case width, height, spacing, background, layout, cells, title, captions, titleColour, canvas,
+    case templateID, silhouette, silhouetteText, mosaicReferenceID, width, height, spacing, background, layout, cells, title, captions, titleColour, canvas,
       shadow
   }
   public init(from decoder: Decoder) throws {
     self.init()
     let c = try decoder.container(keyedBy: CodingKeys.self)
+    templateID = try c.decodeIfPresent(String.self, forKey: .templateID)
+    silhouette = try c.decodeIfPresent(CollageShape.self, forKey: .silhouette)
+    silhouetteText = try c.decodeIfPresent(String.self, forKey: .silhouetteText) ?? silhouetteText
+    mosaicReferenceID = try c.decodeIfPresent(UUID.self, forKey: .mosaicReferenceID)
     width = try c.decodeIfPresent(Int.self, forKey: .width) ?? width
     height = try c.decodeIfPresent(Int.self, forKey: .height) ?? height
     spacing = try c.decodeIfPresent(Double.self, forKey: .spacing) ?? spacing
@@ -60,9 +70,10 @@ public struct CollageProject: Codable, Sendable, Equatable {
   public mutating func arrange(_ sources: [UUID], layout: CollageLayout) {
     let previous = cells
     self.layout = layout
+    templateID = nil; silhouette = nil; mosaicReferenceID = nil
     cells = []
     guard !sources.isEmpty else { return }
-    let ids = Array(sources.prefix(24))
+    let ids = sources
     let n = ids.count
     if layout == .magazine && n > 1 {
       cells.append(CollageCell(sourceID: ids[0], x: 0, y: 0, width: 0.62, height: 1))
@@ -93,14 +104,16 @@ public struct CollageProject: Codable, Sendable, Equatable {
         cells.append(cell)
       }
     }
-    var used: Set<UUID> = []
+    retainCellEdits(from: previous)
+  }
+  mutating func retainCellEdits(from previous: [CollageCell]) {
+    let groups = Dictionary(grouping: previous, by: \.sourceID)
+    var positions: [UUID:Int] = [:]
     for i in cells.indices {
-      if let existing = previous.first(where: {
-        $0.sourceID == cells[i].sourceID && !used.contains($0.id)
-      }) {
-        cells[i].id = existing.id
-        cells[i].crop = existing.crop
-        used.insert(existing.id)
+      let source = cells[i].sourceID, offset = positions[source, default:0]
+      if let group = groups[source], offset < group.count {
+        cells[i].id = group[offset].id; cells[i].crop = group[offset].crop; cells[i].shape = group[offset].shape
+        positions[source] = offset+1
       }
     }
   }
@@ -110,18 +123,19 @@ public struct CollageProject: Codable, Sendable, Equatable {
       x: cell.x * output.width, y: (titleBand + cell.y * (1 - titleBand)) * output.height,
       width: cell.width * output.width, height: cell.height * (1 - titleBand) * output.height)
     return rect.insetBy(
-      dx: spacing * min(output.width, output.height) / 2,
-      dy: spacing * min(output.width, output.height) / 2)
+      dx: min(spacing * min(output.width, output.height) / 2, rect.width * 0.3),
+      dy: min(spacing * min(output.width, output.height) / 2, rect.height * 0.3))
   }
 }
 extension ImageProcessor {
   public func renderCollage(
     _ project: CollageProject, sources: [SourceAsset], edits: EditingSnapshot,
-    previewMaximum: Int? = nil
-  ) throws -> CGImage {
+    previewMaximum: Int? = nil,
+    progress: @Sendable (Int,Int) async -> Void = {_,_ in}
+  ) async throws -> CGImage {
     guard project.width > 0, project.height > 0, project.width <= 20000, project.height <= 20000,
       Double(project.width) * Double(project.height) <= 100_000_000, project.spacing.isFinite,
-      (0...0.1).contains(project.spacing), project.cells.count <= 24,
+      (0...0.1).contains(project.spacing), project.cells.count <= CollageProject.maximumCells,
       [
         project.background.red, project.background.green, project.background.blue,
         project.background.alpha,
@@ -142,22 +156,48 @@ extension ImageProcessor {
     ctx.fill(CGRect(origin: .zero, size: size))
     ctx.translateBy(x: 0, y: size.height)
     ctx.scaleBy(x: 1, y: -1)
-    for cell in project.cells {
+    let sourceLookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id,$0) })
+    var cache: [CollageTileKey:CGImage] = [:], cachedBytes = 0
+    var sourceSizes: [UUID:CGSize] = [:]
+    if let shape = project.silhouette {
+      let path = shape.path(in: CGRect(x:0,y:project.title.isEmpty ? 0 : size.height*0.12,width:size.width,height:project.title.isEmpty ? size.height : size.height*0.88), text:project.silhouetteText)
+      guard !path.isEmpty else { throw ProcessingError.invalidConfiguration }
+      ctx.saveGState(); ctx.addPath(path); ctx.clip(using: .evenOdd)
+    }
+    for (cellIndex,cell) in project.cells.enumerated() {
       try Task.checkCancellation()
       try PrivacyRenderer.validate(
         x: cell.x, y: cell.y, width: cell.width, height: cell.height, rotation: cell.rotation)
-      guard let source = sources.first(where: { $0.id == cell.sourceID }) else {
+      guard let source = sourceLookup[cell.sourceID] else {
         throw ProcessingError.invalidImage
       }
       let rect = project.rect(for: cell, output: size)
-      guard rect.width >= 1, rect.height >= 1 else { throw ProcessingError.invalidConfiguration }
+      guard rect.width > 0, rect.height > 0 else { continue }
+      // Sub-pixel preview cells remain visible; final dimensions are validated above.
       var c = edits.configuration(for: source.id)
       c.width = max(1, Int(rect.width))
       c.height = max(1, Int(rect.height))
       c.crop = c.crop.adoptingGeometry(cell.crop)
       c.format = .png
       c.canvasStyle = project.canvas
-      let cg = try render(source.url, configuration: c, previewMaximum: previewMaximum)
+      if cell.shape != nil && cell.shape != .rectangle { c.canvasStyle.border=0 }
+      let key = CollageTileKey(sourceID:source.id, crop:cell.crop, width:c.width, height:c.height, shaped:cell.shape != nil && cell.shape != .rectangle)
+      let cg: CGImage
+      if let existing = cache[key] { cg = existing }
+      else {
+        let nominal: CGSize
+        if let known=sourceSizes[source.id] {nominal=known} else {nominal=try identify(source.url);sourceSizes[source.id]=nominal}
+        let transformed=Self.transformedSize(nominal,configuration:c)
+        let geometry=FramingLayout(source:transformed,output:CGSize(width:c.width,height:c.height),configuration:c)
+        // Decode enough original pixels for this tile's actual crop/zoom, rather
+        // than decoding every full-resolution source or undersampling tight crops.
+        let needed=max(nominal.width,nominal.height)*min(1,max(geometry.scaleX,geometry.scaleY))
+        let decode=max(32,min(20000,Int(ceil(needed))))
+        cg = try autoreleasepool { try render(source.url, configuration:c, previewMaximum:max(c.width,c.height),decodeMaximum:decode) }
+        let bytes = cg.bytesPerRow*cg.height
+        if cachedBytes+bytes > 16*1024*1024 { cache.removeAll(keepingCapacity:true); cachedBytes=0 }
+        if bytes <= 16*1024*1024 { cache[key]=cg; cachedBytes+=bytes }
+      }
       ctx.saveGState()
       ctx.translateBy(x: rect.midX, y: rect.midY)
       ctx.rotate(by: cell.rotation * .pi / 180)
@@ -167,11 +207,24 @@ extension ImageProcessor {
           offset: CGSize(width: 0, height: 3 * scale), blur: 8 * scale,
           color: CGColor(gray: 0, alpha: 0.3))
       }
+      if let shape = cell.shape, shape != .rectangle {
+        ctx.addPath(shape.path(in:rect,text:project.silhouetteText)); ctx.clip(using:.evenOdd)
+      }
       ctx.translateBy(x: rect.minX, y: rect.maxY)
       ctx.scaleBy(x: 1, y: -1)
       ctx.draw(cg, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
       ctx.restoreGState()
+      if let shape=cell.shape, shape != .rectangle, project.canvas.border > 0 {
+        ctx.saveGState()
+        ctx.translateBy(x:rect.midX,y:rect.midY);ctx.rotate(by:cell.rotation * .pi/180);ctx.translateBy(x:-rect.midX,y:-rect.midY)
+        ctx.addPath(shape.path(in:rect,text:project.silhouetteText))
+        ctx.setStrokeColor(project.canvas.borderColour.cgColor)
+        ctx.setLineWidth(project.canvas.border*min(rect.width,rect.height))
+        ctx.strokePath();ctx.restoreGState()
+      }
+      if cellIndex % 25 == 0 || cellIndex+1 == project.cells.count { await progress(cellIndex+1,project.cells.count) }
     }
+    if project.silhouette != nil { ctx.restoreGState() }
     guard let base = ctx.makeImage() else { throw ProcessingError.encoding }
     var annotations: [Annotation] = []
     if !project.title.isEmpty {
@@ -206,4 +259,9 @@ extension ImageProcessor {
     else { throw ProcessingError.encoding }
     return output
   }
+}
+
+
+private struct CollageTileKey: Hashable {
+  var sourceID: UUID; var crop: CropConfiguration; var width: Int; var height: Int; var shaped: Bool
 }

@@ -136,3 +136,36 @@ Regression coverage now includes unique tabs, separate gallery focus and batch s
 Native Mac layout tests render three photo tabs with safe generated sources. iPhone native layout tests render the Open Photos switcher at standard and accessibility text sizes. Reviewed captures: [Mac tabs](screenshots/mac-editor-tabs.png), [iPhone open photos](screenshots/phone-open-photos.png). These are native view renders, not physical-device testing.
 
 Validation: macOS build and iOS Simulator build succeeded. Mac app-host suite: 20 passed, zero failures. iOS app-host suite (including shared Core): 141 passed, zero failures. Logs: `.build/editor-tabs-final-mac-build.log`, `.build/editor-tabs-final-ios-build.log`, `.build/editor-tabs-final-mac-tests.log`, `.build/editor-tabs-final-ios-tests.log`. Physical iPhone/iPad validation and live assistive-technology interaction were not performed in this update.
+
+
+## Ameluma Photo branding
+
+Mac product/display name is Ameluma Photo; iPhone/iPad product/display name is Ameluma. App-hosted identity tests verify CFBundleDisplayName, CFBundleName and unchanged Debug bundle IDs on both platforms. Both builds succeeded; 21 Mac tests, 142 iOS tests and two Python release-helper tests passed. Internal module names, legacy storage paths and project formats are unchanged. New app output paths are `.build/mac/Build/Products/Debug/Ameluma Photo.app` and `.build/ios/Build/Products/Debug-iphonesimulator/Ameluma.app`.
+
+
+## Restore Original
+
+The active-photo regression starts with inherited batch exposure, rotation, square cropping, watermark, privacy mask and annotation. Restore removes visual edits for the requested active photo only, renders at the source’s native 80×40 dimensions, retains format/quality/metadata protection, leaves batch/other-photo settings unchanged, and verifies Undo/Redo plus byte-for-byte source preservation. Full suites passed: 143 iOS tests and 21 Mac tests. Responsive native layout checks cover standard/small Mac windows and compact/accessibility iPhone layouts. Restore confirms before removing masks; Original remains a comparison-only toggle.
+
+
+## Crop-only full-image reset
+
+Added regression verifying a zoomed square crop can return to the complete oriented source at native dimensions, retain exposure/rotation/watermark/masks/annotations/encoding, remove legacy dimension derivation, preserve batch scope and other photos, and Undo/Redo without changing source bytes. A follow-on zoom retains the restored viewport dimensions. Full suites: 144 iOS and 21 Mac tests passed. The action reads orientation-aware source dimensions through the shared processor before committing, and discards the request if the photo/configuration changes while awaiting identification.
+
+
+## Visible Undo History and whole-library reset
+
+147 iOS app-host tests and 21 Mac tests passed. New coverage verifies named history steps, moving backward/forward without losing redo, discarding only the redo branch after a new edit, the 80-step bound, full reset of inherited batch settings plus hidden individual edits, and single-step Undo/Redo of that reset. Library sources, favourites, profiles and collage remain intact. Reset clears stale framing proposals. Native Mac captures cover History/Reset controls and the timeline; iPhone captures include accessibility text size. Follow-up native layout checks verify the timeline explanation and session limitations scroll with the entries instead of truncating at large text sizes. Both application builds succeeded. History is in-memory session state; reopening retains edits but starts a new timeline.
+
+
+## Collage tabs, template gallery and art generation
+
+Final validation: both application builds succeeded. Standalone FramepebbleCore: 98 passed; iOS app-host suite (including Core): 157 passed; Mac app-host suite: 21 passed. No failures. Logs: `.build/collage-core-tests.log`, `.build/collages-ios-tests.log`, `.build/collages-mac-tests.log`, `.build/collages-ios-build.log`, `.build/collages-mac-build.log`.
+
+New coverage exercises all 74 template IDs with 37 sources, preserved cell crops/IDs, exact 100-cell circle/diamond/heart/HELLO partitions, circle/heart alpha clipping, 1,000-tile heart and photomosaic rendering, spatial red-left/blue-right reference matching, disabled-reuse uniqueness, cancellation, original-byte preservation, optional-field/legacy decoding, closed-composition recovery, independent tab histories and native Undo routing. Native Mac captures show two tabs, a rendered HELLO composed of 100 generated-photo tiles and the template gallery; iPhone captures show the adaptive switcher and gallery. Captures live under ignored `.build/collages-*-captures`, not in Git. Source/reference pickers use lazy thumbnail grids. Physical-device scale, native gesture/VoiceOver interaction and representative 10,000-tile throughput remain release validation.
+
+## High-priority workflow review follow-up — 16 October 2026
+
+New regressions exercise purpose-specific reset behaviour (native-size original appearance versus batch defaults versus inheritance), retained profiles, direct crop boundary inversion for landscape/portrait sources, crop changes preserving masks/annotations/adjustments and surrounding batch scope, and applying collage layouts without creating a new document. Existing native layout captures cover the shared photo-document strip, crop boundaries, batch scope/reset controls and collage creation choices. Native captures use generated safe photos, not the user’s library. Physical touch/VoiceOver and live crop-handle interaction still require device/manual validation.
+
+Validation: Core 99/99, full iOS Simulator app-host suite 161/161, full Mac app-host suite 21/21. Following capture-driven visual corrections, 27 focused iPhone layout/workflow tests and the native Mac layout test passed. Final Mac and iOS Simulator app builds passed. Logs use `.build/priority-*`; detailed results and remaining UX limits are in `docs/UX_PRIORITY_UPDATES.md`.

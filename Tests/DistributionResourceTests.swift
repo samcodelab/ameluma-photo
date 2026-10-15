@@ -2,6 +2,18 @@ import Foundation
 import XCTest
 
 final class DistributionResourceTests: XCTestCase {
+  func testApplicationUsesNewBrandWithCompatibleIdentity() {
+    #if os(macOS)
+      let expected = "Ameluma Photo"
+      let identifier = "com.broadframestudio.framepebble"
+    #else
+      let expected = "Ameluma"
+      let identifier = "com.broadframestudio.framepebble.ios"
+    #endif
+    XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, expected)
+    XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String, expected)
+    XCTAssertEqual(Bundle.main.bundleIdentifier, identifier)
+  }
   func testPrivacyAndHelpDocumentsShipWithTheApplication() throws {
     for name in ["PrivacyPolicy", "Help"] {
       let url = try XCTUnwrap(Bundle.main.url(forResource: name, withExtension: "md"))

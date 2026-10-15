@@ -47,6 +47,8 @@ struct SettingsEditor: View {
           }.pickerStyle(.segmented)
         }
         if !recipeEditing && model.workflow == .batch {
+          Label(model.editScopeHeading, systemImage: "person.2.crop.square.stack").font(.headline)
+          Text("Selection does not change this target. Choose the batch inputs below before editing.").font(.caption).foregroundStyle(.secondary)
           Picker("Batch inputs / edit target", selection: $model.scope) {
             ForEach([ApplyScope.all, .selected, .results], id: \.self) { Text($0.rawValue).tag($0) }
           }

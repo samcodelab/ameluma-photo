@@ -31,11 +31,14 @@ public struct ProjectDocument: Codable, Sendable {
     public var requirePrivacyReview = false
     public var collageOutputs: [URL] = []
     public var collage: CollageProject?
+    public var collages: [SavedCollage] = []
+    public var openCollageIDs: [UUID] = []
+    public var activeCollageID: UUID?
     public var watermarkPresets: [WatermarkConfiguration] = []
     public var pendingExports: [ExportRequest] = []
     public var completedJobs: [ProcessingJob] = []
     public init() {}
-    private enum CodingKeys: String, CodingKey { case version, editorTabIDs, activeEditorPhotoID, sources, edits, favourites, classifications, proposals, profiles, namingTemplate, selectedProfiles, watermarkPresets, privateEditing, requirePrivacyReview, collageOutputs, collage, pendingExports, completedJobs }
+    private enum CodingKeys: String, CodingKey { case collages, openCollageIDs, activeCollageID, version, editorTabIDs, activeEditorPhotoID, sources, edits, favourites, classifications, proposals, profiles, namingTemplate, selectedProfiles, watermarkPresets, privateEditing, requirePrivacyReview, collageOutputs, collage, pendingExports, completedJobs }
     public init(from decoder: Decoder) throws {
         self.init(); let c = try decoder.container(keyedBy: CodingKeys.self)
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? version
@@ -52,6 +55,9 @@ public struct ProjectDocument: Codable, Sendable {
         privateEditing = try c.decodeIfPresent(Bool.self, forKey: .privateEditing) ?? false
         requirePrivacyReview = try c.decodeIfPresent(Bool.self, forKey: .requirePrivacyReview) ?? false
         collageOutputs = try c.decodeIfPresent([URL].self, forKey: .collageOutputs) ?? []
+        collages = try c.decodeIfPresent([SavedCollage].self, forKey: .collages) ?? []
+        openCollageIDs = try c.decodeIfPresent([UUID].self, forKey: .openCollageIDs) ?? []
+        activeCollageID = try c.decodeIfPresent(UUID.self, forKey: .activeCollageID)
         collage = try c.decodeIfPresent(CollageProject.self, forKey: .collage)
         watermarkPresets = try c.decodeIfPresent([WatermarkConfiguration].self, forKey: .watermarkPresets) ?? watermarkPresets
         pendingExports = try c.decodeIfPresent([ExportRequest].self, forKey: .pendingExports) ?? pendingExports

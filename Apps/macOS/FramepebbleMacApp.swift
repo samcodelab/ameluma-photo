@@ -24,7 +24,7 @@ import SwiftUI
   @NSApplicationDelegateAdaptor(FramepebbleDelegate.self) private var delegate
   @State private var model = Workspace(startInLibrary: true)
   var body: some Scene {
-    Window("Framepebble", id: "studio") {
+    Window("Ameluma Photo", id: "studio") {
       if NSClassFromString("XCTestCase") != nil {
         Text("Automated tests are running.").padding(40)
       } else {
@@ -38,15 +38,19 @@ import SwiftUI
       .commands {
         CommandGroup(replacing: .undoRedo) {
           Button("Undo") {
-            if model.overlayEditor { model.overlaySession?.undo() } else { model.undo() }
+            model.undoActiveWorkspace()
           }
           .keyboardShortcut("z").disabled(
-            model.overlayEditor ? !(model.overlaySession?.canUndo ?? false) : !model.canUndo)
+            !model.canUndoActiveWorkspace)
           Button("Redo") {
-            if model.overlayEditor { model.overlaySession?.redo() } else { model.redo() }
+            model.redoActiveWorkspace()
           }
           .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(
-            model.overlayEditor ? !(model.overlaySession?.canRedo ?? false) : !model.canRedo)
+            !model.canRedoActiveWorkspace)
+        }
+        CommandGroup(after: .undoRedo) {
+          Button("Undo History…") { model.historyPresented = true }
+            .disabled(model.overlayEditor || (!model.browsingLibrary && model.workflow != .batch && model.workflow != .photo))
         }
         CommandGroup(replacing: .newItem) {
           Button("New Project") { Task { await model.newProject() } }.keyboardShortcut("n")
@@ -64,10 +68,13 @@ import SwiftUI
             Button("Close Photo Tab") {
               if let id = model.current?.id { model.closeEditorTab(id) }
             }.keyboardShortcut("w").disabled(model.overlayEditor)
+          } else if model.workflow == .collages && !model.browsingLibrary && model.activeCollageID != nil {
+            Button("Close Collage Tab") {if let id=model.activeCollageID {model.closeCollageTab(id)}}
+              .keyboardShortcut("w").disabled(model.running || model.collageGenerating)
           }
         }
         CommandGroup(replacing: .help) {
-          Button("Framepebble Help & Privacy") { model.helpPresented = true }
+          Button("Ameluma Photo Help & Privacy") { model.helpPresented = true }
         }
         CommandMenu("Photo") {
           Button("Rotate Clockwise") {
@@ -84,7 +91,7 @@ import SwiftUI
             model.assets.isEmpty || model.running)
         }
       }
-    MenuBarExtra("Framepebble", systemImage: "photo.badge.arrow.down") {
+    MenuBarExtra("Ameluma Photo", systemImage: "photo.badge.arrow.down") {
       FramepebbleStatusMenu(model: model)
     }
   }
@@ -97,12 +104,13 @@ struct MacWorkspace: View {
   @State private var resizeStart: CGFloat?
   var body: some View {
     HStack(spacing: 0) {
-      if !model.overlayEditor {
-        LibrarySidebar(model: model, openAutomations: { showAutomations = true }).frame(width: 220)
-        Divider()
-      }
+      LibrarySidebar(model: model, openAutomations: { showAutomations = true }).disabled(model.overlayEditor).frame(width: 220)
+      Divider()
       if model.overlayEditor {
-        OverlayEditor(model: model, embedded: true)
+        VStack(spacing: 0) {
+          PhotoDocumentTabs(model: model).padding(12).disabled(true)
+          OverlayEditor(model: model, embedded: true)
+        }
       } else if model.browsingLibrary {
         VStack(spacing: 0) {
           ImageCollection(model: model, importAction: importImages)
@@ -267,12 +275,12 @@ private struct FramepebbleStatusMenu: View {
   @Bindable var model: Workspace
   @Environment(\.openWindow) private var openWindow
   var body: some View {
-    Button("Open Framepebble") {
+    Button("Open Ameluma Photo") {
       openWindow(id: "studio")
       NSApplication.shared.activate()
     }
     Divider()
-    Text("Monitoring requires Framepebble to remain open.")
+    Text("Monitoring requires Ameluma Photo to remain open.")
     Text("\(Automations.shared.recipes.filter(\.enabled).count) workflows enabled")
     ForEach(Automations.shared.recipes) { recipe in
       Button("\(recipe.enabled ? "Pause" : "Resume") \(recipe.name)") {
@@ -285,6 +293,6 @@ private struct FramepebbleStatusMenu: View {
       NSApplication.shared.activate()
       model.helpPresented = true
     }
-    Button("Quit Framepebble") { NSApplication.shared.terminate(nil) }
+    Button("Quit Ameluma Photo") { NSApplication.shared.terminate(nil) }
   }
 }

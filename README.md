@@ -1,4 +1,4 @@
-# Framepebble
+# Ameluma Photo
 
 **Your photos. Your way.** A native, local photo toolbox by Broad Frame Studio for macOS 15+, iOS 18+ and iPadOS 18+. Open `Framepebble.xcodeproj` and choose **FramepebbleMac** or **FramepebbleiOS**. Both targets link the same local `FramepebbleCore` Swift package; there are no third-party runtime dependencies.
 
@@ -12,7 +12,7 @@
 - Add text or image watermarks with relative sizing, colour, opacity, rotation, nine positions, offsets, margins and tiling. Save watermark and export presets.
 - Export using registered native encoders, quality presets, optional bounded target-size encoding, supported metadata policies and sRGB/source-RGB colour management. Export one or multiple profiles into separate folders.
 - Adjust exposure, brightness, contrast, saturation, warmth, highlights and shadows. Quick Fix uses bounded lighting/colour heuristics and native automatic suggestions; all corrections are editable and undoable.
-- Create Classic Grid, Magazine or Freeform collages, reframe cells, swap/add/remove photographs, adjust backgrounds/spacing/borders/corners/shadows, and add titles/captions. Collages remain editable until rendering.
+- Create multiple tabbed collages with 74 gallery layouts, shape/text art and local reference photomosaics; reframe cells, swap/add/remove photographs, adjust backgrounds/spacing/borders/corners/shadows, and add titles/captions. Collages remain editable until rendering.
 - Draw text, arrows, lines, rectangles, ellipses and freehand annotations. Hide selected areas with opaque covers, blur, pixelation or frosted effects; use precision cropping to exclude unwanted content.
 - Review final outputs before native sharing, exclude files, approve a selection, copy a processed image, save reviewed images to Photos or reveal files in Finder. Sensitive-content detection is not enabled in this unsigned build; manual review does not certify safety.
 - Configure Mac folder Automations using security-scoped bookmarks, reconciliation scans and FSEvents hints. Automatic/review modes, stable-file checks, hash history, retry, test preview and menu-bar monitoring use the Studio engine.
@@ -93,3 +93,10 @@ The completed UI/UX polish pass and native layout captures are documented in [UI
 The Photo Library is the gallery. Batch Edit, Editor, Collages and Mac Automations are separate workspaces sharing its sources and editing state. Privacy Review is a library filter; Privacy is an Editor tool, available from the editor toolbar or a photo’s context menu.
 
 Mac and iPad Editor show explicit, closable photo tabs. iPhone uses an Open Photos menu. Tabs are unique per source and independent of gallery focus, filters and batch membership. Export/share targets only the active editor photo. Closing a tab preserves all project edits and original files; closing the last returns to the gallery. Optional tab IDs and the active tab are saved in schema-4 projects, with absent fields defaulting to an empty session in older projects. Per-tab tool context is retained during the current app session and starts at Adjust after reopening a project. Apply or cancel an overlay draft before switching tabs or workspaces.
+
+
+## Product naming
+
+The application is **Ameluma Photo**. Its iPhone/iPad home-screen display name is **Ameluma**. The Mac app bundle is `Ameluma Photo.app`; the iOS bundle is `Ameluma.app`. Xcode project/target names, Swift modules, bundle identifiers, security-scoped references and legacy Application Support locations retain their existing Framepebble identifiers for compatibility. No source or saved-project migration is required for this branding change.
+
+See [Collage tools and limits](docs/COLLAGES.md) for photo-filled shapes/text, reference mosaics, persistence and export behaviour.

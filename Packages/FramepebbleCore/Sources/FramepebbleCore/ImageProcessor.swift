@@ -90,7 +90,7 @@ public actor ImageProcessor {
         }
         return CGSize(width: max(1, w), height: max(1, h))
     }
-    public func render(_ url: URL, configuration c: ProcessingConfiguration, previewMaximum: Int? = nil) throws -> CGImage {
+    public func render(_ url: URL, configuration c: ProcessingConfiguration, previewMaximum: Int? = nil, decodeMaximum: Int? = nil) throws -> CGImage {
         try Task.checkCancellation()
         guard c.width > 0, c.height > 0, c.width <= 20000, c.height <= 20000, Double(c.width) * Double(c.height) <= 100_000_000, c.quality.isFinite, (0...1).contains(c.quality), c.percentage.isFinite, c.percentage > 0, c.crop.centerX.isFinite, c.crop.centerY.isFinite, c.crop.zoom.isFinite, (1...20).contains(c.crop.zoom), c.straighten.isFinite, c.crop.straighten.isFinite, abs(c.straighten + c.crop.straighten) <= 45, c.crop.aspectRatio.map({ $0.isFinite && $0 > 0 }) ?? true else { throw ProcessingError.invalidConfiguration }
         guard [c.background.red, c.background.green, c.background.blue, c.background.alpha].allSatisfy({ $0.isFinite && (0...1).contains($0) }) else { throw ProcessingError.invalidConfiguration }
@@ -99,7 +99,7 @@ public actor ImageProcessor {
         let cg: CGImage; var image: CIImage
         if let maximum = previewMaximum {
             guard maximum > 0 else { throw ProcessingError.invalidConfiguration }
-            cg = try thumbnail(url, maximum: min(20000, max(maximum, 1200))); image = CIImage(cgImage: cg)
+            cg = try thumbnail(url, maximum: min(20000, max(1, decodeMaximum ?? max(maximum, 1200)))); image = CIImage(cgImage: cg)
         } else {
             guard let decoded = CGImageSourceCreateImageAtIndex(source, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary) else { throw ProcessingError.invalidImage }
             cg = decoded; let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]

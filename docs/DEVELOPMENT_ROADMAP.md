@@ -42,3 +42,8 @@ Scoped workflow revision: implemented field-preserving edits, sparse inherited o
 ### Tabbed Editor update
 
 Completed: library-first navigation, separate batch and editor targets, unique closable photo tabs on Mac/iPad, compact Open Photos switcher, saved tab restoration, contextual Privacy tool and Privacy Review filter. Further work: draggable tab ordering, detachable editor windows and per-tab canvas zoom persistence are not implemented.
+
+
+### Art collage extension
+
+Implemented: named saved collage tabs, independent session histories, a 74-layout visual gallery, thumbnail source/reference selection, cell and whole-composition shapes, exact-count text/shape tiling, local colour/tone reference mosaics, reuse controls, progress/cancellation and bounded tile rendering. Next: representative physical-device/10,000-tile benchmarks, more fonts and text layout, arbitrary imported silhouettes, semantic matching and more advanced palette matching (only after measurement), detachable/reorderable tabs.

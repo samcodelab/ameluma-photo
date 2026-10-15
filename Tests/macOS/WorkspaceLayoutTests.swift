@@ -44,19 +44,20 @@ import XCTest
     hosting.frame = frame
     defer { model.persistenceTask?.cancel(); window.contentView = nil; window.close() }
     var expectedSize = frame.size
-    func capture(_ name: String) async throws {
-      hosting.layoutSubtreeIfNeeded()
+    func capture(_ name: String, view: NSView? = nil) async throws {
+      let target = view ?? hosting
+      target.layoutSubtreeIfNeeded()
       try await Task.sleep(for: .milliseconds(500))
-      hosting.layoutSubtreeIfNeeded()
-      let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+      target.layoutSubtreeIfNeeded()
+      let bitmap = try XCTUnwrap(target.bitmapImageRepForCachingDisplay(in: target.bounds))
       window.appearance?.performAsCurrentDrawingAppearance {
-        hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+        target.cacheDisplay(in: target.bounds, to: bitmap)
       }
       let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
       let attachment = XCTAttachment(data: data, uniformTypeIdentifier: UTType.png.identifier)
       attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
-      XCTAssertEqual(hosting.bounds.width, expectedSize.width)
-      XCTAssertEqual(hosting.bounds.height, expectedSize.height)
+      XCTAssertEqual(target.bounds.width, expectedSize.width)
+      XCTAssertEqual(target.bounds.height, expectedSize.height)
     }
     try await capture("Library gallery — dark")
     model.openPhoto(model.assets[1])
@@ -84,5 +85,28 @@ import XCTest
     try await capture("Small Mac window — light Adjust")
     model.precision = true
     try await capture("Small Mac window — light Crop")
+    model.switchWorkflow(.batch)
+    var edited = model.settings; edited.adjustments.exposure = 0.5
+    model.settings = edited
+    model.rotatePhoto(model.assets[0].id)
+    try await capture("Batch — History and Reset controls")
+    let historyHost = NSHostingView(rootView: EditingHistoryView(model: model).environment(\.colorScheme, .light))
+    historyHost.frame = NSRect(origin: .zero, size: expectedSize)
+    window.contentView = historyHost
+    try await capture("Undo History timeline", view: historyHost)
+    model.selection=Set(model.assets.map(\.id))
+    model.switchWorkflow(.collages);model.ensureCollageDocument()
+    model.newCollage(template:CollageTemplate.catalog[0])
+    model.generateCollageArt(shape:.text,text:"HELLO",sourceIDs:Set(model.assets.map(\.id)),count:100,referenceID:nil,reuse:true)
+    await model.collageGenerationTask?.value
+    let collageHost=NSHostingView(rootView:CollageEditor(model:model,embedded:true).environment(\.colorScheme,.light))
+    collageHost.frame=NSRect(origin:.zero,size:expectedSize);window.contentView=collageHost
+    try await Task.sleep(for:.seconds(2))
+    try await capture("Collage tabs — HELLO 100 photo tiles",view:collageHost)
+    let galleryHost=NSHostingView(rootView:CollageGallery(model:model).environment(\.colorScheme,.light))
+    galleryHost.frame=NSRect(origin:.zero,size:expectedSize);window.contentView=galleryHost
+    try await capture("Collage layout gallery",view:galleryHost)
+
+
   }
 }

@@ -10,7 +10,7 @@ struct LibrarySidebar: View {
         HStack(spacing: 10) {
           PebbleMark()
           VStack(alignment: .leading) {
-            Text("Framepebble").font(.headline)
+            Text("Ameluma Photo").font(.headline)
             Text("Your photos. Your way.").font(.caption2).foregroundStyle(.secondary)
           }
         }.padding(.vertical, 8)
@@ -109,6 +109,8 @@ struct LibrarySidebar: View {
 struct LibraryToolbar: View {
   @Bindable var model: Workspace
   @State private var confirmReset = false
+  @State private var confirmResetAll = false
+  @State private var resetPurpose = "Restore Original Appearance"
   @Environment(\.horizontalSizeClass) private var sizeClass
   @Environment(\.dynamicTypeSize) private var typeSize
   var galleryInstruction: String {
@@ -148,6 +150,15 @@ struct LibraryToolbar: View {
         }
       }
       }
+      if !model.browsingLibrary && model.workflow == .batch {
+        VStack(alignment: .leading, spacing: 4) {
+          Label(model.editScopeHeading, systemImage: "person.2").font(.headline)
+          if model.scope == .all && !model.selection.isEmpty {
+            Text("All imported photos are targeted, including photos outside this filter.").font(.caption).foregroundStyle(.secondary)
+            Button("Edit Only Selected Photos (\(model.selection.count))") { model.scope = .selected }
+          }
+        }.frame(maxWidth: .infinity, alignment: .leading)
+      }
       if typeSize.isAccessibilitySize {
         gallerySummary.frame(maxWidth: .infinity, alignment: .leading)
       } else {
@@ -157,6 +168,19 @@ struct LibraryToolbar: View {
           previewSizeControl
           undoRedoControls
         }
+      }
+      if !model.browsingLibrary && model.workflow == .batch {
+        ViewThatFits(in: .horizontal) {
+          HStack {
+            Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
+            Spacer()
+            resetAllButton
+          }
+          VStack(alignment: .leading, spacing: 8) {
+            Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
+            resetAllButton
+          }
+        }.disabled(model.running || model.analysing)
       }
       if model.browsingLibrary && !typeSize.isAccessibilitySize {
         ViewThatFits(in: .horizontal) {
@@ -205,17 +229,42 @@ struct LibraryToolbar: View {
         }
       }
     }.padding(.horizontal, 16).padding(.vertical, 10)
+      .sheet(isPresented: $model.historyPresented) { EditingHistoryView(model: model) }
+      .confirmationDialog(resetPurpose + " for \(model.assets.count) photos?", isPresented: $confirmResetAll, titleVisibility: .visible) {
+        Button(resetPurpose, role: .destructive) {
+          switch resetPurpose {
+          case "Reset Batch Settings": model.resetBatchSettingsOnly()
+          case "Remove Individual Overrides": model.removeAllIndividualOverrides()
+          default: model.restoreLibraryOriginalAppearance()
+          }
+        }
+        Button("Cancel", role: .cancel) {}
+      } message: {
+        Text(resetPurpose == "Restore Original Appearance"
+          ? "Restore the original appearance and native size of every imported photo, including hidden photos and editor tabs. Masks, annotations and watermarks are removed. Format, quality and metadata protection are retained. Checked export profiles still transform exported files. Undo is available. Originals are untouched."
+          : resetPurpose == "Reset Batch Settings"
+          ? "Return shared settings to 1600 × 1200 Fit and JPEG. Individual overrides are retained and may still change each photo. Checked export profiles remain active. Undo is available."
+          : "Remove every photo’s individual edits, including masks, so all photos inherit the current batch settings. This does not restore original appearance. Checked export profiles remain active. Undo is available.")
+      }
       .alert("Reset selected image edits?", isPresented: $confirmReset) {
         Button("Reset Edits", role: .destructive) { model.resetAllImageEdits(model.selection) }
         Button("Cancel", role: .cancel) {}
       } message: {
         Text(
-          "This resets framing, adjustments, masks and annotations for selected photos. Undo can restore them. Originals remain unchanged."
+          "This removes individual overrides from selected photos so they inherit batch settings again. Batch changes remain applied. Undo can restore the overrides. Originals remain unchanged."
         )
       }
   }
+  var resetAllButton: some View {
+    Menu("Reset Changes…", systemImage: "arrow.counterclockwise") {
+      ForEach(["Restore Original Appearance", "Reset Batch Settings", "Remove Individual Overrides"], id: \.self) { purpose in
+        Button(purpose + "…", role: .destructive) { resetPurpose = purpose; confirmResetAll = true }
+      }
+    }.disabled(model.running || model.analysing || model.assets.isEmpty)
+      .help("Choose which changes to reset. Each action supports Undo.")
+  }
   var gallerySummary: some View {
-    Text(model.gallerySummary + (model.mode == .browse ? " · Originals" : " · Processed results"))
+    Text((model.browsingLibrary ? "" : model.editScopeHeading + " · ") + model.gallerySummary + (model.mode == .browse ? " · Originals" : " · Processed results"))
       .font(.caption).foregroundStyle(.secondary)
   }
   @ViewBuilder var previewSizeControl: some View {
@@ -273,6 +322,7 @@ struct LibraryToolbar: View {
           Button("Redo edit") { model.redo() }.disabled(!model.canRedo)
           Divider()
         }
+        Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
         Button("Projects & Clear Photos…") { model.projectsView = true }
         Button("Privacy Review…") { model.sensitiveReviewPresented = true }
         Button("Select visible photos") { model.selectVisiblePhotos() }

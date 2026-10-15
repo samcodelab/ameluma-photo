@@ -85,7 +85,7 @@ struct ProjectsView: View {
     }.alert("Clear imported photos and edits?", isPresented: $confirmClear) {
       Button("Clear Imported Photos", role: .destructive) { Task { await model.clearImportedPhotos(); reload() } }
       Button("Cancel", role: .cancel) {}
-    } message: { Text("This cannot be undone. Current unsaved edits will be discarded. Import and processing will stop. Only unused copies in Framepebble’s local source storage are removed. Your originals, saved projects and exported files are preserved. Save a project copy first if you want to return to this work.") }
+    } message: { Text("This cannot be undone. Current unsaved edits will be discarded. Import and processing will stop. Only unused copies in Ameluma Photo’s local source storage are removed. Your originals, saved projects and exported files are preserved. Save a project copy first if you want to return to this work.") }
     .frame(minWidth: 320, minHeight: 440)
   }
   func reload() {

@@ -160,6 +160,92 @@ extension Workspace {
       commit(next)
     }
   }
+  /// Reset processing settings for the whole shared photo library, not only
+  /// visible results. Photos, compositions, recipes and saved profiles survive.
+  func resetAllProcessingChanges() {
+    guard !running, !analysing, !overlayEditor else { return }
+    endInteraction()
+    commit(EditingSnapshot(), title: "Reset All Changes · \(assets.count) photos")
+    proposals.removeAll()
+    precision = false
+    status = "Batch defaults and all individual photo edits reset. Undo restores them. Photos and originals remain untouched."
+  }
+  var editScopeHeading: String {
+    if workflow == .photo { return "Editing this photo" }
+    switch scope {
+    case .all: return "Editing all \(assets.count) imported photos"
+    case .selected: return "Editing \(targets.count) selected \(targets.count == 1 ? "photo" : "photos")"
+    case .results: return "Editing \(targets.count) matching \(targets.count == 1 ? "photo" : "photos")"
+    case .individual: return "Editing this photo"
+    }
+  }
+  func resetBatchSettingsOnly() {
+    guard !running, !analysing, !overlayEditor else { return }
+    var next = edits; next.settings = ProcessingConfiguration()
+    commit(next, title: "Reset Batch Settings · individual overrides retained")
+  }
+  func restoreLibraryOriginalAppearance() {
+    guard !running, !analysing, !overlayEditor else { return }
+    var next = edits
+    for asset in assets { next.restoreOriginalAppearance(for: asset.id) }
+    commit(next, title: "Restore Original Appearance · \(assets.count) photos")
+    proposals.removeAll()
+  }
+  func removeAllIndividualOverrides() {
+    guard !running, !analysing, !overlayEditor else { return }
+    var next = edits; next.overrides.removeAll()
+    commit(next, title: "Remove All Individual Overrides")
+    proposals.removeAll()
+  }
+  func moveEditingHistory(to id: UUID) {
+    guard !running, !analysing, !overlayEditor else { return }
+    endInteraction()
+    let before = edits
+    history.move(to: id)
+    edits = history.current
+    flagChangedFraming(before)
+    persist()
+  }
+  func restoreFullImageCrop(_ id: UUID) async {
+    guard !browsingLibrary, !overlayEditor, !running, current?.id == id,
+      let asset = assets.first(where: { $0.id == id }) else { return }
+    let before = configuration(for: asset)
+    do {
+      let size = try await processor.identify(asset.url)
+      guard !browsingLibrary, !overlayEditor, !running, current?.id == id,
+        configuration(for: asset) == before,
+        assets.contains(where: { $0.id == id && $0.url == asset.url }) else { return }
+      var next = edits
+      next.restoreFullImageCrop(for: id, sourceSize: size)
+      commit(next)
+      proposals.removeValue(forKey: id)
+      status = "Full image restored at original size. Other edits are retained. Undo is available."
+    } catch { issues.append("Could not reset this crop: " + error.localizedDescription) }
+  }
+  func applyPhotoCrop(_ rectangle: CGRect, sourceSize: CGSize, id: UUID) {
+    guard workflow == .photo, !browsingLibrary, !overlayEditor, !running,
+      current?.id == id, assets.contains(where: { $0.id == id }),
+      rectangle.width > 0, rectangle.height > 0 else { return }
+    var value = configuration(forID: id)
+    value.crop = CropGeometry.crop(selecting: rectangle, source: sourceSize, existing: value.crop)
+    let height = Double(value.width) / (value.crop.aspectRatio ?? 1)
+    guard height.isFinite else { return }
+    value.height = max(1, min(20000, Int(min(20000, max(1, height.rounded())))))
+    applyChange(ConfigurationPatch(values: value, fields: [
+      .crop_mode, .crop_framing, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .height
+    ]), ids: [id])
+  }
+  func restoreOriginalPhoto(_ id: UUID) {
+    guard workflow == .photo, !browsingLibrary, !overlayEditor, !running,
+      current?.id == id, assets.contains(where: { $0.id == id }) else { return }
+    var next = edits
+    next.restoreOriginalAppearance(for: id)
+    commit(next)
+    proposals.removeValue(forKey: id)
+    precision = false
+    inspectorTask = .adjust
+    status = "Original appearance and dimensions restored for this photo. Undo is available; export options are unchanged."
+  }
   func rotatePhoto(_ id: UUID) {
     guard assets.contains(where: { $0.id == id }) else { return }
     var config = configuration(forID: id)

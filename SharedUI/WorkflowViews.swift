@@ -33,6 +33,7 @@ struct PhotoEditorWorkspace: View {
   @Bindable var model: Workspace
   var openSettings: (() -> Void)? = nil
   @State private var original = false
+  @State private var restorePhotoID: UUID?
   @FocusState private var previewFocused: Bool
   @Environment(\.horizontalSizeClass) private var sizeClass
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -63,11 +64,13 @@ struct PhotoEditorWorkspace: View {
             }
           }.buttonStyle(.bordered).frame(maxWidth: .infinity, alignment: .leading)
         }
-        FramingSurface(
-          model: model, asset: asset, interactive: model.photoCanvasAllowsFraming && !original,
-          guides: model.precision && model.showGuides,
-          original: original
-        )
+        Group {
+          if model.precision && !original {
+            PhotoCropCanvas(model: model, asset: asset)
+          } else {
+            FramingSurface(model: model, asset: asset, interactive: false, original: original)
+          }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         #if os(macOS)
           .focusable().focused($previewFocused)
@@ -100,61 +103,27 @@ struct PhotoEditorWorkspace: View {
         Button("Open Photo Library", systemImage: "square.grid.2x2") { model.showLibrary() }
       }
     }.padding(16)
+      .sheet(isPresented: $model.historyPresented) { EditingHistoryView(model: model) }
+      .confirmationDialog("Restore Original?", isPresented: Binding(
+        get: { restorePhotoID != nil }, set: { if !$0 { restorePhotoID = nil } }
+      ), titleVisibility: .visible) {
+        Button("Restore Original", role: .destructive) {
+          if let id = restorePhotoID { model.restoreOriginalPhoto(id) }
+          original = false
+          restorePhotoID = nil
+        }
+        Button("Cancel", role: .cancel) { restorePhotoID = nil }
+      } message: {
+        Text("Restore this photo’s original appearance and dimensions? This removes adjustments, cropping, rotation, watermarks, annotations and privacy masks from this photo only. Export format, quality and metadata protection stay unchanged. Your original file is untouched, and you can Undo.")
+      }
       .onChange(of: model.precision) { _, enabled in if enabled { original = false } }
       .onChange(of: model.current?.id) { _, _ in original = false }
   }
-  @ViewBuilder var editorTabs: some View {
-    if sizeClass == .compact || typeSize.isAccessibilitySize {
-      HStack {
-        Menu {
-          ForEach(model.openEditorPhotos) { photo in
-            Button { model.activateEditorTab(photo.id) } label: {
-              Label(photo.name, systemImage: model.current?.id == photo.id ? "checkmark" : "photo")
-            }
-          }
-          Divider()
-          Button("Open Another Photo…", systemImage: "plus") { model.showLibrary() }
-        } label: {
-          Label("Open Photos (\(model.editorTabs.count))", systemImage: "square.on.square")
-        }.frame(minHeight: 44)
-        Spacer()
-        if let id = model.current?.id {
-          Button { model.closeEditorTab(id) } label: { Image(systemName: "xmark") }
-            .comfortableHitTarget().accessibilityLabel("Close photo; keep edits")
-        }
-      }
-    } else {
-      ScrollViewReader { proxy in
-        ScrollView(.horizontal) {
-          HStack(spacing: 4) {
-            ForEach(model.openEditorPhotos) { photo in
-              HStack(spacing: 6) {
-                Button { model.activateEditorTab(photo.id) } label: {
-                  Text(photo.name).lineLimit(1).frame(maxWidth: 180).comfortableHitTarget()
-                }.accessibilityValue(model.current?.id == photo.id ? "Active tab" : "")
-                Button { model.closeEditorTab(photo.id) } label: {
-                  Image(systemName: "xmark").font(.caption)
-                }.comfortableHitTarget().accessibilityLabel("Close " + photo.name + "; keep edits")
-                  .help("Close tab. Edits remain in the project.")
-              }.buttonStyle(.plain).padding(.horizontal, 12).padding(.vertical, 9)
-                .background(model.current?.id == photo.id ? Color.accentColor.opacity(0.16) : Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
-                .overlay(alignment: .bottom) {
-                  if model.current?.id == photo.id { Capsule().fill(Color.accentColor).frame(height: 2) }
-                }.id(photo.id)
-            }
-            Button { model.showLibrary() } label: { Image(systemName: "plus") }
-              .comfortableHitTarget().accessibilityLabel("Open another photo from library")
-          }
-        }.onChange(of: model.current?.id) { _, id in
-          if let id { proxy.scrollTo(id, anchor: .center) }
-        }
-      }.fixedSize(horizontal: false, vertical: true)
-    }
-  }
+  var editorTabs: some View { PhotoDocumentTabs(model: model) }
   var previewLabel: String {
     if sizeClass == .compact { return original ? "Original" : model.precision ? "Cropping" : "Edited" }
     return original ? "Original · no edits" : model.precision
-      ? "Crop & Frame · drag to reposition · pinch to zoom" : "Processed · current photo only"
+      ? "Crop view · drag boundaries or move the crop · overlays appear in Edited preview" : "Processed · current photo only"
   }
   @ViewBuilder func photoHeader(_ asset: SourceAsset) -> some View {
     if sizeClass == .compact || typeSize.isAccessibilitySize {
@@ -206,19 +175,35 @@ struct PhotoEditorWorkspace: View {
       .font(.caption).foregroundStyle(.secondary)
   }
   @ViewBuilder func editTransferControls(_ asset: SourceAsset) -> some View {
-    if sizeClass == .compact {
-      Menu("Edits") {
-        Button("Copy Chosen Edits…") { model.copySourceID = asset.id }
-        Button("Paste Chosen Edits") { model.pasteEdits(to: [asset.id]) }
-          .disabled(model.copiedEdits == nil)
-      }
+    if sizeClass == .compact || typeSize.isAccessibilitySize {
+      Menu("Edits") { editMenuActions(asset) }
     } else {
-      HStack {
-        Button("Copy Chosen Edits…") { model.copySourceID = asset.id }
-        Button("Paste Chosen Edits") { model.pasteEdits(to: [asset.id]) }
-          .disabled(model.copiedEdits == nil)
+      ViewThatFits(in: .horizontal) {
+        HStack {
+          Button("Copy Chosen Edits…") { model.copySourceID = asset.id }
+          Button("Paste Chosen Edits") { model.pasteEdits(to: [asset.id]) }
+            .disabled(model.copiedEdits == nil)
+          restoreOriginalButton(asset)
+        }.fixedSize(horizontal: true, vertical: false)
+        Menu("Edits") { editMenuActions(asset) }
       }
     }
+  }
+  @ViewBuilder private func editMenuActions(_ asset: SourceAsset) -> some View {
+    Button("Copy Chosen Edits…") { model.copySourceID = asset.id }
+    Button("Paste Chosen Edits") { model.pasteEdits(to: [asset.id]) }
+      .disabled(model.copiedEdits == nil)
+    Divider()
+    Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
+    Button("Undo") { model.undo() }.disabled(!model.canUndo)
+    Button("Redo") { model.redo() }.disabled(!model.canRedo)
+    Divider()
+    restoreOriginalButton(asset)
+  }
+  private func restoreOriginalButton(_ asset: SourceAsset) -> some View {
+    Button("Restore Original…", systemImage: "arrow.uturn.backward") { restorePhotoID = asset.id }
+      .disabled(model.running || model.overlayEditor)
+      .help("Remove this photo’s edits and return to its original dimensions. Undo is available.")
   }
   @ViewBuilder private func toolActions(_ asset: SourceAsset) -> some View {
     ForEach(PhotoTool.allCases, id: \.self) { tool in toolButton(tool, asset) }
@@ -338,5 +323,61 @@ struct OutputPreview: View {
           } catch is CancellationError {} catch { failure = error.localizedDescription }
         }
     }.frame(minWidth: 320, minHeight: 480)
+  }
+}
+
+/// Installed view environment keeps phone and accessibility tab presentation adaptive,
+/// including while the privacy/annotation draft uses the same document strip.
+struct PhotoDocumentTabs: View {
+  @Bindable var model: Workspace
+  @Environment(\.horizontalSizeClass) private var sizeClass
+  @Environment(\.dynamicTypeSize) private var typeSize
+  @ViewBuilder var body: some View {
+    if sizeClass == .compact || typeSize.isAccessibilitySize {
+      HStack {
+        Menu {
+          ForEach(model.openEditorPhotos) { photo in
+            Button { model.activateEditorTab(photo.id) } label: {
+              Label(photo.name, systemImage: model.current?.id == photo.id ? "checkmark" : "photo")
+            }
+          }
+          Divider()
+          Button("Open Another Photo…", systemImage: "plus") { model.showLibrary() }
+        } label: {
+          Label("Open Photos (\(model.editorTabs.count))", systemImage: "square.on.square")
+        }.frame(minHeight: 44)
+        Spacer()
+        if let id = model.current?.id {
+          Button { model.closeEditorTab(id) } label: { Image(systemName: "xmark") }
+            .comfortableHitTarget().accessibilityLabel("Close photo; keep edits")
+        }
+      }
+    } else {
+      ScrollViewReader { proxy in
+        ScrollView(.horizontal) {
+          HStack(spacing: 4) {
+            ForEach(model.openEditorPhotos) { photo in
+              HStack(spacing: 6) {
+                Button { model.activateEditorTab(photo.id) } label: {
+                  Text(photo.name).lineLimit(1).frame(maxWidth: 180).comfortableHitTarget()
+                }.accessibilityValue(model.current?.id == photo.id ? "Active tab" : "")
+                Button { model.closeEditorTab(photo.id) } label: {
+                  Image(systemName: "xmark").font(.caption)
+                }.comfortableHitTarget().accessibilityLabel("Close " + photo.name + "; keep edits")
+                  .help("Close tab. Edits remain in the project.")
+              }.buttonStyle(.plain).padding(.horizontal, 12).padding(.vertical, 9)
+                .background(model.current?.id == photo.id ? Color.accentColor.opacity(0.16) : Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                .overlay(alignment: .bottom) {
+                  if model.current?.id == photo.id { Capsule().fill(Color.accentColor).frame(height: 2) }
+                }.id(photo.id)
+            }
+            Button { model.showLibrary() } label: { Image(systemName: "plus") }
+              .comfortableHitTarget().accessibilityLabel("Open another photo from library")
+          }
+        }.onChange(of: model.current?.id) { _, id in
+          if let id { proxy.scrollTo(id, anchor: .center) }
+        }
+      }.fixedSize(horizontal: false, vertical: true)
+    }
   }
 }

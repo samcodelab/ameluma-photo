@@ -5,6 +5,19 @@ import UniformTypeIdentifiers
 @testable import FramepebbleCore
 
 final class FeatureTests: XCTestCase {
+    func testDirectCropBoundariesRoundTripInTransformedSourceCoordinates() {
+        for source in [CGSize(width: 4000, height: 3000), CGSize(width: 3000, height: 4000)] {
+            let rectangle = CGRect(x: source.width * 0.1, y: source.height * 0.2,
+                                   width: source.width * 0.6, height: source.height * 0.5)
+            let crop = CropGeometry.crop(selecting: rectangle, source: source, existing: CropConfiguration())
+            let output = CropGeometry.rect(source: source, ratio: crop.aspectRatio ?? 1, crop: crop)
+            XCTAssertEqual(output.minX, rectangle.minX, accuracy: 0.001)
+            XCTAssertEqual(output.minY, rectangle.minY, accuracy: 0.001)
+            XCTAssertEqual(output.width, rectangle.width, accuracy: 0.001)
+            XCTAssertEqual(output.height, rectangle.height, accuracy: 0.001)
+            XCTAssertEqual(crop.framing, .manual)
+        }
+    }
     func image(width: Int = 160, height: Int = 80, alpha: CGFloat = 1, profile: CFString = CGColorSpace.sRGB, properties: [CFString: Any] = [:]) throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".png")
         let ctx = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4, space: try XCTUnwrap(CGColorSpace(name: profile)), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
@@ -189,4 +202,27 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(dragged.centerX,0.3,accuracy:0.00001)
     }
 
+}
+
+extension FeatureTests {
+    func testHistoryTimelineNamesChangesAndLimitsMemory() throws {
+        var history = EditingHistory()
+        var snapshot = history.current
+        snapshot.settings.adjustments.exposure = 0.5
+        history.apply(snapshot)
+        XCTAssertTrue(history.steps.last?.title.contains("Exposure") == true)
+        let first = try XCTUnwrap(history.steps.first?.id)
+        let edited = try XCTUnwrap(history.steps.last?.id)
+        history.move(to: first)
+        XCTAssertEqual(history.current, EditingSnapshot())
+        XCTAssertTrue(history.steps.last?.isRedo == true)
+        history.move(to: edited)
+        XCTAssertEqual(history.current, snapshot)
+        for index in 0..<100 {
+            snapshot.settings.quality = Double(index) / 100
+            history.apply(snapshot)
+        }
+        XCTAssertEqual(history.steps.count, 81)
+        XCTAssertFalse(history.steps.contains { $0.id == first })
+    }
 }

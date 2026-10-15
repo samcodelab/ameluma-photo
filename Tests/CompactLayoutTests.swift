@@ -93,7 +93,14 @@ import XCTest
     try await capture("Phone gallery — light", view: ImageCollection(model: model), type: .large, scheme: .light)
     try await capture("Phone gallery — accessibility", view: ImageCollection(model: model), type: .accessibility3, scheme: .dark)
     try await capture("Phone gallery — largest text", view: ImageCollection(model: model), type: .accessibility5, scheme: .dark, requirePhoto: true)
+    model.rotatePhoto(model.assets[0].id)
+    try await capture("Phone Undo History — accessibility", view: EditingHistoryView(model: model), type: .accessibility3, scheme: .dark)
     XCTAssertTrue(model.browsingLibrary)
     XCTAssertEqual(model.assets.count, 6)
+    model.switchWorkflow(.collages);model.selection=Set(model.assets.map(\.id));model.ensureCollageDocument()
+    model.newCollage(template:CollageTemplate.catalog[1])
+    try await capture("Phone collage tabs",view:CollageEditor(model:model),type:.large,scheme:.light)
+    try await capture("Phone collage layout gallery",view:CollageGallery(model:model),type:.large,scheme:.light)
+
   }
 }

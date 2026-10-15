@@ -168,6 +168,25 @@ public enum ProcessingError: Error, LocalizedError {
     } }
 }
 public struct CropGeometry {
+    /// Inverse of rect: a top-left source-pixel rectangle becomes the same
+    /// normalized crop state used by batch framing and final rendering.
+    public static func crop(selecting rectangle: CGRect, source: CGSize, existing: CropConfiguration) -> CropConfiguration {
+        guard source.width > 0, source.height > 0,
+              rectangle.minX.isFinite, rectangle.minY.isFinite,
+              rectangle.width.isFinite, rectangle.height.isFinite else { return existing }
+        let rect = rectangle.standardized.intersection(CGRect(origin: .zero, size: source))
+        guard !rect.isNull, rect.width > 0, rect.height > 0 else { return existing }
+        var result = existing
+        let ratio = Double(rect.width / rect.height)
+        let base = self.rect(source: source, ratio: ratio, crop: CropConfiguration())
+        result.mode = .manualCrop; result.framing = .manual
+        result.aspectRatio = ratio
+        result.centerX = Double(rect.midX / source.width)
+        result.centerY = Double(rect.midY / source.height)
+        result.zoom = min(20, max(1, Double(base.width / rect.width)))
+        return result
+    }
+
     public static func rect(source: CGSize, ratio: Double, crop: CropConfiguration) -> CGRect {
         guard source.width > 0, source.height > 0, ratio.isFinite, ratio > 0, crop.zoom.isFinite, crop.centerX.isFinite, crop.centerY.isFinite else { return .zero }
         let r = CGFloat(ratio)

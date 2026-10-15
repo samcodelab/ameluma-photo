@@ -13,7 +13,7 @@ struct HelpPrivacyView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
-          Text("Framepebble · Broad Frame Studio").font(.headline)
+          Text("Ameluma Photo · Broad Frame Studio").font(.headline)
           Text(
             "Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")"
           ).font(.caption).foregroundStyle(.secondary)
@@ -37,7 +37,7 @@ struct HelpPrivacyView: View {
             Divider()
             Text("Local storage").font(.headline)
             Text(
-              "Quit Framepebble before changing its local files. Removing saved source copies can make projects unavailable. Export important results first. This does not erase originals or files saved elsewhere."
+              "Quit Ameluma Photo before changing its local files. Removing saved source copies can make projects unavailable. Export important results first. This does not erase originals or files saved elsewhere."
             ).font(.callout)
             Button("Show local storage in Finder", systemImage: "folder") {
               NSWorkspace.shared.activateFileViewerSelecting([storageDirectory])

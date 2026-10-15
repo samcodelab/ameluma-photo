@@ -288,7 +288,7 @@ struct PrecisionEditor: View {
       }
       Toggle("Show original", isOn: $showOriginal).tint(.blue)
       } else {
-        Text("Drag the photo in the main canvas to reframe. Pinch or Option-scroll to zoom.")
+        Text("Drag crop edges or corners in the main canvas to resize; drag inside to move. Numeric controls adjust the same crop.")
           .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
       }
       HStack {
@@ -313,7 +313,14 @@ struct PrecisionEditor: View {
           }
         }.disabled(model.analysing)
       }.buttonStyle(.bordered).font(.caption)
+      Button("Reset Crop · Full Image", systemImage: "arrow.up.left.and.arrow.down.right") {
+        if let id = model.current?.id { Task { await model.restoreFullImageCrop(id); showOriginal = false } }
+      }.buttonStyle(.bordered)
+        .help("Reveal the complete source at its original size. Keep adjustments, rotation, masks, annotations and export options. Undo is available.")
       Menu("Output aspect ratio") {
+        Button("Original · Full Image") {
+          if let id = model.current?.id { Task { await model.restoreFullImageCrop(id); showOriginal = false } }
+        }
         Button("Square") { aspect(1) }
         Button("4:3") { aspect(4.0 / 3) }
         Button("3:2") { aspect(1.5) }
@@ -386,5 +393,116 @@ struct PrecisionEditor: View {
   }
   func aspect(_ ratio: Double) {
     if let asset = model.current { model.setImageAspect(ratio, for: asset.id) }
+  }
+}
+
+/// Single-photo crop boundaries edit the shared crop definition, never source pixels.
+/// Output width is retained; freeform boundary changes derive output height.
+struct PhotoCropCanvas: View {
+  @Bindable var model: Workspace
+  let asset: SourceAsset
+  @State private var image: CGImage?
+  @State private var sourceSize = CGSize(width: 1, height: 1)
+  @State private var startRect: CGRect?
+  @State private var draftRect: CGRect?
+  @State private var error: String?
+  var config: ProcessingConfiguration { model.configuration(for: asset) }
+  var cropRect: CGRect {
+    if let draftRect { return draftRect }
+    let output = ImageProcessor.outputSize(source: sourceSize, configuration: config)
+    return FramingLayout(source: sourceSize, output: output, configuration: config).cropRect
+  }
+  var body: some View {
+    GeometryReader { geometry in
+      let scale = min(geometry.size.width / sourceSize.width, geometry.size.height / sourceSize.height)
+      let size = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+      ZStack {
+        if let image {
+          Image(decorative: image, scale: 1).resizable().frame(width: size.width, height: size.height)
+          let rect = CGRect(x: cropRect.minX * scale, y: cropRect.minY * scale,
+                            width: cropRect.width * scale, height: cropRect.height * scale)
+          Path { path in
+            path.addRect(CGRect(origin: .zero, size: size)); path.addRect(rect)
+          }.fill(.black.opacity(0.5), style: FillStyle(eoFill: true)).allowsHitTesting(false)
+          Rectangle().fill(.clear).contentShape(Rectangle())
+            .overlay {
+              if model.showGuides { FramingGuides() }
+              else { Rectangle().stroke(.white, lineWidth: 1).allowsHitTesting(false) }
+            }
+            .frame(width: rect.width, height: rect.height)
+            .position(x: rect.midX, y: rect.midY)
+            .gesture(cropGesture(scale: scale, handle: nil))
+            .accessibilityLabel("Crop selection. Drag to move; use precision controls for numeric positioning.")
+          if model.showSubjects, let proposal = model.proposals[asset.id] {
+            ForEach(Array(proposal.subjects.enumerated()), id: \.offset) { _, box in
+              Rectangle().stroke(.orange, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                .frame(width: box.width * size.width, height: box.height * size.height)
+                .position(x: box.midX * size.width, y: box.midY * size.height)
+            }.allowsHitTesting(false)
+          }
+          ForEach(0..<8, id: \.self) { index in
+            let x = [0.0, 0.5, 1.0, 1.0, 1.0, 0.5, 0.0, 0.0][index]
+            let y = [0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 0.5][index]
+            Circle().fill(.white).frame(width: 9, height: 9)
+              .frame(width: 44, height: 44).contentShape(Rectangle())
+              .position(x: rect.minX + rect.width * x, y: rect.minY + rect.height * y)
+              .gesture(cropGesture(scale: scale, handle: CGPoint(x: x, y: y)))
+              .accessibilityLabel("Resize crop boundary \(index + 1)")
+          }
+        } else if let error { Text(error).font(.caption) }
+        else { ProgressView("Loading crop view…") }
+        VStack {
+          Spacer()
+          Text("Crop view · overlays hidden")
+            .font(.caption).padding(6).background(.regularMaterial)
+        }.allowsHitTesting(false)
+        SensitivePreviewCover(model: model, ids: [asset.id])
+      }.frame(width: size.width, height: size.height)
+        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+    }.task(id: PreviewKey(id: asset.id, configuration: uncropped)) {
+      do {
+        let dimensions = try await model.processor.identify(asset.url)
+        let size = ImageProcessor.transformedSize(dimensions, configuration: config)
+        let preview = try await model.processor.render(asset.url, configuration: uncropped, previewMaximum: 1200)
+        try Task.checkCancellation()
+        sourceSize = size; image = preview; error = nil
+      } catch is CancellationError {} catch { self.error = error.localizedDescription }
+    }
+  }
+  struct PreviewKey: Equatable { var id: UUID; var configuration: ProcessingConfiguration }
+  var uncropped: ProcessingConfiguration {
+    var value = config
+    value.crop.mode = .preserveAspectRatio; value.resizeBasis = .percentage; value.percentage = 100
+    value.crop.zoom = 1; value.crop.aspectRatio = nil
+    value.crop.centerX = 0.5; value.crop.centerY = 0.5
+    value.masks = []; value.annotations = []; value.watermark.enabled = false
+    value.canvasStyle = CanvasStyle()
+    return value
+  }
+  func cropGesture(scale: CGFloat, handle: CGPoint?) -> some Gesture {
+    DragGesture(minimumDistance: 2).onChanged { gesture in
+      guard !model.sensitivity.concealed(asset.id), scale > 0 else { return }
+      if startRect == nil { startRect = cropRect }
+      guard let start = startRect else { return }
+      let dx = gesture.translation.width / scale, dy = gesture.translation.height / scale
+      var rect = start
+      if let handle {
+        var left = start.minX, right = start.maxX, top = start.minY, bottom = start.maxY
+        let minimumX = sourceSize.width / 20, minimumY = sourceSize.height / 20
+        if handle.x == 0 { left = min(right - minimumX, max(0, left + dx)) }
+        if handle.x == 1 { right = max(left + minimumX, min(sourceSize.width, right + dx)) }
+        if handle.y == 0 { top = min(bottom - minimumY, max(0, top + dy)) }
+        if handle.y == 1 { bottom = max(top + minimumY, min(sourceSize.height, bottom + dy)) }
+        rect = CGRect(x: left, y: top, width: right - left, height: bottom - top)
+      } else {
+        rect.origin.x = min(sourceSize.width - rect.width, max(0, start.minX + dx))
+        rect.origin.y = min(sourceSize.height - rect.height, max(0, start.minY + dy))
+      }
+      draftRect = rect
+    }.onEnded { _ in
+      defer { startRect = nil; draftRect = nil }
+      guard let rect = draftRect, rect != startRect else { return }
+      model.applyPhotoCrop(rect, sourceSize: sourceSize, id: asset.id)
+    }
   }
 }

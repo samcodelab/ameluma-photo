@@ -58,7 +58,7 @@ actor AutomationScanner {
 @MainActor @Observable final class Automations {
   static let shared = Automations()
   var recipes: [AutomationRecipe] = []
-  var message = "Monitoring runs while Framepebble is open."
+  var message = "Monitoring runs while Ameluma Photo is open."
   var task: Task<Void, Never>?
   private var stopping = false
   var busy = false

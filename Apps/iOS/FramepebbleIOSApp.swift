@@ -40,7 +40,10 @@ struct MobileWorkspace: View {
           GeometryReader { geometry in
             Group {
               if model.overlayEditor {
-                OverlayEditor(model: model, embedded: true).privacyCurtain(model: model)
+                VStack(spacing: 0) {
+                  PhotoDocumentTabs(model: model).padding(12).disabled(true)
+                  OverlayEditor(model: model, embedded: true)
+                }.privacyCurtain(model: model)
               } else {
                 HStack(spacing: 0) {
                   collection.frame(maxWidth: .infinity)
@@ -82,7 +85,7 @@ struct MobileWorkspace: View {
       } else {
         NavigationStack {
           Group { if home { homeScreen } else { collection } }.navigationTitle(
-            home ? "Framepebble" : model.workspaceTitle
+            home ? "Ameluma Photo" : model.workspaceTitle
           ).navigationBarTitleDisplayMode(.inline).toolbar {
             ToolbarItem(placement: .topBarLeading) {
               if !home {
@@ -134,7 +137,10 @@ struct MobileWorkspace: View {
               && !(UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular)
           }, set: { model.overlayEditor = $0 }), onDismiss: model.finishOverlayPresentation
       ) {
-        OverlayEditor(model: model).privacyCurtain(model: model)
+        VStack(spacing: 0) {
+          PhotoDocumentTabs(model: model).padding(.horizontal).disabled(true)
+          OverlayEditor(model: model)
+        }.privacyCurtain(model: model)
       }
       .sheet(isPresented: $model.collageEditor) {
         CollageEditor(model: model).privacyCurtain(model: model)

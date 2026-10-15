@@ -46,6 +46,34 @@ public struct EditingSnapshot: Codable, Sendable, Equatable {
         value.crop = patch.applying(to: settings).crop
         overrides[id] = value
     }
+    /// Reveal the complete oriented source at native size, retaining every
+    /// unrelated edit. Explicit height clears legacy aspect-derived dimensions.
+    public mutating func restoreFullImageCrop(for id: UUID, sourceSize: CGSize) {
+        var value = configuration(for: id)
+        let size = ImageProcessor.transformedSize(sourceSize, configuration: value)
+        value.width = Int(size.width.rounded()); value.height = Int(size.height.rounded())
+        value.crop.mode = .manualCrop
+        value.crop.framing = .centre
+        value.crop.centerX = 0.5; value.crop.centerY = 0.5
+        value.crop.zoom = 1; value.crop.aspectRatio = nil
+        value.resizeBasis = .percentage; value.percentage = 100
+        apply(ConfigurationPatch(values: value, fields: [
+            .crop_mode, .crop_framing, .crop_centerX, .crop_centerY,
+            .crop_zoom, .crop_aspectRatio, .resizeBasis, .percentage, .width, .height
+        ]), to: id)
+    }
+    /// Restore source appearance and native dimensions for one photo, even when
+    /// batch defaults contain edits. Encoding and metadata protection are retained.
+    public mutating func restoreOriginalAppearance(for id: UUID) {
+        var neutral = ProcessingConfiguration()
+        neutral.crop.mode = .preserveAspectRatio
+        neutral.resizeBasis = .percentage
+        neutral.percentage = 100
+        let fields = Set(ConfigurationField.allCases.filter {
+            $0.category != .output && $0 != .privacyExport
+        })
+        apply(ConfigurationPatch(values: neutral, fields: fields), to: id)
+    }
     public mutating func reset(_ categories: Set<EditCategory>, for id: UUID) {
         migrateLegacyOverrides()
         guard var value = overrides[id], var patch = value.patch else { return }
@@ -58,17 +86,65 @@ public struct EditingSnapshot: Codable, Sendable, Equatable {
     }
 }
 /// One state store is used by thumbnails, precision controls, presets and exports.
+public struct EditingHistoryStep: Identifiable, Sendable {
+    public let id: UUID
+    public let title: String
+    public let isCurrent: Bool
+    public let isRedo: Bool
+}
 public struct EditingHistory: Sendable {
-    public private(set) var current = EditingSnapshot()
-    private var undoStack: [EditingSnapshot] = []
-    private var redoStack: [EditingSnapshot] = []
-    public init(snapshot: EditingSnapshot = EditingSnapshot()) { current = snapshot }
+    private struct State: Sendable {
+        var id = UUID()
+        var title: String
+        var snapshot: EditingSnapshot
+    }
+    private var state: State
+    private var undoStack: [State] = []
+    private var redoStack: [State] = []
+    public var current: EditingSnapshot { state.snapshot }
+    public init(snapshot: EditingSnapshot = EditingSnapshot()) {
+        state = State(title: "Session Start", snapshot: snapshot)
+    }
     public var canUndo: Bool { !undoStack.isEmpty }
     public var canRedo: Bool { !redoStack.isEmpty }
-    public mutating func apply(_ snapshot: EditingSnapshot) {
-        guard snapshot != current else { return }
-        undoStack.append(current); if undoStack.count > 80 { undoStack.removeFirst() }; current = snapshot; redoStack = []
+    public var steps: [EditingHistoryStep] {
+        undoStack.map { EditingHistoryStep(id: $0.id, title: $0.title, isCurrent: false, isRedo: false) }
+        + [EditingHistoryStep(id: state.id, title: state.title, isCurrent: true, isRedo: false)]
+        + redoStack.reversed().map { EditingHistoryStep(id: $0.id, title: $0.title, isCurrent: false, isRedo: true) }
     }
-    public mutating func undo() { guard let state = undoStack.popLast() else { return }; redoStack.append(current); current = state }
-    public mutating func redo() { guard let state = redoStack.popLast() else { return }; undoStack.append(current); current = state }
+    public mutating func apply(_ snapshot: EditingSnapshot, title: String? = nil) {
+        guard snapshot != current else { return }
+        let batchFields = ConfigurationPatch(from: current.settings, to: snapshot.settings).fields
+        let ids = Set(current.overrides.keys).union(snapshot.overrides.keys).filter {
+            current.overrides[$0] != snapshot.overrides[$0]
+        }
+        var fields = batchFields
+        for id in ids {
+            fields.formUnion(ConfigurationPatch(from: current.configuration(for: id), to: snapshot.configuration(for: id)).fields)
+        }
+        let detail = fields.count == 1 ? (fields.first?.displayName ?? "Edit")
+            : Set(fields.map { $0.category.rawValue }).sorted().joined(separator: ", ")
+        let scope = !batchFields.isEmpty ? "Batch" : "\(ids.count) \(ids.count == 1 ? "photo" : "photos")"
+        let label = title ?? (detail.isEmpty ? "Edit settings" : scope + " · " + detail)
+        undoStack.append(state)
+        if undoStack.count > 80 { undoStack.removeFirst() }
+        state = State(title: label, snapshot: snapshot)
+        redoStack = []
+    }
+    public mutating func undo() {
+        guard let previous = undoStack.popLast() else { return }
+        redoStack.append(state); state = previous
+    }
+    public mutating func redo() {
+        guard let next = redoStack.popLast() else { return }
+        undoStack.append(state); state = next
+    }
+    /// Moving along the timeline retains the redo branch until a new edit is made.
+    public mutating func move(to id: UUID) {
+        if undoStack.contains(where: { $0.id == id }) {
+            while state.id != id && canUndo { undo() }
+        } else if redoStack.contains(where: { $0.id == id }) {
+            while state.id != id && canRedo { redo() }
+        }
+    }
 }

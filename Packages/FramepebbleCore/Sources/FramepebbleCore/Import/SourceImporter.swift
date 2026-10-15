@@ -153,7 +153,7 @@ private enum SourceImportError: LocalizedError {
   case tooLarge, changed, ownedFolder
   var errorDescription: String? {
     switch self {
-    case .ownedFolder: "Choose an import folder outside Framepebble’s private source storage."
+    case .ownedFolder: "Choose an import folder outside Ameluma Photo’s private source storage."
     case .tooLarge: "The image file exceeds the 512 MB import limit."
     case .changed:
       "The source changed while copying. Wait for the transfer to finish, then import it again."

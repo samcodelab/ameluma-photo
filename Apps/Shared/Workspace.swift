@@ -39,6 +39,14 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var collageEditor = false
     var collageOutputs: [URL] = []
     var collage = CollageProject()
+    var collageDocuments: [SavedCollage] = []
+    var openCollageIDs: [UUID] = []
+    var activeCollageID: UUID?
+    var collageHistories: [UUID: ([CollageProject],[CollageProject])] = [:]
+    let collageArtBuilder = CollageArtBuilder()
+    var collageGenerationTask: Task<Void,Never>?
+    var collageGenerating = false
+    var collageArtProgress = CollageArtProgress("Preparing collage",0,1)
     var collageUndo: [CollageProject] = []
     var collageRedo: [CollageProject] = []
     var projectsView = false
@@ -70,6 +78,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var favourites: Set<UUID> = []
     var edits = EditingSnapshot()
     var history = EditingHistory()
+    var historyPresented = false
     var index = ClassificationIndex()
     var proposals: [UUID: FramingProposal] = [:]
     var profiles: [ExportProfile] = []
@@ -221,10 +230,10 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         let id = visible[min(visible.count - 1, max(0, pos + delta))].id
         if workflow == .photo && !browsingLibrary { activateEditorTab(id) } else { selected = id }
     }
-    func commit(_ next: EditingSnapshot) {
+    func commit(_ next: EditingSnapshot, title: String? = nil) {
         if next != edits && mode == .browse { mode = .frame }
         edits = next
-        if interactionStart == nil { history.apply(next); persist() }
+        if interactionStart == nil { history.apply(next, title: title); persist() }
     }
     func beginInteraction() { if interactionStart == nil { interactionStart = edits } }
     func endInteraction() { guard interactionStart != nil else { return }; interactionStart = nil; history.apply(edits); persist() }
@@ -329,6 +338,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
                 results = doc.completedJobs.compactMap { job in guard let source = assets.first(where: { $0.id == job.sourceID }) else { return nil }; var result = ProcessingResult(source: source, output: job.output, error: job.error); result.id = job.id; return result }
                 selected = assets.first?.id
                 restoreEditorTabs(doc)
+                restoreCollageDocuments(doc)
                 let missing = assets.filter { !FileManager.default.fileExists(atPath: $0.url.path) }
                 for asset in missing { issues.append("Missing source: \(asset.name). Reimport the original to continue.") }
                 status = "Restored \(assets.count) images."
@@ -362,7 +372,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         return doc
     }
     func document() -> ProjectDocument {
-        var doc = ProjectDocument(); doc.editorTabIDs = editorTabs; doc.activeEditorPhotoID = editorPhotoID; doc.sources = assets; doc.edits = edits; doc.favourites = favourites; doc.classifications = index; doc.proposals = proposals; doc.profiles = profiles; doc.namingTemplate = namingTemplate; doc.selectedProfiles = exportProfiles; doc.watermarkPresets = watermarkPresets; doc.collage = collage; doc.collageOutputs = collageOutputs; doc.privateEditing = privateEditing; doc.requirePrivacyReview = requirePrivacyReview; doc.pendingExports = pendingExports; doc.completedJobs = results.map { ProcessingJob(id: $0.id, sourceID: $0.source.id, output: $0.output, error: $0.error) }; return doc
+        var doc = ProjectDocument(); doc.editorTabIDs = editorTabs; doc.activeEditorPhotoID = editorPhotoID; doc.sources = assets; doc.edits = edits; doc.favourites = favourites; doc.classifications = index; doc.proposals = proposals; doc.profiles = profiles; doc.namingTemplate = namingTemplate; doc.selectedProfiles = exportProfiles; doc.watermarkPresets = watermarkPresets; doc.collage = collage; doc.collages = savedCollages; doc.openCollageIDs = openCollageIDs; doc.activeCollageID = activeCollageID; doc.collageOutputs = collageOutputs; doc.privateEditing = privateEditing; doc.requirePrivacyReview = requirePrivacyReview; doc.pendingExports = pendingExports; doc.completedJobs = results.map { ProcessingJob(id: $0.id, sourceID: $0.source.id, output: $0.output, error: $0.error) }; return doc
     }
     var completedOutputs: [URL] { results.compactMap(\.output) + collageOutputs }
     func saveProjectCopy() async throws -> URL {
@@ -370,10 +380,10 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         let label=Date().formatted(.iso8601).replacingOccurrences(of:":",with:"-")
         let url=folder.appendingPathComponent("Project-"+label+"-"+UUID().uuidString.prefix(6)+".json");try await store.save(document(),to:url);return url
     }
-    func stopWork() async { sensitivityTask?.cancel(); await sensitivityTask?.value; cancelImport(); await importTask?.value; await fileImportTask?.value; collageTask?.cancel(); await collageTask?.value; task?.cancel(); analysisTask?.cancel(); indexingTask?.cancel(); await task?.value; await analysisTask?.value; await indexingTask?.value }
+    func stopWork() async { sensitivityTask?.cancel(); await sensitivityTask?.value; cancelImport(); await importTask?.value; await fileImportTask?.value; collageGenerationTask?.cancel(); await collageGenerationTask?.value; collageTask?.cancel(); await collageTask?.value; task?.cancel(); analysisTask?.cancel(); indexingTask?.cancel(); await task?.value; await analysisTask?.value; await indexingTask?.value }
     func newProject() async {
         guard !clearingWorkspace else { return }
-        do { await stopWork(); _ = try await saveProjectCopy(); sensitivity = SensitiveReviewState();resetEditorTabs();assets=[];selected=nil;selection=[];favourites=[];duplicates=DuplicateIndex();edits=EditingSnapshot();history=EditingHistory();proposals=[:];index=ClassificationIndex();results=[];pendingExports=[];collage=CollageProject();collageOutputs=[];collageUndo=[];collageRedo=[];await flush();status="New project. Previous work remains in Recent Projects." } catch { issues.append("Could not preserve the previous project: \(error.localizedDescription)") }
+        do { await stopWork(); _ = try await saveProjectCopy(); sensitivity = SensitiveReviewState();resetEditorTabs();resetCollageDocuments();assets=[];selected=nil;selection=[];favourites=[];duplicates=DuplicateIndex();edits=EditingSnapshot();history=EditingHistory();proposals=[:];index=ClassificationIndex();results=[];pendingExports=[];collage=CollageProject();collageOutputs=[];collageUndo=[];collageRedo=[];await flush();status="New project. Previous work remains in Recent Projects." } catch { issues.append("Could not preserve the previous project: \(error.localizedDescription)") }
     }
     func openProject(_ url:URL) async {
         guard !clearingWorkspace else { return }
@@ -381,6 +391,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         do {
             let doc=relocate(try await store.load(url));if doc.privateEditing {concealed=true};await stopWork();_ = try await saveProjectCopy();sensitivity = SensitiveReviewState();resetEditorTabs();assets=doc.sources;edits=doc.edits;history=EditingHistory(snapshot:edits);favourites=doc.favourites;index=doc.classifications;proposals=doc.proposals;profiles=doc.profiles;collage=doc.collage ?? CollageProject();collageOutputs=doc.collageOutputs;collageUndo=[];collageRedo=[];pendingExports=doc.pendingExports;results=[];selected=assets.first?.id;selection=[];watermarkPresets=doc.watermarkPresets;namingTemplate=doc.namingTemplate;exportProfiles=doc.selectedProfiles;privateEditing=doc.privateEditing;requirePrivacyReview=doc.requirePrivacyReview
             restoreEditorTabs(doc)
+            restoreCollageDocuments(doc)
             for asset in assets where !FileManager.default.fileExists(atPath:asset.url.path) {issues.append("Missing source: \(asset.name). Select it and use Projects → Relink.")};await flush();startIndexing()
         } catch {issues.append("Project could not be opened: \(error.localizedDescription)")}
     }

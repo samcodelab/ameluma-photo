@@ -522,3 +522,13 @@ Batch Edit, Photo Editor, Collages and Mac Automations share sources and the pro
 ## Library and tabbed editor navigation
 
 Editor is the user-facing name of the single-photo workflow. Mac/iPad use closable photo tabs; iPhone uses Open Photos. Tabs are separate from gallery focus and batch selection. Closing tabs retains project edits and sources. Optional schema-4 tab IDs restore without changing legacy effective output. Privacy is an Editor tool; Privacy Review is a gallery filter. Never change tabs while a privacy/annotation draft is active.
+
+
+## Product rename
+
+User-facing product name: Ameluma Photo. iOS/iPadOS home-screen name: Ameluma. Retain existing bundle identifiers, internal FramepebbleCore module and legacy storage locations to preserve signing and project compatibility. Do not rename storage paths without a tested migration.
+
+
+## Multiple collage compositions
+
+Collage tabs have separate source placements and session Undo/Redo, share the photo library, and close without deleting SavedCollage records. Optional schema-4 fields migrate the legacy single collage. Core collage paths/layouts/matching must remain shared. Art generation is local, cancellable and commits only complete, non-stale results. Do not promise perfect reference likeness, uniform tile geometry in shape/text art, arbitrary font/emoji silhouettes or physical-device scale validation that has not occurred. Share only the active composition’s successful captured export.

@@ -52,3 +52,18 @@ Async preview requests capture their requested configuration before awaiting pro
 Double-click a library photo (tap on iPhone) to open it in Editor. Reopening the same photo activates its existing tab. Tabs retain their own tool context while the app is running. Close a tab to close its view; its edits remain in the project, and original files are never deleted. Closing the last tab returns to the library. Mac Command-W closes the current photo tab. Open-photo IDs and the active tab are saved with the project; older projects open normally with no tabs. Tool context starts with Adjust after reopening a saved project.
 
 Privacy Review remains a gallery filter, not a separate editing workflow. Right-click/long-press **Edit with Privacy Tool** opens that photo’s editor tab with Privacy active. Apply or Cancel the privacy/annotation draft before changing tabs. Batch selection and export scope are not changed by opening or closing a photo tab. Library filtering still removes hidden photos from the explicit selected group.
+
+
+Restore Original in Editor writes explicit neutral appearance overrides for the active photo, using Preserve Aspect Ratio at 100% for native dimensions. It intentionally overrides inherited visual batch changes while retaining export/compression/metadata fields and privacy-export protection. It removes crop dimension derivation and authored masks/annotations, commits one Undo step, and leaves other sources, batch settings and files unchanged. Confirmation is required; the Original preview toggle remains comparison only.
+
+
+### Expand a crop back to the full image
+
+In Crop & Frame, choose **Reset Crop · Full Image** (also available as **Original · Full Image** in Output aspect ratio). This reveals the complete source at native dimensions while retaining rotation, adjustments, watermarks, masks, annotations and export settings. Undo restores the previous crop. **Use Batch Framing** instead returns to inherited batch framing; **Restore Original** removes all visual edits. Crops never discard the source pixels. Masks and annotations retain their normalised output positions; review their placement after changing framing.
+
+
+### Undo History and Reset All Changes
+
+Batch Edit has visible **Undo History…** and **Reset All Changes…** controls. The photo-edit timeline is shared by batch changes and individual editor tabs. Choose a history row to return to its state, then use later rows or Redo to move forward again. A new edit removes the redo branch. History holds up to 80 Undo steps for the current session; reopening a project starts history at its saved state. Imports, exports, collages and automation recipes have separate lifecycles and are not part of this timeline. Editor’s Edits menu and the Mac Edit menu also open history.
+
+Reset All Changes confirms that it affects every imported photo, including hidden photos and individual editor-tab overrides. It restores initial batch defaults (1600×1200 Fit, JPEG) and clears individual processing edits, including masks/annotations/watermarks. It is a single Undo step. Photos, original files, favourite flags, saved profiles, compositions, recipes and completed exports remain intact. Checked export profiles remain selected and still apply on export; reset those selections separately when needed. Reset selected edits only removes the selected photos’ overrides and returns them to the current batch defaults.

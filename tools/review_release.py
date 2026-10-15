@@ -53,7 +53,7 @@ def main():
         try:
             info = read_plist(content / 'Info.plist')
             check(info.get('CFBundleIdentifier') == 'com.broadframestudio.framepebble', f'{platform}: shared Release bundle identity')
-            check(info.get('CFBundleDisplayName') == 'Framepebble', f'{platform}: display name')
+            check(info.get('CFBundleDisplayName') == ('Ameluma Photo' if platform == 'macOS' else 'Ameluma'), f'{platform}: display name')
             check(bool(info.get('CFBundleShortVersionString')) and bool(info.get('CFBundleVersion')), f'{platform}: version and build number')
             check(not info.get('NSAppTransportSecurity', {}).get('NSAllowsArbitraryLoads', False), f'{platform}: no unrestricted transport exception')
             if platform == 'iOS':
