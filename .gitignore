@@ -1,0 +1,46 @@
+# macOS metadata
+.DS_Store
+._*
+
+# Xcode and Swift Package Manager build output (including nested packages)
+.build/
+build/
+DerivedData/
+*.xcresult/
+*.xcarchive/
+*.dSYM/
+*.dSYM.zip
+*.ipa
+*.app/
+
+# Per-user Xcode/SwiftPM state; keep shared schemes and Package.resolved
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+.swiftpm/xcode/xcuserdata/
+
+# Local signing credentials and provisioning profiles
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
+
+# Local environment files; allow a documented example
+.env
+.env.*
+!.env.example
+
+# Python helper-script caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# Local UI review captures; retain app icons and other product assets
+/docs/screenshots/

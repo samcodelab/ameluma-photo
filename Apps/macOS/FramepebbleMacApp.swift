@@ -1,0 +1,290 @@
+import AppKit
+import FramepebbleCore
+import SwiftUI
+
+@MainActor final class FramepebbleDelegate: NSObject, NSApplicationDelegate {
+  var workspace: Workspace?
+  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+  func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    guard let workspace else { return .terminateNow }
+    Task {
+      await Automations.shared.stop()
+      await workspace.stopWork()
+      let previousIssues = workspace.issues.count
+      await workspace.flush()
+      let saved = workspace.issues.count == previousIssues
+      if !saved && !workspace.isReviewSession { Automations.shared.start() }
+      sender.reply(toApplicationShouldTerminate: saved)
+    }
+    return .terminateLater
+  }
+}
+
+@main struct FramepebbleMacApp: App {
+  @NSApplicationDelegateAdaptor(FramepebbleDelegate.self) private var delegate
+  @State private var model = Workspace(startInLibrary: true)
+  var body: some Scene {
+    Window("Framepebble", id: "studio") {
+      if NSClassFromString("XCTestCase") != nil {
+        Text("Automated tests are running.").padding(40)
+      } else {
+        MacWorkspace(model: model).task {
+          await model.start()
+          delegate.workspace = model
+          if !model.isReviewSession { Automations.shared.start() }
+        }
+      }
+    }.defaultLaunchBehavior(.presented).defaultSize(width: 1280, height: 820).windowResizability(.contentMinSize)
+      .commands {
+        CommandGroup(replacing: .undoRedo) {
+          Button("Undo") {
+            if model.overlayEditor { model.overlaySession?.undo() } else { model.undo() }
+          }
+          .keyboardShortcut("z").disabled(
+            model.overlayEditor ? !(model.overlaySession?.canUndo ?? false) : !model.canUndo)
+          Button("Redo") {
+            if model.overlayEditor { model.overlaySession?.redo() } else { model.redo() }
+          }
+          .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(
+            model.overlayEditor ? !(model.overlaySession?.canRedo ?? false) : !model.canRedo)
+        }
+        CommandGroup(replacing: .newItem) {
+          Button("New Project") { Task { await model.newProject() } }.keyboardShortcut("n")
+          Button("Close Project") { Task { await model.closeProject() } }.keyboardShortcut(
+            "w", modifiers: [.command, .shift])
+          Button("Projects & Clear Photos…") { model.projectsView = true }
+          Button("Import Images…") { MacWorkspace(model: model).importImages() }.keyboardShortcut(
+            "o")
+          Button("Export " + model.actionLabel + "…") { MacWorkspace(model: model).exportImages() }.keyboardShortcut(
+            "e"
+          ).disabled(model.targets.isEmpty || model.running)
+        }
+        CommandGroup(before: .saveItem) {
+          if model.workflow == .photo && !model.browsingLibrary && !model.editorTabs.isEmpty {
+            Button("Close Photo Tab") {
+              if let id = model.current?.id { model.closeEditorTab(id) }
+            }.keyboardShortcut("w").disabled(model.overlayEditor)
+          }
+        }
+        CommandGroup(replacing: .help) {
+          Button("Framepebble Help & Privacy") { model.helpPresented = true }
+        }
+        CommandMenu("Photo") {
+          Button("Rotate Clockwise") {
+            if let asset = model.current {
+              var c = model.configuration(for: asset)
+              c.quarterTurns += 1
+              model.setImageConfiguration(c, for: asset.id)
+            }
+          }.keyboardShortcut("r").disabled(model.current == nil)
+          Button("Conceal Workspace") { model.concealed = true }.keyboardShortcut(
+            "h", modifiers: [.command, .shift])
+          Button("Privacy Review") { model.showLibrary(.privacyReview, clearSearch: true) }.disabled(model.assets.isEmpty)
+          Button("Make a Collage…") { model.switchWorkflow(.collages) }.disabled(
+            model.assets.isEmpty || model.running)
+        }
+      }
+    MenuBarExtra("Framepebble", systemImage: "photo.badge.arrow.down") {
+      FramepebbleStatusMenu(model: model)
+    }
+  }
+}
+struct MacWorkspace: View {
+  @Bindable var model: Workspace
+  @State private var showAutomations = false
+  @State private var showInspector = true
+  @State private var inspectorWidth: CGFloat = 350
+  @State private var resizeStart: CGFloat?
+  var body: some View {
+    HStack(spacing: 0) {
+      if !model.overlayEditor {
+        LibrarySidebar(model: model, openAutomations: { showAutomations = true }).frame(width: 220)
+        Divider()
+      }
+      if model.overlayEditor {
+        OverlayEditor(model: model, embedded: true)
+      } else if model.browsingLibrary {
+        VStack(spacing: 0) {
+          ImageCollection(model: model, importAction: importImages)
+          if model.isImporting { ImportProgressView(model: model) }
+          ExportStatus(model: model).padding(.horizontal, 16).padding(.bottom, 8)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else if model.workflow == .automations {
+        AutomationDashboard(automations: Automations.shared, embedded: true)
+      } else if model.workflow == .collages {
+        CollageEditor(model: model, embedded: true)
+      } else {
+        Group {
+          if model.workflow == .photo { PhotoEditorWorkspace(model: model, openSettings: { showInspector = true }) }
+          else { ImageCollection(model: model, importAction: importImages) }
+        }.safeAreaInset(
+          edge: .bottom, spacing: 0
+        ) {
+          if model.isImporting { ImportProgressView(model: model) }
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        if showInspector {
+          Rectangle().fill(Color.secondary.opacity(0.2)).frame(width: 5).contentShape(Rectangle())
+            .gesture(
+              DragGesture(minimumDistance: 0).onChanged { value in
+                if resizeStart == nil { resizeStart = inspectorWidth }
+                inspectorWidth = min(470, max(310, (resizeStart ?? 350) - value.translation.width))
+              }.onEnded { _ in resizeStart = nil }
+            )
+            .accessibilityLabel("Resize inspector")
+          VStack(spacing: 0) {
+            if model.precision {
+              ScrollView { PrecisionEditor(model: model, showsPreview: model.workflow != .photo) }
+            } else {
+              SettingsEditor(model: model, focused: model.workflow == .photo)
+            }
+            Divider()
+            VStack(spacing: 10) {
+              ExportPlanView(model: model)
+              Button("Export " + model.actionLabel + "…", action: exportImages).buttonStyle(
+                .borderedProminent
+              ).controlSize(.large).frame(maxWidth: .infinity).disabled(
+                model.targets.isEmpty || model.running)
+              if !model.pendingExports.isEmpty {
+                Button("Retry unfinished exports…") { exportImages(retry: true) }.disabled(
+                  model.running)
+              }
+              ExportStatus(model: model)
+            }.padding(14)
+          }.frame(width: inspectorWidth)
+        }
+      }
+    }.frame(minWidth: showInspector && !model.browsingLibrary ? 1040 : 740, minHeight: 600)
+      .background(Color(nsColor: .windowBackgroundColor)).disabled(model.clearingWorkspace)
+      .toolbar {
+        ToolbarItemGroup {
+          if model.browsingLibrary && !model.overlayEditor {
+            Button(action: importImages) { Label("Import", systemImage: "plus") }.keyboardShortcut("o")
+            Button("Projects", systemImage: "folder") { model.projectsView = true }
+          }
+          if !model.browsingLibrary && !model.overlayEditor && (model.workflow == .photo || model.workflow == .batch) {
+            Button(action: importImages) { Label("Import", systemImage: "plus") }.keyboardShortcut(
+              "o")
+            Button("Rotate " + model.actionLabel, systemImage: "rotate.right") { model.rotateTargets() }
+              .disabled(model.targets.isEmpty).help("Rotate the labelled target clockwise")
+            Button("Auto-frame " + model.actionLabel, systemImage: "sparkles") { model.autoFrame(.smart) }.disabled(
+              model.analysing || model.targets.isEmpty)
+            Button("Share " + model.actionLabel, systemImage: "square.and.arrow.up") { prepareShare() }.disabled(
+              model.targets.isEmpty || model.running)
+            Button(action: exportImages) { Label("Export " + model.actionLabel, systemImage: "square.and.arrow.down") }
+              .keyboardShortcut("e").disabled(model.targets.isEmpty || model.running)
+            Menu {
+              Button("Automations", systemImage: "folder.badge.gearshape") {
+                showAutomations = true
+              }
+              Button("Privacy Review", systemImage: "checkmark.shield") {
+                model.sensitiveReviewPresented = true
+              }
+              Button("Projects", systemImage: "folder") { model.projectsView = true }
+              Button("Conceal workspace", systemImage: "eye.slash") { model.concealed = true }
+            } label: {
+              Label("More", systemImage: "ellipsis.circle")
+            }
+            Button {
+              showInspector.toggle()
+            } label: {
+              Image(systemName: "sidebar.right")
+            }.accessibilityLabel(showInspector ? "Hide editing controls" : "Show editing controls")
+          }
+        }
+      }
+      .onDrop(of: BrowserDropImporter.acceptedTypes, isTargeted: nil) { providers in
+        BrowserDropImporter.start(providers, model: model)
+      }
+      .sheet(
+        isPresented: $model.sensitiveReviewPresented,
+        onDismiss: model.finishPrivacyReviewPresentation
+      ) { SensitiveReviewView(model: model).privacyCurtain(model: model) }
+      .sheet(isPresented: $model.helpPresented) {
+        HelpPrivacyView(storageDirectory: model.directory.deletingLastPathComponent())
+          .privacyCurtain(model: model)
+      }
+      .sheet(isPresented: $showAutomations) {
+        AutomationDashboard(automations: Automations.shared).privacyCurtain(model: model)
+      }
+      .sheet(isPresented: $model.collageEditor) {
+        CollageEditor(model: model).privacyCurtain(model: model)
+      }
+      .sheet(isPresented: Binding(get: { model.copySourceID != nil }, set: { if !$0 { model.copySourceID = nil } })) {
+        CopyEditsChooser(model: model)
+      }
+      .sheet(isPresented: $model.projectsView) {
+        ProjectsView(model: model).privacyCurtain(model: model)
+      }
+      .sheet(item: $model.sharingSession) { session in
+        ShareReview(urls: session.outputs, summary: session.summary, analyzer: model.sensitiveAnalyzer).privacyCurtain(
+          model: model)
+      }
+      .overlay {
+        if model.concealed {
+          Color(nsColor: .windowBackgroundColor).overlay(
+            Button("Reveal workspace", systemImage: "eye") { model.concealed = false }.buttonStyle(
+              .borderedProminent))
+        }
+      }
+
+      .onChange(of: model.precision) { _, enabled in if enabled { showInspector = true } }
+
+  }
+  func prepareShare() {
+    let directory = model.directory.deletingLastPathComponent().appendingPathComponent("Exports")
+    do {
+      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+      model.export(to: directory) { urls in model.beginSharing(urls) }
+    } catch { model.issues.append(error.localizedDescription) }
+  }
+  func importImages() {
+    let panel = NSOpenPanel()
+    panel.allowedContentTypes = ImageProcessor.importTypes
+    panel.canChooseDirectories = true
+    panel.allowsMultipleSelection = true
+    panel.begin { response in
+      guard response == .OK else { return }
+      let urls = panel.urls
+      Task { await model.importURLs(urls) }
+    }
+  }
+  func exportImages() { exportImages(retry: false) }
+  func exportImages(retry: Bool, targetIDs: Set<UUID>? = nil) {
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = true
+    panel.canChooseFiles = false
+    panel.prompt = "Export here"
+    panel.message = targetIDs == nil ? model.exportPlanSummary : "This photo → 1 file · current edits"
+    panel.title = targetIDs == nil ? "Export " + model.actionLabel : "Export This Photo"
+    panel.begin { response in
+      guard response == .OK, let url = panel.url else { return }
+      model.export(to: url, retry: retry, targetIDs: targetIDs)
+    }
+  }
+}
+
+private struct FramepebbleStatusMenu: View {
+  @Bindable var model: Workspace
+  @Environment(\.openWindow) private var openWindow
+  var body: some View {
+    Button("Open Framepebble") {
+      openWindow(id: "studio")
+      NSApplication.shared.activate()
+    }
+    Divider()
+    Text("Monitoring requires Framepebble to remain open.")
+    Text("\(Automations.shared.recipes.filter(\.enabled).count) workflows enabled")
+    ForEach(Automations.shared.recipes) { recipe in
+      Button("\(recipe.enabled ? "Pause" : "Resume") \(recipe.name)") {
+        Automations.shared.toggle(recipe.id)
+      }
+    }
+    Divider()
+    Button("Help & Privacy") {
+      openWindow(id: "studio")
+      NSApplication.shared.activate()
+      model.helpPresented = true
+    }
+    Button("Quit Framepebble") { NSApplication.shared.terminate(nil) }
+  }
+}

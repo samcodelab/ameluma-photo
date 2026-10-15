@@ -1,0 +1,39 @@
+{
+  "passed_checks": [
+    "Mac sandbox, selected-file access and persistent bookmark entitlements",
+    "No network or sandbox-exception entitlements",
+    "macOS: shared Release bundle identity",
+    "macOS: display name",
+    "macOS: version and build number",
+    "macOS: no unrestricted transport exception",
+    "macOS: deployment target",
+    "macOS: photography category",
+    "macOS: no tracking/collected-data manifest declarations",
+    "macOS: audited timestamp reasons",
+    "macOS: bundled PrivacyPolicy.md",
+    "macOS: bundled Help.md",
+    "macOS: bundled Distribution.plist",
+    "macOS: current policy/support configuration bundled",
+    "iOS: shared Release bundle identity",
+    "iOS: display name",
+    "iOS: version and build number",
+    "iOS: no unrestricted transport exception",
+    "iOS: add-only Photos purpose string",
+    "iOS: iPhone and iPad support",
+    "iOS: deployment target",
+    "iOS: no tracking/collected-data manifest declarations",
+    "iOS: audited timestamp reasons",
+    "iOS: bundled PrivacyPolicy.md",
+    "iOS: bundled Help.md",
+    "iOS: bundled Distribution.plist",
+    "iOS: current policy/support configuration bundled"
+  ],
+  "failures": [],
+  "submission_blockers": [
+    "PrivacyPolicyURL: supply and independently verify a working public HTTPS page",
+    "SupportURL: supply and independently verify a working public HTTPS page",
+    "macOS: distribution signature/team not verified",
+    "iOS: distribution signature/team not verified"
+  ],
+  "scope": "Static preflight only; signed device testing, website availability, App Store Connect declarations and Apple review remain required."
+}
