@@ -568,7 +568,7 @@ extension WorkflowWorkspaceTests {
     XCTAssertNil(model.current)
     model.switchWorkflow(.photo)
     XCTAssertEqual(model.current?.id, a.id, "Explicit editor tabs are independent of library filters")
-    XCTAssertEqual(model.selection, [], "Existing filtering rules clear hidden gallery selection")
+    XCTAssertEqual(model.selection, batch, "Filtering retains hidden workspace selection")
     model.activateEditorTab(b.id)
     XCTAssertTrue(model.precision)
     model.closeEditorTab(a.id)

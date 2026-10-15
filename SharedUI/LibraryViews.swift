@@ -15,7 +15,7 @@ struct LibrarySidebar: View {
           }
         }.padding(.vertical, 8)
       }
-      Section("Photo Library") {
+      Section("Workspace") {
         Text(model.projectName).font(.headline).lineLimit(2)
         Button("Projects…", systemImage: "folder") { model.projectsView = true }
         ForEach(LibraryScope.allCases.filter { $0 != .exceptions || !model.edits.overrides.isEmpty }, id: \.self) { category in
@@ -30,7 +30,7 @@ struct LibrarySidebar: View {
           }
         }
       }
-      Section("Workspaces") {
+      Section("Tools") {
         ForEach(StudioWorkflow.allCases, id: \.self) { workflow in
           #if os(iOS)
           if workflow != .automations { workflowButton(workflow) }
@@ -40,7 +40,7 @@ struct LibrarySidebar: View {
         }
       }
       Section("Smart Search") {
-        TextField("Recognised content", text: $model.query)
+        TextField("Filename or recognised content", text: $model.query)
           .onChange(of: model.query) { _, _ in model.showLibrary() }
         if !model.query.isEmpty {
           Button("Clear search", systemImage: "xmark.circle") { model.query = "" }
@@ -321,6 +321,7 @@ struct LibraryToolbar: View {
   }
   var selectionControls: some View {
     HStack {
+      Menu("Actions") { WorkspaceActions(model: model, ids: model.orderedSelection) }
       Button(model.selecting ? "Done" : "Select") { model.toggleSelectionMode() }.disabled(
         model.assets.isEmpty)
       Menu {
@@ -494,6 +495,8 @@ struct ImageTile: View {
       model.openPhoto(asset, refine: true)
     }
     .contextMenu {
+      WorkspaceActions(model: model, ids: model.contextIDs(for: asset.id))
+      Divider()
       Text("This photo: " + asset.name)
       Button("Open in Editor", systemImage: "slider.horizontal.3") { model.openPhoto(asset) }
       Divider()
@@ -564,15 +567,16 @@ struct ImageCollection: View {
   var body: some View {
     VStack(spacing: 0) {
       LibraryToolbar(model: model).fixedSize(horizontal: false, vertical: true)
+      WorkspaceFilterControls(model: model)
       Divider()
       if model.assets.isEmpty {
         ContentUnavailableView {
-          Label("Add your photos", systemImage: "photo.on.rectangle.angled")
+          Label("Your photo workspace", systemImage: "photo.on.rectangle.angled")
         } description: {
-          Text("Import photos or drop files and folders here. Your originals stay unchanged.")
+          Text("Add some photos to start editing, creating or converting.")
         } actions: {
           if let importAction {
-            Button("Import Photos…", action: importAction).buttonStyle(.borderedProminent)
+            Button("Add Photos", action: importAction).buttonStyle(.borderedProminent)
               .controlSize(.large)
           }
         }.frame(maxHeight: .infinity)

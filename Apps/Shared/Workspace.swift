@@ -3,7 +3,7 @@ import FramepebbleCore
 import UniformTypeIdentifiers
 
 enum WorkspaceMode: String, CaseIterable { case browse = "Browse", frame = "Frame", compare = "Compare" }
-enum LibraryScope: String, CaseIterable { case exceptions = "Individual Overrides", all = "All Images", favourites = "Favourites", edited = "Edited", review = "Needs Review", privacyReview = "Privacy Review" }
+enum LibraryScope: String, CaseIterable { case exceptions = "Individual Overrides", all = "Workspace", favourites = "Favourites", edited = "Edited", review = "Needs Review", privacyReview = "Privacy Review" }
 enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Selected images", results = "Search results", individual = "Current image" }
 
 @MainActor @Observable final class Workspace {
@@ -23,8 +23,11 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var activePhotoID: UUID?
     /// Legacy UI accessor; active photo and the explicit selected-ID set are independent.
     var selected: UUID? { get { workflow == .photo && !browsingLibrary ? editorPhotoID ?? activePhotoID : activePhotoID } set { if workflow == .photo && !browsingLibrary { editorPhotoID = newValue } else { activePhotoID = newValue } } }
-    var selection: Set<UUID> = []
+    var selection: Set<UUID> = [] { didSet { selectionOrder.removeAll { !selection.contains($0) }; selectionOrder.append(contentsOf: assets.map(\.id).filter { selection.contains($0) && !selectionOrder.contains($0) }) } }
     var selecting = false
+    var selectionOrder: [UUID] = []
+    var workspaceFilter = WorkspaceFilter() { didSet { reconcileVisibleSelection() } }
+    var photoInfo: [UUID: WorkspacePhotoInfo] = [:]
     var mode: WorkspaceMode = .browse
     var library: LibraryScope = .all { didSet { reconcileVisibleSelection() } }
     var query = "" { didSet { reconcileVisibleSelection() } }
@@ -187,7 +190,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var filtered: [SourceAsset] {
         let emptyQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         // Common gallery path is O(1): no full-array copy, UUID dictionary or classification pass.
-        if library == .all && emptyQuery { return assets }
+        if library == .all && emptyQuery && !workspaceFilter.isActive { return assets }
         let privacyIDs = library == .privacyReview ? sensitivity.flagged : []
         let base = library == .all ? assets : assets.filter { asset in
             switch library {
@@ -199,9 +202,11 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
             case .privacyReview: privacyIDs.contains(asset.id) || privacyCoverageNeedsReview(asset.id)
             }
         }
-        if emptyQuery { return base }
-        let ids = index.matches(query: query, candidates: base.map(\.id))
-        let lookup = Dictionary(uniqueKeysWithValues: base.map { ($0.id, $0) })
+        let narrowed = workspaceFilter.apply(to: base, information: photoInfo)
+        if emptyQuery { return narrowed }
+        let recognised = Set(index.matches(query: query, candidates: narrowed.map(\.id)))
+        let ids = narrowed.filter { recognised.contains($0.id) || $0.name.localizedCaseInsensitiveContains(query) }.map(\.id)
+        let lookup = Dictionary(uniqueKeysWithValues: narrowed.map { ($0.id, $0) })
         return ids.compactMap { lookup[$0] }
     }
     var targets: [SourceAsset] {
@@ -209,7 +214,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         if workflow == .photo { return current.map { [$0] } ?? [] }
         if workflow == .automations || workflow == .collages { return [] }
         if let ids = batchInputIDs { return assets.filter { ids.contains($0.id) } }
-        return switch scope { case .all: assets; case .selected: filtered.filter { selection.contains($0.id) }; case .results: filtered; case .individual: current.map { [$0] } ?? [] }
+        return switch scope { case .all: assets; case .selected: assets.filter { selection.contains($0.id) }; case .results: filtered; case .individual: current.map { [$0] } ?? [] }
     }
     var canUndo: Bool { history.canUndo }
     var canRedo: Bool { history.canRedo }
@@ -217,7 +222,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var gallerySummary: String {
         let visible = filtered.count
         let photos = "\(visible) " + (visible == 1 ? "photo" : "photos")
-        return selecting || scope == .selected ? photos + " · \(selection.count) selected" : photos
+        return selecting || scope == .selected ? photos + " · \(selection.count) selected (\(selection.subtracting(Set(filtered.map(\.id))).count) hidden)" : photos
     }
     var targetSummary: String {
         let count = targets.count
@@ -225,9 +230,9 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     }
     func toggleSelectionMode() {
         selecting.toggle()
-        if selecting { scope = .selected; selection = [] }
+        if selecting { scope = .selected }
     }
-    func selectVisiblePhotos() { selection = Set(filtered.map(\.id)); selecting = true; scope = .selected }
+    func selectVisiblePhotos() { selection.formUnion(filtered.map(\.id)); selecting = true; scope = .selected }
     func select(_ asset: SourceAsset) {
         galleryFocusToken += 1
         selected = asset.id
@@ -530,7 +535,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     }
     func importData(_ data: Data, name: String) async {
         guard !clearingWorkspace else { return }
-        do { let a = try await processor.importData(data, name: name, to: directory); let unique = await duplicates.insert(data); if skipDuplicates && !unique { try? FileManager.default.removeItem(at: a.url); if importing { importSkipped += 1 }; status = "Duplicate skipped."; return }; assets.append(a); selected = selected ?? a.id; if importing { importCompleted += 1 }; status = "\(assets.count) images in your library."; persist(); startIndexing() }
+        do { let a = try await processor.importData(data, name: name, to: directory); let unique = await duplicates.insert(data); if skipDuplicates && !unique { try? FileManager.default.removeItem(at: a.url); if importing { importSkipped += 1 }; status = "Duplicate skipped."; return }; assets.append(a); selected = selected ?? a.id; if importing { importCompleted += 1 }; status = "\(assets.count) photos in your workspace."; persist(); startIndexing() }
         catch { if importing { importFailed += 1 }; status = error.localizedDescription; issues.append(status) }
     }
     func visibility(_ id: UUID, visible: Bool) { if visible { visibleIDs.insert(id) } else { visibleIDs.remove(id) } }

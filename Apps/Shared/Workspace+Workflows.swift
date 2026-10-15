@@ -120,7 +120,7 @@ extension Workspace {
   func reconcileVisibleSelection() {
     let visible = filtered
     let ids = Set(visible.map(\.id))
-    selection.formIntersection(ids)
+    selection.formIntersection(Set(assets.map(\.id)))
     if !(activePhotoID.map { ids.contains($0) } ?? false) { activePhotoID = visible.first?.id }
     if let anchor = selectionAnchor, !ids.contains(anchor) { selectionAnchor = nil }
   }

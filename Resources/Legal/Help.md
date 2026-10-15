@@ -86,7 +86,7 @@ To resize a selected privacy area or annotation without changing its proportions
 
 ### Start in the gallery
 
-Choose **All Images** in Photo Library to see the full gallery. On Mac, double-click a photo to open Editor; on iPhone tap it outside selection mode. Right-click or long-press for **Open in Editor** or **Edit with Privacy Tool**. Use **Gallery** to return. Select multiple photos and choose **Batch Edit Selected** for a batch. Browsing does not reset edits, and the library’s project/clear actions never delete original files.
+Choose **Workspace** in Workspace to see the full gallery. On Mac, double-click a photo to open Editor; on iPhone tap it outside selection mode. Right-click or long-press for **Open in Editor** or **Edit with Privacy Tool**. Use **Gallery** to return. Select multiple photos and choose **Batch Edit Selected** for a batch. Browsing does not reset edits, and the library’s project/clear actions never delete original files.
 
 ### Editor tools
 

@@ -283,7 +283,7 @@ struct MobileWorkspace: View {
           model.showLibrary(.all, clearSearch: true)
           home = false
         } label: {
-          Label("Photo Library · \(model.assets.count) photos", systemImage: "photo.on.rectangle.angled")
+          Label("Workspace · \(model.assets.count) photos", systemImage: "photo.on.rectangle.angled")
             .font(.headline).frame(maxWidth: .infinity, alignment: .leading).padding(16)
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
         }.buttonStyle(.plain)
