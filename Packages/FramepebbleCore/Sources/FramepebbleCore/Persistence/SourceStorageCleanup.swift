@@ -39,3 +39,26 @@ public actor SourceStorageCleanup {
         return removed
     }
 }
+
+public struct SourceStorageSummary: Sendable {
+    public var managedFiles: Int
+    public var totalBytes: Int64
+    public var retainedBytes: Int64
+    public var removableBytes: Int64 { max(0, totalBytes - retainedBytes) }
+}
+extension SourceStorageCleanup {
+    /// Read-only accounting of the same owned regular snapshots cleanup can remove.
+    public func summary(in directory: URL, retaining names: Set<String>) throws -> SourceStorageSummary {
+        var summary = SourceStorageSummary(managedFiles: 0, totalBytes: 0, retainedBytes: 0)
+        for file in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey]) {
+            try Task.checkCancellation()
+            guard UUID(uuidString: file.deletingPathExtension().lastPathComponent) != nil else { continue }
+            let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+            guard values.isRegularFile == true, values.isSymbolicLink != true else { continue }
+            let bytes = Int64(values.fileSize ?? 0)
+            summary.managedFiles += 1; summary.totalBytes += bytes
+            if names.contains(file.lastPathComponent) { summary.retainedBytes += bytes }
+        }
+        return summary
+    }
+}

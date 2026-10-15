@@ -105,6 +105,7 @@ public struct EditingHistory: Sendable {
     public init(snapshot: EditingSnapshot = EditingSnapshot()) {
         state = State(title: "Session Start", snapshot: snapshot)
     }
+    public var undoTitle: String { state.title }
     public var canUndo: Bool { !undoStack.isEmpty }
     public var canRedo: Bool { !redoStack.isEmpty }
     public var steps: [EditingHistoryStep] {

@@ -35,7 +35,8 @@ struct SettingsEditor: View {
   var body: some View {
     Form {
       Section {
-        if focused || typeSize.isAccessibilitySize {
+        if focused { Text(model.inspectorTask.rawValue).font(.headline) }
+        else if typeSize.isAccessibilitySize {
           Menu("More tools", systemImage: "ellipsis.circle") {
             ForEach(InspectorTask.allCases.filter { !recipeEditing || $0 != .creative }, id: \.self) { task in
               Button(task.rawValue) { model.inspectorTask = task }
@@ -47,8 +48,6 @@ struct SettingsEditor: View {
           }.pickerStyle(.segmented)
         }
         if !recipeEditing && model.workflow == .batch {
-          Label(model.editScopeHeading, systemImage: "person.2.crop.square.stack").font(.headline)
-          Text("Selection does not change this target. Choose the batch inputs below before editing.").font(.caption).foregroundStyle(.secondary)
           Picker("Batch inputs / edit target", selection: $model.scope) {
             ForEach([ApplyScope.all, .selected, .results], id: \.self) { Text($0.rawValue).tag($0) }
           }
@@ -81,7 +80,11 @@ struct SettingsEditor: View {
             ForEach(QuickFix.allCases, id: \.self) { fix in
               Button(fix.rawValue) { model.quickFix(fix) }
             }
-          }.disabled(model.targets.isEmpty)
+          }.disabled(model.targets.isEmpty || model.quickFixRunning)
+          if model.quickFixRunning {
+            ProgressView("Analysing photos…", value: Double(model.quickFixCompleted), total: Double(max(1, model.quickFixTotal)))
+            Button("Cancel Quick Fix") { model.quickFixTask?.cancel() }
+          }
           adjustment("Exposure", field(\.adjustments.exposure, [.adjustments_exposure]), -2...2, neutral: 0, mixed: model.mixedFields.contains(.adjustments_exposure))
           adjustment("Brightness", field(\.adjustments.brightness, [.adjustments_brightness]), -0.5...0.5, neutral: 0, mixed: model.mixedFields.contains(.adjustments_brightness))
           adjustment("Contrast", field(\.adjustments.contrast, [.adjustments_contrast]), 0.5...1.5, neutral: 1, mixed: model.mixedFields.contains(.adjustments_contrast))
@@ -126,15 +129,15 @@ struct SettingsEditor: View {
             Button("1920 × 1080") { setSize(1920, 1080) }
             Button("3840 × 2160") { setSize(3840, 2160) }
           }
-          LabeledContent("Width (px)") {
+          LabeledContent(model.mixedFields.contains(.width) ? "Width · Mixed (px)" : "Width (px)") {
             TextField("Width", value: field(\.width, [.width]), format: .number).labelsHidden()
               .multilineTextAlignment(.trailing)
           }
-          LabeledContent("Height (px)") {
+          LabeledContent(model.mixedFields.contains(.height) ? "Height · Mixed (px)" : "Height (px)") {
             TextField("Height", value: field(\.height, [.height]), format: .number).labelsHidden()
               .multilineTextAlignment(.trailing)
           }
-          Picker("How the photo fits", selection: field(\.crop.mode, [.crop_mode])) {
+          Picker(model.mixedFields.contains(.crop_mode) ? "Fit mode · Mixed" : "How the photo fits", selection: field(\.crop.mode, [.crop_mode])) {
             ForEach(CropMode.allCases, id: \.self) { Text(cropLabel($0)).tag($0) }
           }
           if field(\.crop.mode, [.crop_mode]).wrappedValue == .preserveAspectRatio {
@@ -158,7 +161,7 @@ struct SettingsEditor: View {
           }
         }
         Section("Convert") {
-          Picker("Output format", selection: field(\.format, [.format])) {
+          Picker(model.mixedFields.contains(.format) ? "Output format · Mixed" : "Output format", selection: field(\.format, [.format])) {
             ForEach(ImageProcessor.outputFormats, id: \.self) {
               Text($0.rawValue.uppercased()).tag($0)
             }
@@ -219,7 +222,7 @@ struct SettingsEditor: View {
           }
         }
       }
-      if model.inspectorTask == .output {
+      if model.inspectorTask == .watermark || (model.inspectorTask == .output && !focused) {
         Section("Watermark") {
           Toggle("Add watermark", isOn: field(\.watermark.enabled, [.watermark_enabled]))
           if field(\.watermark.enabled, [.watermark_enabled]).wrappedValue {
@@ -252,6 +255,7 @@ struct SettingsEditor: View {
               "Opacity", value: field(\.watermark.opacity, [.watermark_opacity]).wrappedValue, format: .percent)
             Slider(value: field(\.watermark.opacity, [.watermark_opacity]), in: 0...1, onEditingChanged: editGesture)
               .accessibilityLabel("Watermark opacity")
+            Text(model.controlConfiguration.watermark.tiled ? "Use size, rotation and opacity to adjust the tiled pattern." : "Drag the watermark on the photo to position it. Use handles to resize and rotate.").font(.caption).foregroundStyle(.secondary)
             AnchorPicker(anchor: field(\.watermark.anchor, [.watermark_anchor]))
             LabeledContent(
               "Rotation", value: field(\.watermark.rotation, [.watermark_rotation]).wrappedValue, format: .number)
@@ -278,6 +282,8 @@ struct SettingsEditor: View {
             }
           }
         }
+      }
+      if model.inspectorTask == .output {
         Section("Format & Compression") {
           Picker("Format", selection: field(\.format, [.format])) {
             ForEach(ImageProcessor.outputFormats, id: \.self) {

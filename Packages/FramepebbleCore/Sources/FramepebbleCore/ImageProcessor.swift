@@ -186,7 +186,15 @@ public actor ImageProcessor {
         let image = try render(asset.url, configuration: c); let props = metadata(asset.url, image: image, configuration: c)
         return try publish(image, asset: asset, configuration: c, to: directory, profile: profile, properties: props)
     }
-    private func encodedData(_ image: CGImage, configuration c: ProcessingConfiguration, properties props: [CFString: Any]) throws -> Data {
+    private func encodedData(_ input: CGImage, configuration c: ProcessingConfiguration, properties props: [CFString: Any], flattenTransparency: Bool = false) throws -> Data {
+        guard c.quality.isFinite, (0...1).contains(c.quality), input.width <= 20000, input.height <= 20000, Double(input.width) * Double(input.height) <= 100_000_000 else { throw ProcessingError.invalidConfiguration }
+        let image: CGImage
+        if flattenTransparency && !c.format.preservesAlpha && input.alphaInfo != .none && input.alphaInfo != .noneSkipFirst && input.alphaInfo != .noneSkipLast {
+            let source = CIImage(cgImage: input)
+            let matte = CIImage(color: CIColor(red: 1, green: 1, blue: 1)).cropped(to: source.extent)
+            guard let flattened = context.createCGImage(source.composited(over: matte), from: source.extent, format: .RGBA8, colorSpace: input.colorSpace ?? CGColorSpaceCreateDeviceRGB()) else { throw ProcessingError.encoding }
+            image = flattened
+        } else { image = input }
         var data = try encode(image, format: c.format, quality: c.quality, properties: props)
         if let target = c.targetBytes {
             guard target > 0, c.minimumQuality.isFinite, c.minimumQuality >= 0.1, c.minimumQuality <= c.quality else { throw ProcessingError.invalidConfiguration }
@@ -210,30 +218,72 @@ public actor ImageProcessor {
               let decoded = CGImageSourceCreateImageAtIndex(source, 0, nil), decoded.width == rendered.width, decoded.height == rendered.height else { throw ProcessingError.validation }
         return EncodedOutputPreview(image: decoded, byteCount: data.count)
     }
-    public func publish(_ image: CGImage, asset: SourceAsset, configuration c: ProcessingConfiguration, to directory: URL, profile: ExportProfile = ExportProfile(), properties props: [CFString: Any] = [:]) throws -> ProcessingResult {
+    /// Proof of an already composed image uses the exact same encoder as publication.
+    public func encodedPreview(_ image: CGImage, configuration c: ProcessingConfiguration) throws -> EncodedOutputPreview {
+        let data = try encodedData(image, configuration: c, properties: [:], flattenTransparency: true)
         try Task.checkCancellation()
-        let data = try encodedData(image, configuration: c, properties: props)
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetStatus(source) == .statusComplete,
+              let decoded = CGImageSourceCreateImageAtIndex(source, 0, nil), decoded.width == image.width, decoded.height == image.height else { throw ProcessingError.validation }
+        return EncodedOutputPreview(image: decoded, byteCount: data.count)
+    }
+    public func publish(_ image: CGImage, asset: SourceAsset, configuration c: ProcessingConfiguration, to directory: URL, profile: ExportProfile = ExportProfile(), properties props: [CFString: Any] = [:], flattenTransparency: Bool = false) throws -> ProcessingResult {
+        try Task.checkCancellation()
+        let data = try encodedData(image, configuration: c, properties: props, flattenTransparency: flattenTransparency)
         try Task.checkCancellation()
         let staging = directory.appendingPathComponent(".framepebble-\(UUID().uuidString).tmp")
         try StagingWriter.write(data, to: staging)
         defer { try? FileManager.default.removeItem(at: staging) }
         guard let source = CGImageSourceCreateWithURL(staging as CFURL, nil), CGImageSourceGetStatus(source) == .statusComplete, CGImageSourceGetType(source) as String? == c.format.typeIdentifier, let validated = CGImageSourceCreateImageAtIndex(source, 0, nil), validated.width == image.width, validated.height == image.height else { throw ProcessingError.validation }
         try Task.checkCancellation()
-        let raw = (asset.name as NSString).deletingPathExtension
-        let proposed = profile.namingTemplate.replacingOccurrences(of: "{name}", with: raw).replacingOccurrences(of: "{suffix}", with: profile.suffix).replacingOccurrences(of: "{id}", with: asset.id.uuidString.prefix(8))
-        let safe = String(proposed.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_" ? Character(String($0)) : "_" }.prefix(140))
-        var bounded = ""
-        for character in safe { let next = bounded + String(character); if next.utf8.count > 180 { break }; bounded = next }
-        let stem = bounded.isEmpty ? "image" : bounded
+        let stem = (Self.proposedFilename(asset: asset, profile: profile, format: c.format) as NSString).deletingPathExtension
+        let output = try publishStaging(staging, sourceURL: asset.url, stem: stem, fileExtension: c.format.fileExtension, directory: directory)
+        return ProcessingResult(source: asset, output: output)
+    }
+    private func publishStaging(_ staging: URL, sourceURL: URL, stem: String, fileExtension: String, directory: URL) throws -> URL {
         for n in 0..<10000 {
             try Task.checkCancellation()
-            let output = directory.appendingPathComponent(stem + (n == 0 ? "" : "-\(n)") + "." + c.format.fileExtension)
-            if output.resolvingSymlinksInPath().standardizedFileURL == asset.url.resolvingSymlinksInPath().standardizedFileURL { continue }
+            let output = directory.appendingPathComponent(stem + (n == 0 ? "" : "-\(n)") + "." + fileExtension)
+            if output.resolvingSymlinksInPath().standardizedFileURL == sourceURL.resolvingSymlinksInPath().standardizedFileURL { continue }
             let code = staging.withUnsafeFileSystemRepresentation { from in output.withUnsafeFileSystemRepresentation { to in guard let from, let to else { return Int32(-1) }; return renamex_np(from, to, UInt32(RENAME_EXCL)) } }
-            if code == 0 { return ProcessingResult(source: asset, output: output) }; if errno == EEXIST { continue }; throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+            if code == 0 { return output }; if errno == EEXIST { continue }; throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
         }
         throw ProcessingError.destination
     }
 }
 
 public struct EncodedOutputPreview: @unchecked Sendable { public let image: CGImage; public let byteCount: Int }
+
+extension ImageProcessor {
+    /// Copies already flattened, validated outputs without recompression. Publication
+    /// shares the exclusive staging path with ordinary image export.
+    public func copyValidatedOutput(_ sourceURL: URL, to directory: URL) throws -> URL {
+        guard sourceURL.isFileURL, directory.isFileURL else { throw ProcessingError.destination }
+        try Task.checkCancellation()
+        let data = try Data(contentsOf: sourceURL, options: .mappedIfSafe)
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetStatus(source) == .statusComplete,
+          CGImageSourceGetCount(source) == 1, let type = CGImageSourceGetType(source) as String?,
+          let format = OutputFormat.allCases.first(where: { $0.typeIdentifier == type }) else { throw ProcessingError.validation }
+        let staging = directory.appendingPathComponent(".framepebble-" + UUID().uuidString + ".tmp")
+        try StagingWriter.write(data, to: staging)
+        defer { try? FileManager.default.removeItem(at: staging) }
+        guard let check = CGImageSourceCreateWithURL(staging as CFURL, nil), CGImageSourceGetStatus(check) == .statusComplete else { throw ProcessingError.validation }
+        var profile = ExportProfile(); profile.suffix = ""; profile.namingTemplate = "{name}"
+        let asset = SourceAsset(url: sourceURL)
+        let stem = (Self.proposedFilename(asset: asset, profile: profile, format: format) as NSString).deletingPathExtension
+        return try publishStaging(staging, sourceURL: sourceURL, stem: stem, fileExtension: format.fileExtension, directory: directory)
+    }
+    public nonisolated static func proposedFilename(asset: SourceAsset, profile: ExportProfile, format: OutputFormat) -> String {
+        let raw = (asset.name as NSString).deletingPathExtension
+        let proposed = profile.namingTemplate.replacingOccurrences(of: "{name}", with: raw).replacingOccurrences(of: "{suffix}", with: profile.suffix).replacingOccurrences(of: "{id}", with: asset.id.uuidString.prefix(8))
+        let safe = String(proposed.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_" ? Character(String($0)) : "_" }.prefix(140))
+        var bounded = ""
+        for character in safe { let next = bounded + String(character); if next.utf8.count > 180 { break }; bounded = next }
+        let stem = bounded.isEmpty ? "image" : bounded
+        return stem + "." + format.fileExtension
+    }
+    public func watermarkBounds(_ configuration: WatermarkConfiguration, output: CGSize) throws -> CGRect {
+        let stamp = try WatermarkRenderer.stamp(configuration, outputWidth: output.width)
+        let rotated = stamp.transformed(by: CGAffineTransform(rotationAngle: -CGFloat(configuration.rotation) * .pi / 180))
+        return WatermarkRenderer.placement(size: rotated.extent.size, output: output, configuration: configuration)
+    }
+}

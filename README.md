@@ -100,3 +100,5 @@ Mac and iPad Editor show explicit, closable photo tabs. iPhone uses an Open Phot
 The application is **Ameluma Photo**. Its iPhone/iPad home-screen display name is **Ameluma**. The Mac app bundle is `Ameluma Photo.app`; the iOS bundle is `Ameluma.app`. Xcode project/target names, Swift modules, bundle identifiers, security-scoped references and legacy Application Support locations retain their existing Framepebble identifiers for compatibility. No source or saved-project migration is required for this branding change.
 
 See [Collage tools and limits](docs/COLLAGES.md) for photo-filled shapes/text, reference mosaics, persistence and export behaviour.
+
+The [workflow review implementation ledger](docs/REVIEW_ACTIONS.md) records the latest usability changes, verification and remaining limitations.

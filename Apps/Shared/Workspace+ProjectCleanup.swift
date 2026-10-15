@@ -20,11 +20,12 @@ extension Workspace {
             let reusable: [String: Data] = ["profiles": try JSONEncoder().encode(profiles), "watermarks": try JSONEncoder().encode(watermarkPresets)]
             let objects = try reusable.mapValues { try JSONSerialization.jsonObject(with: $0) }
             let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONSerialization.data(withJSONObject: objects))
+            projectName = "Untitled Project"; batchInputIDs = nil
             resetEditorTabs()
             resetCollageDocuments()
             assets = []; selected = nil; selection = []; selecting = false
             edits = EditingSnapshot(); history = EditingHistory(); favourites = []
-            sensitivity = SensitiveReviewState(); proposals = [:]; index = ClassificationIndex()
+            sensitivity = SensitiveReviewState(); privacyCoverageReviewIDs = []; proposals = [:]; index = ClassificationIndex()
             results = []; pendingExports = []; collage = CollageProject(); collageOutputs = []
             collageUndo = []; collageRedo = []; library = .all; query = ""; scope = .all
             precision = false; overlayEditor = false; collageEditor = false

@@ -16,8 +16,9 @@ struct LibrarySidebar: View {
         }.padding(.vertical, 8)
       }
       Section("Photo Library") {
-        Button("Projects & Clear Photos…", systemImage: "folder") { model.projectsView = true }
-        ForEach(LibraryScope.allCases, id: \.self) { category in
+        Text(model.projectName).font(.headline).lineLimit(2)
+        Button("Projects…", systemImage: "folder") { model.projectsView = true }
+        ForEach(LibraryScope.allCases.filter { $0 != .exceptions || !model.edits.overrides.isEmpty }, id: \.self) { category in
           Button {
             model.showLibrary(category, clearSearch: true)
           } label: {
@@ -44,7 +45,7 @@ struct LibrarySidebar: View {
         if !model.query.isEmpty {
           Button("Clear search", systemImage: "xmark.circle") { model.query = "" }
         }
-        ForEach(model.index.suggestedCategories, id: \.0) { name, count in
+        ForEach(Array(model.index.suggestedCategories.prefix(10)), id: \.0) { name, count in
           Button {
             model.showLibrary()
             model.query = name
@@ -89,6 +90,7 @@ struct LibrarySidebar: View {
   }
   func symbol(_ category: LibraryScope) -> String {
     switch category {
+    case .exceptions: "slider.horizontal.3"
     case .all: "photo.on.rectangle.angled"
     case .favourites: "heart"
     case .edited: "slider.horizontal.3"
@@ -98,11 +100,12 @@ struct LibrarySidebar: View {
   }
   func count(_ category: LibraryScope) -> Int {
     switch category {
+    case .exceptions: model.assets.filter { model.edits.overrides[$0.id] != nil }.count
     case .all: model.assets.count
     case .favourites: model.favourites.count
     case .edited: model.assets.filter { model.isEdited($0.id) }.count
-    case .review: model.proposals.values.filter(\.needsReview).count
-    case .privacyReview: model.sensitivity.flagged.count
+    case .review: model.assets.filter { model.proposals[$0.id]?.needsReview == true || model.privacyCoverageNeedsReview($0.id) }.count
+    case .privacyReview: model.sensitivity.flagged.union(model.privacyCoverageReviewIDs).count
     }
   }
 }
@@ -153,6 +156,19 @@ struct LibraryToolbar: View {
       if !model.browsingLibrary && model.workflow == .batch {
         VStack(alignment: .leading, spacing: 4) {
           Label(model.editScopeHeading, systemImage: "person.2").font(.headline)
+          HStack {
+            if model.batchInputIDs == nil {
+              Button("Keep These Batch Inputs") { model.batchInputIDs = Set(model.targets.map(\.id)); model.scope = .selected; model.persist() }
+                .disabled(model.targets.isEmpty)
+            } else {
+              Button("Use Live Selection Instead") { model.batchInputIDs = nil; model.scope = .selected; model.persist() }
+              Text("Inputs stay fixed while browsing and filtering.").font(.caption).foregroundStyle(.secondary)
+            }
+          }
+          if !model.edits.overrides.isEmpty {
+            Button("Review Individual Exceptions") { model.showLibrary(.exceptions, clearSearch: true) }
+          }
+
           if model.scope == .all && !model.selection.isEmpty {
             Text("All imported photos are targeted, including photos outside this filter.").font(.caption).foregroundStyle(.secondary)
             Button("Edit Only Selected Photos (\(model.selection.count))") { model.scope = .selected }
@@ -264,7 +280,7 @@ struct LibraryToolbar: View {
       .help("Choose which changes to reset. Each action supports Undo.")
   }
   var gallerySummary: some View {
-    Text((model.browsingLibrary ? "" : model.editScopeHeading + " · ") + model.gallerySummary + (model.mode == .browse ? " · Originals" : " · Processed results"))
+    Text(model.gallerySummary + (model.mode == .browse ? " · Originals" : " · Processed results"))
       .font(.caption).foregroundStyle(.secondary)
   }
   @ViewBuilder var previewSizeControl: some View {
@@ -401,12 +417,18 @@ struct ImageTile: View {
         .overlay(MacPhotoSelectionCapture(capturesPlainClicks: model.mode == .browse || model.selecting, onSelect: nativeSelect))
         #endif
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .bottomLeading) {
+          if model.batchInputIDs?.contains(asset.id) == true {
+            Label("Batch input", systemImage: "square.stack").font(.caption2).padding(4)
+              .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5)).padding(5).allowsHitTesting(false)
+          }
+        }
         .overlay(
           RoundedRectangle(cornerRadius: 8).stroke(
             model.selected == asset.id ? Color.accentColor : model.selection.contains(asset.id) ? Color.accentColor.opacity(0.45) : .clear,
             lineWidth: model.selected == asset.id ? 3 : 1.5))
         if model.sensitivity.flagged.contains(asset.id)
-          || model.proposals[asset.id]?.needsReview == true
+          || model.proposals[asset.id]?.needsReview == true || model.privacyCoverageNeedsReview(asset.id)
           || model.isEdited(asset.id)
           || (model.selection.contains(asset.id) && model.selecting)
         {
@@ -415,7 +437,7 @@ struct ImageTile: View {
               Image(systemName: "exclamationmark.shield.fill").foregroundStyle(.orange)
                 .accessibilityLabel("Flagged for privacy review")
             }
-            if model.proposals[asset.id]?.needsReview == true {
+            if model.proposals[asset.id]?.needsReview == true || model.privacyCoverageNeedsReview(asset.id) {
               Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).help(
                 "Needs review")
             }

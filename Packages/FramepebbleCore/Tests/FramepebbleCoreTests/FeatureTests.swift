@@ -5,6 +5,80 @@ import UniformTypeIdentifiers
 @testable import FramepebbleCore
 
 final class FeatureTests: XCTestCase {
+    func testComposedJPEGProofAndReviewedCopiesMatchWithoutOverwriting() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let folder = root.appendingPathComponent("Destination")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let context = try XCTUnwrap(CGContext(data: nil, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.clear(CGRect(x: 0, y: 0, width: 32, height: 32))
+        let image = try XCTUnwrap(context.makeImage())
+        var config = ProcessingConfiguration(); config.width = 32; config.height = 32; config.format = .jpeg; config.quality = 0.8
+        let processor = ImageProcessor()
+        let proof = try await processor.encodedPreview(image, configuration: config)
+        let result = try await processor.publish(image, asset: SourceAsset(url: root.appendingPathComponent("project.json"), name: "Composition.jpg"), configuration: config, to: root, flattenTransparency: true)
+        let source = try XCTUnwrap(result.output), originalBytes = try Data(contentsOf: source)
+        XCTAssertEqual(proof.byteCount, originalBytes.count)
+        var pixels = [UInt8](repeating: 0, count: 32 * 32 * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            let reader = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 128, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            reader.draw(proof.image, in: CGRect(x: 0, y: 0, width: 32, height: 32))
+        }
+        XCTAssertGreaterThan(pixels[0], 240); XCTAssertGreaterThan(pixels[1], 240); XCTAssertGreaterThan(pixels[2], 240)
+        let first = try await processor.copyValidatedOutput(source, to: folder)
+        let second = try await processor.copyValidatedOutput(source, to: folder)
+        XCTAssertNotEqual(first, second)
+        XCTAssertEqual(try Data(contentsOf: first), originalBytes)
+        XCTAssertEqual(try Data(contentsOf: second), originalBytes)
+        XCTAssertEqual(try Data(contentsOf: source), originalBytes)
+        XCTAssertFalse(try FileManager.default.contentsOfDirectory(atPath: folder.path).contains { $0.hasSuffix(".tmp") })
+    }
+    func testStorageAccountingAndResolvedFilenameAreSafe() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let kept = UUID().uuidString + ".png", disposable = UUID().uuidString + ".png"
+        try Data(repeating: 1, count: 128).write(to: root.appendingPathComponent(kept))
+        try Data(repeating: 2, count: 64).write(to: root.appendingPathComponent(disposable))
+        try Data(repeating: 3, count: 1024).write(to: root.appendingPathComponent("original.png"))
+        let summary = try await SourceStorageCleanup().summary(in: root, retaining: [kept])
+        XCTAssertEqual(summary.managedFiles, 2); XCTAssertEqual(summary.totalBytes, 192)
+        XCTAssertEqual(summary.retainedBytes, 128); XCTAssertEqual(summary.removableBytes, 64)
+        XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("original.png")).count, 1024)
+        let asset = SourceAsset(url: root.appendingPathComponent("a.png"), name: "Holiday Photo.png")
+        var profile = ExportProfile(); profile.suffix = "-web"
+        let filename = ImageProcessor.proposedFilename(asset: asset, profile: profile, format: .jpeg)
+        XCTAssertEqual(filename, "Holiday_Photo-web.jpg")
+    }
+    func testConstrainedCropHandlesAndCollageTransformsUseSharedGeometry() {
+        let source = CGSize(width: 4000, height: 3000)
+        let original = CGRect(x: 400, y: 500, width: 1600, height: 900)
+        let changed = CropGeometry.resized(original, source: source, handle: .bottomRight, translation: CGSize(width: 500, height: 30), preserveAspect: true)
+        XCTAssertEqual(changed.width / changed.height, 16.0 / 9.0, accuracy: 0.0001)
+        XCTAssertGreaterThan(changed.width, original.width)
+        XCTAssertTrue(CGRect(origin: .zero, size: source).contains(changed))
+        let cell = CollageCell(sourceID: UUID(), x: 0.2, y: 0.2, width: 0.3, height: 0.3)
+        let moved = CollageGeometry.moved(cell, translation: CGSize(width: 100, height: 44), viewport: CGSize(width: 1000, height: 500), titleBand: 0.12, snap: false)
+        XCTAssertEqual(moved.x, 0.3, accuracy: 0.001); XCTAssertEqual(moved.y, 0.3, accuracy: 0.001)
+        let resized = CollageGeometry.resized(cell, handle: .bottomRight, translation: CGSize(width: 100, height: 50), viewport: CGSize(width: 1000, height: 500))
+        XCTAssertEqual(resized.sourceID, cell.sourceID)
+        XCTAssertEqual(resized.width, 0.4, accuracy: 0.001)
+    }
+    func testCompositionIdentityInvalidatesOnlyRelevantChanges() {
+        let first = SourceAsset(url: URL(fileURLWithPath: "/tmp/first.png"))
+        let unrelated = SourceAsset(url: URL(fileURLWithPath: "/tmp/other.png"))
+        var project = CollageProject(); project.arrange([first.id], layout: .grid)
+        let edits = EditingSnapshot()
+        let identity = CollageRenderIdentity(project: project, sources: [first, unrelated], edits: edits)
+        var changed = edits; var value = edits.settings; value.adjustments.exposure = 0.5
+        changed.apply(ConfigurationPatch(values: value, fields: [.adjustments_exposure]), to: unrelated.id)
+        XCTAssertEqual(identity, CollageRenderIdentity(project: project, sources: [first, unrelated], edits: changed))
+        changed.apply(ConfigurationPatch(values: value, fields: [.adjustments_exposure]), to: first.id)
+        XCTAssertNotEqual(identity, CollageRenderIdentity(project: project, sources: [first, unrelated], edits: changed))
+        project.title = "Changed title"
+        XCTAssertNotEqual(identity, CollageRenderIdentity(project: project, sources: [first, unrelated], edits: edits))
+    }
     func testDirectCropBoundariesRoundTripInTransformedSourceCoordinates() {
         for source in [CGSize(width: 4000, height: 3000), CGSize(width: 3000, height: 4000)] {
             let rectangle = CGRect(x: source.width * 0.1, y: source.height * 0.2,

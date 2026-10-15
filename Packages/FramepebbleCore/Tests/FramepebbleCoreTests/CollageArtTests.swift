@@ -15,6 +15,25 @@ final class CollageArtTests: XCTestCase {
     addTeardownBlock {try? FileManager.default.removeItem(at:url)}
     return url
   }
+  func testMultilineFontOutlinesAndLegacyLayoutCompatibility() async throws {
+    let text = "HELLO\nWORLD"
+    let bounds = CGRect(x: 0, y: 0, width: 1, height: 1)
+    let old = CollageShape.text.path(in: bounds, text: text)
+    let multiline = CollageShape.text.path(in: bounds, text: text, multiline: true)
+    XCTAssertGreaterThan(multiline.boundingBoxOfPath.height, old.boundingBoxOfPath.height * 1.5)
+    let serif = CollageShape.text.path(in: bounds, text: text, fontName: "Georgia-Bold", multiline: true)
+    XCTAssertNotEqual(serif.boundingBoxOfPath, multiline.boundingBoxOfPath)
+    var object = try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(CollageProject())) as? [String: Any])
+    object.removeValue(forKey: "silhouetteTextLayout"); object.removeValue(forKey: "silhouetteFontName")
+    let legacy = try JSONDecoder().decode(CollageProject.self, from: JSONSerialization.data(withJSONObject: object))
+    XCTAssertEqual(legacy.silhouetteTextLayout, 1)
+    let legacyPath = CollageShape.text.path(in: bounds, text: text, fontName: legacy.silhouetteFontName, multiline: legacy.silhouetteTextLayout >= 2)
+    XCTAssertEqual(legacyPath.boundingBoxOfPath, old.boundingBoxOfPath)
+    var project = CollageProject(); project.silhouetteFontName = "Georgia-Bold"
+    let result = try await CollageArtBuilder().shape(project: project, sources: [UUID()], count: 100, shape: .text, text: text)
+    XCTAssertEqual(result.cells.count, 100); XCTAssertEqual(result.silhouetteTextLayout, 2)
+    XCTAssertEqual(result.silhouetteFontName, "Georgia-Bold")
+  }
   func testTemplateCatalogUsesAllPhotosAndPreservesCellEdits() throws {
     XCTAssertEqual(CollageTemplate.catalog.count,74)
     XCTAssertEqual(Set(CollageTemplate.catalog.map(\.id)).count,74)

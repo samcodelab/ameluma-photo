@@ -95,7 +95,7 @@ struct OverlayEditor: View {
                   Divider()
                   objectList
                 }.padding(12)
-              }.frame(width: 300)
+              }.frame(width: 350)
             }
           }
         } else {
@@ -209,6 +209,7 @@ struct OverlayEditor: View {
             previewError = error.localizedDescription
           }
         }
+        .onChange(of: masking) { _, value in model.overlayStartsWithMasks = value }
         .onChange(of: session?.current) { _, _ in
           if let selected, !config.wrappedValue.masks.contains(where: { $0.id == selected }),
             !config.wrappedValue.annotations.contains(where: { $0.id == selected })

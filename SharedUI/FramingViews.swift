@@ -401,6 +401,9 @@ struct PrecisionEditor: View {
 struct PhotoCropCanvas: View {
   @Bindable var model: Workspace
   let asset: SourceAsset
+  @Environment(\.horizontalSizeClass) private var sizeClass
+  @Environment(\.dynamicTypeSize) private var typeSize
+  @State private var showFinal = false
   @State private var image: CGImage?
   @State private var sourceSize = CGSize(width: 1, height: 1)
   @State private var startRect: CGRect?
@@ -412,10 +415,28 @@ struct PhotoCropCanvas: View {
     let output = ImageProcessor.outputSize(source: sourceSize, configuration: config)
     return FramingLayout(source: sourceSize, output: output, configuration: config).cropRect
   }
+  var locked: Bool { model.cropKeepsOutputSize[asset.id] == true || (model.cropAspectLocks[asset.id] ?? (config.crop.aspectRatio != nil)) }
   var body: some View {
-    GeometryReader { geometry in
+    VStack(alignment: .leading, spacing: 8) {
+      if sizeClass == .compact || typeSize.isAccessibilitySize {
+        HStack {
+          Button("Done") { model.precision = false }
+          Menu("Crop Options") { cropOptions }
+          Spacer(minLength: 0)
+        }
+      } else {
+        ViewThatFits(in: .horizontal) {
+          HStack { cropOptions }
+          VStack(alignment: .leading) { cropOptions }
+        }
+      }
+      GeometryReader { geometry in
       let scale = min(geometry.size.width / sourceSize.width, geometry.size.height / sourceSize.height)
       let size = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+      if showFinal {
+        FramingSurface(model: model, asset: asset, interactive: false)
+          .overlay(alignment: .bottomLeading) { Text("Edited output · masks and watermark included").font(.caption).padding(6).background(.regularMaterial) }
+      } else {
       ZStack {
         if let image {
           Image(decorative: image, scale: 1).resizable().frame(width: size.width, height: size.height)
@@ -459,6 +480,8 @@ struct PhotoCropCanvas: View {
         SensitivePreviewCover(model: model, ids: [asset.id])
       }.frame(width: size.width, height: size.height)
         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+      }
+      }
     }.task(id: PreviewKey(id: asset.id, configuration: uncropped)) {
       do {
         let dimensions = try await model.processor.identify(asset.url)
@@ -468,6 +491,22 @@ struct PhotoCropCanvas: View {
         sourceSize = size; image = preview; error = nil
       } catch is CancellationError {} catch { self.error = error.localizedDescription }
     }
+  }
+  @ViewBuilder var cropOptions: some View {
+    Button("Done Cropping") { model.precision = false }
+    Toggle("Preview Edited Output", isOn: $showFinal)
+    Toggle("Lock aspect ratio", isOn: Binding(get: { locked }, set: { model.cropAspectLocks[asset.id] = $0 }))
+      .disabled(model.cropKeepsOutputSize[asset.id] == true)
+    Toggle("Keep export dimensions", isOn: Binding(get: { model.cropKeepsOutputSize[asset.id] == true }, set: { value in
+      model.cropKeepsOutputSize[asset.id] = value
+      if value {
+        model.cropAspectLocks[asset.id] = true
+        var next = config; next.crop.mode = .manualCrop; next.crop.aspectRatio = Double(next.width) / Double(max(1, next.height))
+        model.applyChange(ConfigurationPatch(values: next, fields: [.crop_mode, .crop_aspectRatio]), ids: [asset.id])
+      }
+    }))
+    Text("Output: \(config.width) × \(model.cropKeepsOutputSize[asset.id] == true ? config.height : max(1, Int(Double(config.width) * cropRect.height / max(1, cropRect.width)))) px")
+      .font(.caption.monospacedDigit())
   }
   struct PreviewKey: Equatable { var id: UUID; var configuration: ProcessingConfiguration }
   var uncropped: ProcessingConfiguration {
@@ -487,13 +526,10 @@ struct PhotoCropCanvas: View {
       let dx = gesture.translation.width / scale, dy = gesture.translation.height / scale
       var rect = start
       if let handle {
-        var left = start.minX, right = start.maxX, top = start.minY, bottom = start.maxY
-        let minimumX = sourceSize.width / 20, minimumY = sourceSize.height / 20
-        if handle.x == 0 { left = min(right - minimumX, max(0, left + dx)) }
-        if handle.x == 1 { right = max(left + minimumX, min(sourceSize.width, right + dx)) }
-        if handle.y == 0 { top = min(bottom - minimumY, max(0, top + dy)) }
-        if handle.y == 1 { bottom = max(top + minimumY, min(sourceSize.height, bottom + dy)) }
-        rect = CGRect(x: left, y: top, width: right - left, height: bottom - top)
+        let handles: [OverlayResizeHandle] = [.topLeft, .top, .topRight, .right, .bottomRight, .bottom, .bottomLeft, .left]
+        let index = handles.firstIndex { $0.anchor == handle } ?? 0
+        rect = CropGeometry.resized(start, source: sourceSize, handle: handles[index],
+          translation: CGSize(width: dx, height: dy), preserveAspect: locked)
       } else {
         rect.origin.x = min(sourceSize.width - rect.width, max(0, start.minX + dx))
         rect.origin.y = min(sourceSize.height - rect.height, max(0, start.minY + dy))
@@ -502,7 +538,169 @@ struct PhotoCropCanvas: View {
     }.onEnded { _ in
       defer { startRect = nil; draftRect = nil }
       guard let rect = draftRect, rect != startRect else { return }
-      model.applyPhotoCrop(rect, sourceSize: sourceSize, id: asset.id)
+      model.applyPhotoCrop(rect, sourceSize: sourceSize, id: asset.id, keepOutputSize: model.cropKeepsOutputSize[asset.id] == true)
     }
+  }
+}
+
+/// A real pixel viewer: at 100%, one image pixel maps to one display pixel.
+/// The caller supplies full-resolution pixels, never an enlarged thumbnail.
+struct PixelZoomViewer: View {
+  let image: CGImage
+  @State private var zoom: Double?
+  @State private var pinchStart: Double?
+  @Environment(\.displayScale) private var displayScale
+  var body: some View {
+    GeometryReader { geometry in
+      let native = CGSize(width: CGFloat(image.width) / displayScale, height: CGFloat(image.height) / displayScale)
+      let fit = min(geometry.size.width / max(1, native.width), max(1, geometry.size.height - 48) / max(1, native.height))
+      let factor = zoom ?? fit
+      VStack(spacing: 8) {
+        ScrollView([.horizontal, .vertical]) {
+          Image(decorative: image, scale: 1).resizable()
+            .frame(width: native.width * factor, height: native.height * factor)
+            .frame(minWidth: geometry.size.width, minHeight: max(1, geometry.size.height - 48))
+        }.simultaneousGesture(MagnifyGesture().onChanged { value in
+          if pinchStart == nil { pinchStart = factor }
+          zoom = min(8, max(0.01, (pinchStart ?? factor) * value.magnification))
+        }.onEnded { _ in pinchStart = nil })
+        HStack {
+          Button("Fit") { zoom = nil }
+          Button("100%") { zoom = 1 }
+          Button { zoom = max(0.01, factor / 1.25) } label: { Image(systemName: "minus.magnifyingglass") }.accessibilityLabel("Zoom out")
+          Text("\(Int(factor * 100))%").font(.caption.monospacedDigit()).frame(minWidth: 42)
+          Button { zoom = min(8, factor * 1.25) } label: { Image(systemName: "plus.magnifyingglass") }.accessibilityLabel("Zoom in")
+          Spacer(minLength: 0)
+          Text("\(image.width) × \(image.height) px").font(.caption)
+        }.buttonStyle(.bordered).padding(.horizontal, 4)
+      }
+    }.accessibilityLabel("Full-resolution image. Scroll to pan, pinch or use zoom controls.")
+  }
+}
+
+struct InspectablePhoto: View {
+  @Bindable var model: Workspace
+  let asset: SourceAsset
+  var original = false
+  @Environment(\.dynamicTypeSize) private var typeSize
+  @State private var detail = false
+  @State private var image: CGImage?
+  @State private var failure: String?
+  var configuration: ProcessingConfiguration {
+    if !original { return model.configuration(for: asset) }
+    var value = ProcessingConfiguration()
+    value.crop.mode = .preserveAspectRatio; value.resizeBasis = .percentage; value.percentage = 100
+    return value
+  }
+  struct Key: Equatable { var asset: SourceAsset; var configuration: ProcessingConfiguration; var detail: Bool }
+  var body: some View {
+    VStack(spacing: 6) {
+      if detail {
+        ZStack {
+          if let image { PixelZoomViewer(image: image) }
+          else if let failure { ContentUnavailableView("Detail preview failed", systemImage: "exclamationmark.triangle", description: Text(failure)) }
+          else { ProgressView("Rendering full-resolution detail…") }
+          SensitivePreviewCover(model: model, ids: [asset.id])
+        }
+      } else { FramingSurface(model: model, asset: asset, interactive: false, original: original) }
+      HStack {
+        if typeSize.isAccessibilitySize {
+          Menu("View", systemImage: "magnifyingglass") { Toggle("Inspect Full-resolution Pixels", isOn: $detail) }
+        } else {
+          Toggle("Inspect Pixels", isOn: $detail).toggleStyle(.button)
+            .help("Loads full-resolution pixels for 100% inspection and panning.")
+        }
+        if detail { Text("Full-resolution detail").font(.caption).foregroundStyle(.secondary) }
+        Spacer()
+      }
+    }.task(id: Key(asset: asset, configuration: configuration, detail: detail)) {
+      image = nil; failure = nil
+      guard detail else { return }
+      let requested = configuration
+      do {
+        let rendered = try await model.processor.render(asset.url, configuration: requested)
+        try Task.checkCancellation()
+        image = rendered
+      } catch is CancellationError {} catch { failure = error.localizedDescription }
+    }.onDisappear { image = nil }
+  }
+}
+
+struct WatermarkCanvas: View {
+  @Bindable var model: Workspace
+  let asset: SourceAsset
+  @State private var bounds: CGRect?
+  @State private var output = CGSize(width: 1, height: 1)
+  @State private var start: WatermarkConfiguration?
+  @State private var startBounds: CGRect?
+  var config: ProcessingConfiguration { model.configuration(for: asset) }
+  var body: some View {
+    GeometryReader { geometry in
+      let scale = min(geometry.size.width / output.width, geometry.size.height / output.height)
+      let size = CGSize(width: output.width * scale, height: output.height * scale)
+      ZStack(alignment: .topLeading) {
+        FramingSurface(model: model, asset: asset, interactive: false)
+        if config.watermark.enabled, !config.watermark.tiled, let bounds {
+          Rectangle().stroke(.blue, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            .background(.white.opacity(0.001)).contentShape(Rectangle())
+            .frame(width: bounds.width * scale, height: bounds.height * scale)
+            .position(x: bounds.midX * scale, y: bounds.midY * scale)
+            .gesture(DragGesture().onChanged { value in
+              begin()
+              guard let start else { return }
+              var mark = start
+              mark.offsetX = min(1, max(-1, start.offsetX + value.translation.width / size.width))
+              mark.offsetY = min(1, max(-1, start.offsetY + value.translation.height / size.height))
+              update(mark, fields: [.watermark_offsetX, .watermark_offsetY])
+            }.onEnded { _ in finish() })
+          Image(systemName: "arrow.up.left.and.arrow.down.right.circle.fill").foregroundStyle(.blue)
+            .frame(width: 44, height: 44).contentShape(Rectangle())
+            .position(x: bounds.maxX * scale, y: bounds.maxY * scale)
+            .highPriorityGesture(DragGesture().onChanged { value in
+              begin(); guard let start else { return }
+              var mark = start
+              let box = startBounds ?? bounds
+              let dx = value.translation.width / scale, dy = value.translation.height / scale
+              let factor = max(0.02 / start.relativeWidth, min(1 / start.relativeWidth,
+                1 + (dx * box.width + dy * box.height) / max(1, box.width * box.width + box.height * box.height)))
+              mark.relativeWidth = start.relativeWidth * factor
+              let placement = WatermarkRenderer.placement(size: CGSize(width: box.width * factor, height: box.height * factor), output: output, configuration: mark)
+              mark.offsetX = min(1, max(-1, mark.offsetX + (box.minX - placement.minX) / output.width))
+              mark.offsetY = min(1, max(-1, mark.offsetY + (box.minY - placement.minY) / output.height))
+              update(mark, fields: [.watermark_relativeWidth, .watermark_offsetX, .watermark_offsetY])
+            }.onEnded { _ in finish() }).accessibilityLabel("Resize watermark")
+          Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(.blue)
+            .frame(width: 44, height: 44).contentShape(Rectangle())
+            .position(x: bounds.midX * scale, y: max(22, bounds.minY * scale - 24))
+            .highPriorityGesture(DragGesture(coordinateSpace: .named("WatermarkCanvas")).onChanged { value in
+              begin(); guard let start, let box = startBounds else { return }
+              let centre = CGPoint(x: box.midX * scale, y: box.midY * scale)
+              let first = atan2(value.startLocation.y - centre.y, value.startLocation.x - centre.x)
+              let last = atan2(value.location.y - centre.y, value.location.x - centre.x)
+              var mark = start
+              mark.rotation = (start.rotation + (last - first) * 180 / .pi).truncatingRemainder(dividingBy: 360)
+              if mark.rotation > 180 { mark.rotation -= 360 }; if mark.rotation < -180 { mark.rotation += 360 }
+              update(mark, fields: [.watermark_rotation])
+            }.onEnded { _ in finish() }).accessibilityLabel("Rotate watermark")
+        }
+        SensitivePreviewCover(model: model, ids: [asset.id])
+      }.coordinateSpace(name: "WatermarkCanvas").frame(width: size.width, height: size.height).position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+    }.task(id: WatermarkKey(asset: asset, configuration: config)) {
+      do {
+        let size = try await model.processor.identify(asset.url)
+        let transformed = ImageProcessor.transformedSize(size, configuration: config)
+        output = ImageProcessor.outputSize(source: transformed, configuration: config)
+        try Task.checkCancellation()
+        bounds = config.watermark.enabled ? try await model.processor.watermarkBounds(config.watermark, output: output) : nil
+      } catch { bounds = nil; model.issues.append("Watermark controls could not load: " + error.localizedDescription) }
+    }.onDisappear { finish() }
+  }
+  struct WatermarkKey: Equatable { var asset: SourceAsset; var configuration: ProcessingConfiguration }
+  func begin() { if start == nil { start = config.watermark; startBounds = bounds; model.beginInteraction() } }
+  func finish() { if start != nil { start = nil; startBounds = nil; model.endInteraction() } }
+  func update(_ mark: WatermarkConfiguration, fields: Set<ConfigurationField>) {
+    guard !model.sensitivity.concealed(asset.id) else { return }
+    var value = config; value.watermark = mark
+    model.applyChange(ConfigurationPatch(values: value, fields: fields), ids: [asset.id])
   }
 }

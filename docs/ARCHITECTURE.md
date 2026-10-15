@@ -113,3 +113,16 @@ Mac and iPad Editor show explicit, closable photo tabs. iPhone uses an Open Phot
 ## Multiple collages and art generation
 
 SavedCollage wraps a named CollageProject. Workspace keeps open/active composition IDs independently of photo tabs and batch selection; histories are keyed by composition ID. ProjectDocument stores all compositions plus a legacy active composition for compatibility. CollageTemplate provides 74 deterministic layout descriptions and shares actual geometry with gallery diagrams. CollageShape uses shared Core Graphics/CoreText paths for cell and overall clipping. CollageArtBuilder is an off-main actor: integral-mask partitioning creates exact-count shape/text regions; photomosaic analysis builds ephemeral downsampled features and uses a colour kd-tree with local-pattern scoring and reuse control. No third-party model or network path is involved. ImageProcessor.renderCollage reuses the existing transform/overlay pipeline, sequential tile rendering, a bounded per-render cache and cooperative cancellation/progress. Export captures the active composition before awaiting render. See COLLAGES.md for limitations and validation.
+
+
+### Review follow-up architecture
+
+Project schema 4 remains extensible: optional `name`, `batchInputIDs` and `privacyCoverageReviewIDs` default safely for older projects. Processing definitions and existing effective edits are unchanged by loading. Fixed batch IDs are independent of live gallery selection. Privacy coverage review is distinct from Vision sensitivity classification and framing proposals; geometry changes flag masked photos and the flag survives framing resets/reopening.
+
+Quick Fix captures per-source input configurations, computes asynchronously with cancellation, then merges only fields that have not changed since capture. All successful patches commit together as one named history step. CollageRenderIdentity compares only relevant sources/configurations and composition data to prevent stale previews/exports being presented as current. Existing exports remain immutable.
+
+PixelZoomViewer takes actual full-resolution CGImage data for output-pixel inspection, with display-scale-aware 100%, fit and pan. Normal gallery/editor previews remain downsampled; detail rendering is explicit. Watermark bounds reuse the shared Core renderer. Crop and collage handles use shared geometry, with platform-specific pointer/touch adapters in SwiftUI. SourceStorageCleanup now also provides read-only owned-snapshot accounting; removal protections are unchanged.
+
+### Composition output and review publication
+
+Collage projects add optional output format/quality and outline font/layout-version fields. Missing text-layout version decodes to legacy geometry; new text art uses multiline outlines. Encoded composition proof and publication share Core encoding, explicitly flattening transparency on white for non-alpha formats. Reviewed destination copies validate encoded bytes and stage/exclusively publish without recompression. Collage privacy coverage review is independent of source-photo review.

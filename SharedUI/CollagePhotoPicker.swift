@@ -14,7 +14,7 @@ struct CollagePhotoPicker: View {
     NavigationStack {
       ScrollView {
         VStack(alignment:.leading) {
-          Text(single ? "Choose the reference to recreate. Import it into Photo Library first if needed." : "Choose the photos for this composition. Art collages can also use the entire library as candidates.")
+          Text(single ? (title == "Mosaic Reference" ? "Choose the reference to recreate. Import it into Photo Library first if needed." : "Choose a photo to place in the selected frame.") : "Choose the photos for this composition. Art collages can also use the entire library as candidates.")
             .font(.callout).foregroundStyle(.secondary).padding(.horizontal)
           LazyVGrid(columns:[GridItem(.adaptive(minimum:140))],spacing:12) {
             ForEach(photos) { asset in
@@ -31,7 +31,7 @@ struct CollagePhotoPicker: View {
                     }
                   Text(asset.name).font(.caption).lineLimit(2)
                 }.padding(6).background(selection.contains(asset.id) ? Color.accentColor.opacity(0.12) : .clear,in:RoundedRectangle(cornerRadius:8))
-              }.buttonStyle(.plain).accessibilityLabel(asset.name).accessibilityValue(selection.contains(asset.id) ? "Selected" : "Not selected")
+              }.buttonStyle(.plain).draggable(asset.id.uuidString).accessibilityLabel(asset.name).accessibilityValue(selection.contains(asset.id) ? "Selected" : "Not selected")
             }
           }.padding()
         }
@@ -44,7 +44,7 @@ struct CollagePhotoPicker: View {
             }
           }
           Button("Cancel") {dismiss()}
-          Button(single ? "Use Reference" : "Use Photos") {apply()}
+          Button(single ? (title == "Mosaic Reference" ? "Use Reference" : "Use Photo") : "Use Photos") {apply()}
             .disabled(selection.isEmpty || (!single && selection.count>CollageProject.maximumCells))
         }
     }.background(.background)

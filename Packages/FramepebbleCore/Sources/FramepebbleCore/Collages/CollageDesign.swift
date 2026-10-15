@@ -6,7 +6,7 @@ public enum CollageShape: String, Codable, Sendable, CaseIterable {
   case rectangle = "Rectangle", circle = "Circle", diamond = "Diamond", heart = "Heart"
   case star = "Star", hexagon = "Hexagon", text = "Text"
   /// Top-left coordinates, shared by layout, clipping, hit testing and template previews.
-  public func path(in rect: CGRect, text: String = "HELLO") -> CGPath {
+  public func path(in rect: CGRect, text: String = "HELLO", fontName: String = "HelveticaNeue-Bold", multiline: Bool = false) -> CGPath {
     let p = CGMutablePath()
     switch self {
     case .rectangle: p.addRect(rect)
@@ -34,8 +34,14 @@ public enum CollageShape: String, Codable, Sendable, CaseIterable {
       p.closeSubpath()
     case .text:
       guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.count <= 64 else { return p }
-      let font = CTFontCreateWithName("HelveticaNeue-Bold" as CFString, 100, nil)
-      let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.init(kCTFontAttributeName as String): font]))
+      let font = CTFontCreateWithName(fontName as CFString, 100, nil)
+      let strings = multiline ? text.components(separatedBy: .newlines) : [text]
+      let lines = strings.map { CTLineCreateWithAttributedString(NSAttributedString(string: $0, attributes: [.init(kCTFontAttributeName as String): font])) }
+      let widths = lines.map { CTLineGetTypographicBounds($0, nil, nil, nil) }
+      let maximum = widths.max() ?? 0
+      for (index, line) in lines.enumerated() {
+      let horizontal = (maximum - widths[index]) / 2
+
       for item in CTLineGetGlyphRuns(line) as NSArray {
         let run = item as! CTRun
         let attrs = CTRunGetAttributes(run) as NSDictionary
@@ -46,9 +52,10 @@ public enum CollageShape: String, Codable, Sendable, CaseIterable {
         CTRunGetPositions(run, CFRange(location: 0, length: n), &positions)
         for i in 0..<n {
           if let outline = CTFontCreatePathForGlyph(runFont, glyphs[i], nil) {
-            p.addPath(outline, transform: CGAffineTransform(translationX: positions[i].x, y: positions[i].y))
+            p.addPath(outline, transform: CGAffineTransform(translationX: positions[i].x + horizontal, y: positions[i].y - CGFloat(index) * 120))
           }
         }
+      }
       }
       let b = p.boundingBoxOfPath
       guard !p.isEmpty, b.width > 0, b.height > 0 else { return p }

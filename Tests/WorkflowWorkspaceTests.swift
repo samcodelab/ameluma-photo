@@ -14,6 +14,124 @@ import XCTest
     model.selected = model.assets[0].id
     return model
   }
+  func testCollageGeometryChangesRequireIndependentMaskReview() throws {
+    let model = try makeModel(); let source = model.assets[0]
+    var config = model.configuration(for: source); config.masks = [PrivacyMask()]
+    model.setImageConfiguration(config, for: source.id)
+    model.selection = [source.id]; model.switchWorkflow(.collages); model.ensureCollageDocument()
+    var changed = model.collage; changed.cells[0].crop.zoom = 2
+    model.changeCollage(changed)
+    XCTAssertTrue(model.collage.requiresPrivacyReview)
+    model.confirmPrivacyCoverage(source.id)
+    XCTAssertTrue(model.collage.requiresPrivacyReview, "Reviewing the source photo does not approve differently framed collage cells")
+    changed = model.collage; changed.requiresPrivacyReview = false; model.changeCollage(changed)
+    XCTAssertFalse(model.collage.requiresPrivacyReview)
+    model.persistenceTask?.cancel()
+  }
+  func testCollageTabOrderingAndClosingOthersRetainEveryComposition() throws {
+    let model = try makeModel(); model.selection = Set(model.assets.prefix(2).map(\.id))
+    model.switchWorkflow(.collages); model.ensureCollageDocument()
+    let first = try XCTUnwrap(model.activeCollageID)
+    model.newCollage(); let second = try XCTUnwrap(model.activeCollageID)
+    model.newCollage(); let third = try XCTUnwrap(model.activeCollageID)
+    model.moveCollageTab(third, before: first)
+    XCTAssertEqual(model.openCollageIDs, [third, first, second])
+    model.closeOtherCollageTabs(keeping: first)
+    XCTAssertEqual(model.openCollageIDs, [first]); XCTAssertEqual(model.savedCollages.count, 3)
+    XCTAssertEqual(model.activeCollageID, first)
+    model.persistenceTask?.cancel()
+  }
+  func testFixedBatchInputsIgnoreGalleryFilteringAndPersist() throws {
+    let model = try makeModel()
+    let ids = Set(model.assets.prefix(2).map(\.id))
+    model.scope = .selected; model.batchInputIDs = ids
+    model.selection = [model.assets[4].id]
+    model.query = "no matching classification"
+    XCTAssertEqual(Set(model.targets.map(\.id)), ids)
+    XCTAssertEqual(model.editScopeHeading, "Editing 2 saved batch inputs")
+    model.updateField(\.quality, value: 0.4, fields: [.quality])
+    for asset in model.assets { XCTAssertEqual(model.configuration(for: asset).quality, ids.contains(asset.id) ? 0.4 : 0.85) }
+    model.projectName = "Holiday"
+    let saved = try JSONDecoder().decode(ProjectDocument.self, from: JSONEncoder().encode(model.document()))
+    XCTAssertEqual(saved.batchInputIDs, ids); XCTAssertEqual(saved.name, "Holiday")
+    model.scope = .all; XCTAssertNil(model.batchInputIDs)
+    model.persistenceTask?.cancel()
+  }
+  func testQuickFixKeepsNewerManualFieldsAndCreatesOneUndoStep() throws {
+    let model = try makeModel()
+    let asset = model.assets[0], second = model.assets[1]
+    let before = model.configuration(for: asset)
+    var automatic = before; automatic.adjustments.exposure = 0.7; automatic.adjustments.warmth = 0.2
+    var manual = before; manual.adjustments.exposure = -0.4; manual.crop.centerX = 0.25
+    model.setImageConfiguration(manual, for: asset.id)
+    let snapshot = model.edits, steps = model.history.steps.count
+    model.applyQuickFixUpdates([
+      .init(asset: asset, before: before, after: automatic),
+      .init(asset: second, before: before, after: automatic)
+    ], title: "Auto Enhance")
+    XCTAssertEqual(model.configuration(for: asset).adjustments.exposure, -0.4)
+    XCTAssertEqual(model.configuration(for: asset).crop.centerX, 0.25)
+    XCTAssertEqual(model.configuration(for: asset).adjustments.warmth, 0.2)
+    XCTAssertEqual(model.configuration(for: second).adjustments.exposure, 0.7)
+    XCTAssertEqual(model.history.steps.count, steps + 1)
+    XCTAssertTrue(model.undoActionTitle.contains("Auto Enhance"))
+    model.undo(); XCTAssertEqual(model.edits, snapshot)
+    model.persistenceTask?.cancel()
+  }
+  func testCancelledQuickFixAppliesNothing() async throws {
+    let model = try makeModel()
+    let before = model.edits
+    model.quickFix(.autoEnhance)
+    model.quickFixTask?.cancel()
+    await model.quickFixTask?.value
+    XCTAssertEqual(model.edits, before)
+    XCTAssertFalse(model.quickFixRunning)
+    model.persistenceTask?.cancel()
+  }
+  func testPrivacyCoverageSurvivesFramingActionsAndProjectRoundTrip() throws {
+    let model = try makeModel(); let asset = model.assets[0]
+    var value = model.configuration(for: asset); value.masks = [PrivacyMask()]
+    model.setImageConfiguration(value, for: asset.id)
+    XCTAssertFalse(model.privacyCoverageNeedsReview(asset.id))
+    value.crop.centerX = 0.7; model.setCrop(value.crop, for: asset.id)
+    XCTAssertTrue(model.privacyCoverageNeedsReview(asset.id))
+    model.acceptReview(asset.id)
+    XCTAssertTrue(model.privacyCoverageNeedsReview(asset.id))
+    let data = try JSONEncoder().encode(model.document())
+    let saved = try JSONDecoder().decode(ProjectDocument.self, from: data)
+    XCTAssertTrue(saved.privacyCoverageReviewIDs.contains(asset.id))
+    model.confirmPrivacyCoverage(asset.id)
+    XCTAssertFalse(model.privacyCoverageNeedsReview(asset.id))
+    model.persistenceTask?.cancel()
+  }
+  func testCropCanKeepExportDimensionsAndTabManagementKeepsEdits() throws {
+    let model = try makeModel()
+    let a = model.assets[0], b = model.assets[1], c = model.assets[2]
+    model.openPhoto(a); model.openPhoto(b); model.openPhoto(c)
+    let before = model.configuration(for: c)
+    model.applyPhotoCrop(CGRect(x: 100, y: 100, width: 400, height: 300), sourceSize: CGSize(width: 1000, height: 800), id: c.id, keepOutputSize: true)
+    XCTAssertEqual(model.configuration(for: c).width, before.width)
+    XCTAssertEqual(model.configuration(for: c).height, before.height)
+    let edits = model.edits
+    model.moveEditorTab(c.id, before: a.id)
+    XCTAssertEqual(model.editorTabs, [c.id, a.id, b.id])
+    model.closeOtherEditorTabs(keeping: a.id)
+    XCTAssertEqual(model.editorTabs, [a.id]); XCTAssertEqual(model.edits, edits)
+    model.persistenceTask?.cancel()
+  }
+  func testCollageReplacementAndSwapKeepDocumentAndUndo() throws {
+    let model = try makeModel(); model.selection = Set(model.assets.prefix(3).map(\.id))
+    model.switchWorkflow(.collages); model.ensureCollageDocument()
+    let a = model.collage.cells[0], b = model.collage.cells[1], original = model.collage
+    model.swapCollagePhotos(a.id, b.id)
+    XCTAssertEqual(model.collage.cells[0].sourceID, b.sourceID)
+    XCTAssertEqual(model.collage.cells[0].id, a.id)
+    model.undoCollage(); XCTAssertEqual(model.collage, original)
+    model.replaceCollagePhoto(cellID: a.id, sourceID: model.assets[4].id)
+    XCTAssertEqual(model.collage.cells[0].sourceID, model.assets[4].id)
+    model.undoCollage(); XCTAssertEqual(model.collage, original)
+    model.persistenceTask?.cancel()
+  }
   func testDirectCropPreservesScopeOtherPhotosAndUnrelatedEdits() throws {
     let model = try makeModel()
     let id = model.assets[0].id

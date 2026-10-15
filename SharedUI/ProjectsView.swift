@@ -9,11 +9,14 @@ struct ProjectsView: View {
   @State private var projects: [URL] = []
   @State private var saved: URL?
   @State private var confirmClear = false
+  @State private var storage: SourceStorageSummary?
+  @State private var storageError: String?
   @Environment(\.dismiss) private var dismiss
   var body: some View {
     NavigationStack {
       List {
-        Section("Current Workspace") {
+        Section("Current Project") {
+          TextField("Project name", text: $model.projectName)
           Text(
             "\(model.assets.count) photos. Project files store editing instructions and source references, not embedded photographs."
           ).font(.caption)
@@ -37,8 +40,6 @@ struct ProjectsView: View {
             }
           }
           Button("Close Project") { Task { await model.closeProject(); reload() } }
-          Button("Clear Imported Photos…", role: .destructive) { confirmClear = true }
-            .disabled(model.clearingWorkspace)
           Text("Close saves your work. Clear removes current photos and edits, and frees unused local copies. Originals, exported images and copies needed by saved projects remain untouched.").font(.caption).foregroundStyle(.secondary)
           Button("Open project instructions…") { open = true }
           if model.current != nil {
@@ -47,14 +48,28 @@ struct ProjectsView: View {
               .font(.caption)
           }
         }
+        Section("Local Source Storage") {
+          Button("Clear Imported Photos…", role: .destructive) { confirmClear = true }
+            .disabled(model.clearingWorkspace)
+          if let storage {
+            LabeledContent("Managed source copies", value: "\(storage.managedFiles)")
+            LabeledContent("Source file sizes", value: ByteCountFormatter.string(fromByteCount: storage.totalBytes, countStyle: .file))
+            LabeledContent("Retained by saved work", value: ByteCountFormatter.string(fromByteCount: storage.retainedBytes, countStyle: .file))
+            Text("Clear may remove \(ByteCountFormatter.string(fromByteCount: storage.removableBytes, countStyle: .file)) of unreferenced copies. Originals and exported files are excluded. File sizes are not a guarantee of reclaimed disk space.").font(.caption).foregroundStyle(.secondary)
+          } else if let storageError { Text(storageError).font(.caption) }
+          else { ProgressView("Checking owned storage…") }
+        }
+        Section("Privacy & Imports") {
+          Toggle("Private Editing Mode", isOn: $model.privateEditing)
+          Toggle("Skip duplicate imports this session", isOn: $model.skipDuplicates)
+          Text("Private mode avoids persistent preview thumbnails and disables the app’s memory thumbnail cache. Saved sources and project recovery remain on disk. It does not control system screenshots, backups or user-selected cloud folders, and is not secure deletion or encryption.").font(.caption).foregroundStyle(.secondary)
+          Button("Conceal Workspace", systemImage: "eye.slash") { model.concealed = true }
+        }
         Section("Recent Projects") {
           ForEach(projects, id: \.self) { url in
-            Button(url.deletingPathExtension().lastPathComponent) {
-              Task {
-                await model.openProject(url)
-                dismiss()
-              }
-            }
+            Button {
+              Task { await model.openProject(url); dismiss() }
+            } label: { SavedProjectLabel(url: url, store: model.store) }
           }
         }
         Section {
@@ -65,6 +80,7 @@ struct ProjectsView: View {
       }.navigationTitle("Projects").compactNavigationTitle().toolbar {
         Button("Done") { dismiss() }
       }.onAppear { reload() }
+        .task(id: [model.assets.count, projects.count, model.profiles.count, model.watermarkPresets.count]) { await refreshStorage() }
         .fileImporter(isPresented: $open, allowedContentTypes: [.json]) { result in
           switch result {
           case .success(let url):
@@ -83,10 +99,20 @@ struct ProjectsView: View {
           }
         }
     }.alert("Clear imported photos and edits?", isPresented: $confirmClear) {
-      Button("Clear Imported Photos", role: .destructive) { Task { await model.clearImportedPhotos(); reload() } }
+      Button("Clear Imported Photos", role: .destructive) { Task { await model.clearImportedPhotos(); reload(); await refreshStorage() } }
       Button("Cancel", role: .cancel) {}
     } message: { Text("This cannot be undone. Current unsaved edits will be discarded. Import and processing will stop. Only unused copies in Ameluma Photo’s local source storage are removed. Your originals, saved projects and exported files are preserved. Save a project copy first if you want to return to this work.") }
     .frame(minWidth: 320, minHeight: 440)
+  }
+  func refreshStorage() async {
+    do {
+      let cleanup = SourceStorageCleanup()
+      let configuration: [String: Data] = ["profiles": try JSONEncoder().encode(model.profiles), "watermarks": try JSONEncoder().encode(model.watermarkPresets)]
+      let objects = try configuration.mapValues { try JSONSerialization.jsonObject(with: $0) }
+      let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Projects")
+      let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONSerialization.data(withJSONObject: objects))
+      storage = try await cleanup.summary(in: model.directory, retaining: retained)
+    } catch is CancellationError {} catch { storageError = "Storage accounting unavailable: " + error.localizedDescription }
   }
   func reload() {
     let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Projects")
@@ -95,5 +121,21 @@ struct ProjectsView: View {
       ?? []).filter { $0.pathExtension == "json" }.sorted {
         $0.lastPathComponent > $1.lastPathComponent
       }
+  }
+}
+
+struct SavedProjectLabel: View {
+  let url: URL
+  let store: ProjectStore
+  @State private var name: String?
+  @State private var unavailable = false
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      Text(name ?? (unavailable ? "Project instructions unavailable" : "Loading project name…"))
+      Text(url.deletingPathExtension().lastPathComponent).font(.caption).foregroundStyle(.secondary)
+    }.task(id: url) {
+      do { name = try await store.load(url).name }
+      catch is CancellationError {} catch { unavailable = true }
+    }
   }
 }

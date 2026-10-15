@@ -17,9 +17,9 @@ public actor CollageArtBuilder {
   public init() {}
   public func shape(project: CollageProject, sources: [UUID], count: Int, shape: CollageShape, text: String) throws -> CollageProject {
     guard !sources.isEmpty, (1...CollageProject.maximumCells).contains(count), project.width > 0, project.height > 0 else { throw ProcessingError.invalidConfiguration }
-    let rects = try Self.partition(shape: shape, text: text, count: count, aspect: Double(project.width) / Double(project.height))
+    let rects = try Self.partition(shape: shape, text: text, fontName: project.silhouetteFontName, count: count, aspect: Double(project.width) / Double(project.height))
     var result = project
-    result.silhouette = shape; result.silhouetteText = text
+    result.silhouette = shape; result.silhouetteText = text; result.silhouetteTextLayout = 2
     result.templateID = nil; result.mosaicReferenceID = nil
     result.spacing = min(result.spacing, 0.002)
     result.cells = rects.enumerated().map { i, rect in
@@ -32,9 +32,9 @@ public actor CollageArtBuilder {
   }
   /// An integral mask and mass-balanced partitions cover the entire silhouette
   /// with exactly N non-empty photo regions, including disconnected text glyphs.
-  private static func partition(shape: CollageShape, text: String, count: Int, aspect: Double) throws -> [CGRect] {
+  private static func partition(shape: CollageShape, text: String, fontName: String, count: Int, aspect: Double) throws -> [CGRect] {
     let resolution = 512, stride = resolution + 1
-    let path = shape.path(in: CGRect(x: 0, y: 0, width: 1, height: 1), text: text)
+    let path = shape.path(in: CGRect(x: 0, y: 0, width: 1, height: 1), text: text, fontName: fontName, multiline: true)
     guard !path.isEmpty else { throw ProcessingError.invalidConfiguration }
     var sums = [Int](repeating: 0, count: stride * stride)
     for y in 0..<resolution {

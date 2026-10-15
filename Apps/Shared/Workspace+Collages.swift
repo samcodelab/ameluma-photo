@@ -37,6 +37,7 @@ extension Workspace {
       if selectedIDs.count <= CollageProject.maximumCells { item.project.arrange(selectedIDs,layout:.magazine) }
       else { issues.append("A collage supports up to 10,000 tiles. Choose a smaller starting selection, or use all photos as mosaic candidates.") }
     }
+    if item.project.cells.contains(where: { !configuration(forID: $0.sourceID).masks.isEmpty }) { item.project.requiresPrivacyReview = true }
     collageDocuments.append(item); activeCollageID=item.id
     openCollageIDs.append(item.id); collage=item.project
   }
@@ -69,6 +70,7 @@ extension Workspace {
     if selectedIDs.count > CollageProject.maximumCells { issues.append("Starting collage is empty: select at most 10,000 photos, or use the entire library as art-collage candidates.") }
     if let template { template.apply(to:&project,sources:ids) }
     else { project.arrange(ids,layout:.magazine) }
+    if project.cells.contains(where: { !configuration(forID: $0.sourceID).masks.isEmpty }) { project.requiresPrivacyReview = true }
     let item = SavedCollage(name:"Collage \(collageDocuments.count+1)",project:project)
     collageDocuments.append(item); activeCollageID=nil
     activateCollage(item.id)
@@ -105,7 +107,7 @@ extension Workspace {
     activeCollageID=document.activeCollageID.flatMap { openCollageIDs.contains($0) ? $0 : nil } ?? openCollageIDs.first
     collage=collageDocuments.first { $0.id == activeCollageID }?.project ?? CollageProject()
   }
-  func generateCollageArt(shape: CollageShape?, text: String, sourceIDs: Set<UUID>, count: Int, referenceID: UUID?, reuse: Bool) {
+  func generateCollageArt(shape: CollageShape?, text: String, sourceIDs: Set<UUID>, count: Int, referenceID: UUID?, reuse: Bool, fontName: String? = nil) {
     guard !collageGenerating, !running, let documentID=activeCollageID else { return }
     let sources=assets.filter { sourceIDs.contains($0.id) && $0.id != referenceID }
     guard !sources.isEmpty, (1...CollageProject.maximumCells).contains(count) else {
@@ -127,7 +129,8 @@ extension Workspace {
         let result: CollageProject
         var skipped=0
         if let shape {
-          result=try await collageArtBuilder.shape(project:before,sources:sources.map(\.id),count:count,shape:shape,text:text)
+          var template = before; template.silhouetteFontName = fontName ?? before.silhouetteFontName
+          result=try await collageArtBuilder.shape(project:template,sources:sources.map(\.id),count:count,shape:shape,text:text)
         } else if let reference {
           let generated=try await collageArtBuilder.photomosaic(project:before,sources:sources,reference:reference,edits:snapshot,count:count,allowReuse:reuse) { progress in
             await MainActor.run { self.collageArtProgress=progress }
@@ -143,5 +146,37 @@ extension Workspace {
       } catch is CancellationError { status="Collage generation cancelled. Your composition is unchanged." }
       catch { issues.append("Could not generate collage: " + error.localizedDescription) }
     }
+  }
+}
+
+extension Workspace {
+  func replaceCollagePhoto(cellID: UUID, sourceID: UUID) {
+    guard !running, !collageGenerating, assets.contains(where: { $0.id == sourceID }),
+      let index = collage.cells.firstIndex(where: { $0.id == cellID }) else { return }
+    var value = collage; value.cells[index].sourceID = sourceID; changeCollage(value)
+  }
+  func swapCollagePhotos(_ first: UUID, _ second: UUID) {
+    guard !running, !collageGenerating, first != second,
+      let a = collage.cells.firstIndex(where: { $0.id == first }),
+      let b = collage.cells.firstIndex(where: { $0.id == second }) else { return }
+    var value = collage
+    let source = value.cells[a].sourceID, crop = value.cells[a].crop
+    value.cells[a].sourceID = value.cells[b].sourceID; value.cells[a].crop = value.cells[b].crop
+    value.cells[b].sourceID = source; value.cells[b].crop = crop
+    changeCollage(value)
+  }
+}
+
+extension Workspace {
+  func moveCollageTab(_ source: UUID, before target: UUID) {
+    guard !running, !collageGenerating, source != target,
+      let index = openCollageIDs.firstIndex(of: source), openCollageIDs.contains(target) else { return }
+    openCollageIDs.remove(at: index)
+    if let destination = openCollageIDs.firstIndex(of: target) { openCollageIDs.insert(source, at: destination) }
+    persist()
+  }
+  func closeOtherCollageTabs(keeping id: UUID) {
+    guard !running, !collageGenerating, openCollageIDs.contains(id) else { return }
+    syncCollageDocument(); activateCollage(id); openCollageIDs = [id]; persist()
   }
 }

@@ -37,12 +37,12 @@ import SwiftUI
     }.defaultLaunchBehavior(.presented).defaultSize(width: 1280, height: 820).windowResizability(.contentMinSize)
       .commands {
         CommandGroup(replacing: .undoRedo) {
-          Button("Undo") {
+          Button(model.undoActionTitle) {
             model.undoActiveWorkspace()
           }
           .keyboardShortcut("z").disabled(
             !model.canUndoActiveWorkspace)
-          Button("Redo") {
+          Button(model.redoActionTitle) {
             model.redoActiveWorkspace()
           }
           .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(
@@ -109,6 +109,7 @@ struct MacWorkspace: View {
       if model.overlayEditor {
         VStack(spacing: 0) {
           PhotoDocumentTabs(model: model).padding(12).disabled(true)
+          PhotoEditorTools(model: model).padding(.horizontal, 16).disabled(true)
           OverlayEditor(model: model, embedded: true)
         }
       } else if model.browsingLibrary {

@@ -9,13 +9,13 @@ struct EditingHistoryView: View {
     NavigationStack {
       List {
         Section {
-        Text("Choose a step to restore batch and photo edits.")
+        Text("History since opening this project. Steps can affect batch settings and multiple photo tabs.")
           .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         Section {
-          Button("Undo", systemImage: "arrow.uturn.backward") { model.undo() }
+          Button(model.undoActionTitle, systemImage: "arrow.uturn.backward") { model.undo() }
             .disabled(!model.canUndo || model.running || model.analysing || model.overlayEditor)
-          Button("Redo", systemImage: "arrow.uturn.forward") { model.redo() }
+          Button(model.redoActionTitle, systemImage: "arrow.uturn.forward") { model.redo() }
             .disabled(!model.canRedo || model.running || model.analysing || model.overlayEditor)
         }
         Section("Edit steps") {

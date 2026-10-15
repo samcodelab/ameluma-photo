@@ -1,5 +1,6 @@
 import FramepebbleCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 #if os(macOS)
   import AppKit
@@ -23,6 +24,10 @@ struct ShareReview: View {
   private let checkProcessor = ImageProcessor()
   @State private var session = ShareReviewSession(outputs: [])
   @State private var status = ""
+  @State private var choosingFolder = false
+  @State private var copying = false
+  @State private var copyTask: Task<Void, Never>?
+  @State private var copiedURLs: [URL] = []
   @Environment(\.dismiss) private var dismiss
   var body: some View {
     NavigationStack {
@@ -83,6 +88,11 @@ struct ShareReview: View {
             session.included.isEmpty || checking || (checkBeforeSharing && !checked))
           if !session.approvedOutputs.isEmpty && !checking && (!checkBeforeSharing || checked) {
             let chosen = session.approvedOutputs
+            Button("Export Reviewed Files…", systemImage: "folder") { choosingFolder = true }.disabled(copying)
+            if copying {
+              ProgressView("Publishing reviewed files…")
+              Button("Cancel File Export") { copyTask?.cancel() }
+            }
             ShareLink(items: chosen) {
               Label("Share reviewed outputs", systemImage: "square.and.arrow.up")
             }
@@ -120,8 +130,35 @@ struct ShareReview: View {
           checked = false
           session.revokeApproval()
         }
-        .onDisappear { checkTask?.cancel() }
+        .onDisappear { checkTask?.cancel(); copyTask?.cancel() }
+        .fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { result in
+          switch result {
+          case .success(let folder): copyReviewed(to: folder)
+          case .failure(let error): status = "Destination selection failed: " + error.localizedDescription
+          }
+        }
     }.frame(minWidth: 320, minHeight: 440)
+  }
+  func copyReviewed(to folder: URL) {
+    let approved = session.approvedOutputs
+    guard !copying, !approved.isEmpty else { return }
+    copying = true; copiedURLs = []
+    copyTask = Task {
+      let access = folder.startAccessingSecurityScopedResource()
+      defer { if access { folder.stopAccessingSecurityScopedResource() }; copying = false }
+      do {
+        for url in approved {
+          try Task.checkCancellation()
+          let output = try await checkProcessor.copyValidatedOutput(url, to: folder)
+          copiedURLs.append(output)
+          status = "Exported \(copiedURLs.count) of \(approved.count) reviewed files. Existing files and originals are unchanged."
+        }
+      } catch is CancellationError {
+        status = "Export cancelled. \(copiedURLs.count) completed files remain in your selected folder."
+      } catch {
+        status = "Export stopped after \(copiedURLs.count) completed files: " + error.localizedDescription
+      }
+    }
   }
   func scanOutputs() {
     guard !checking else { return }

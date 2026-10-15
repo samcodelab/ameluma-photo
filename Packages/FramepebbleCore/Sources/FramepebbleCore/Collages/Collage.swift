@@ -28,9 +28,14 @@ public struct CollageCell: Codable, Sendable, Equatable, Identifiable {
 }
 public struct CollageProject: Codable, Sendable, Equatable {
   public static let maximumCells = 10_000
+  public var outputFormat: OutputFormat = .png
+  public var outputQuality = 0.9
+  public var requiresPrivacyReview = false
   public var templateID: String?
   public var silhouette: CollageShape?
   public var silhouetteText = "HELLO"
+  public var silhouetteFontName = "HelveticaNeue-Bold"
+  public var silhouetteTextLayout = 2
   public var mosaicReferenceID: UUID?
   public var width = 2048
   public var height = 2048
@@ -45,14 +50,19 @@ public struct CollageProject: Codable, Sendable, Equatable {
   public var shadow = false
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case templateID, silhouette, silhouetteText, mosaicReferenceID, width, height, spacing, background, layout, cells, title, captions, titleColour, canvas,
+    case silhouetteFontName, silhouetteTextLayout, outputFormat, outputQuality, requiresPrivacyReview, templateID, silhouette, silhouetteText, mosaicReferenceID, width, height, spacing, background, layout, cells, title, captions, titleColour, canvas,
       shadow
   }
   public init(from decoder: Decoder) throws {
     self.init()
     let c = try decoder.container(keyedBy: CodingKeys.self)
+    outputFormat = try c.decodeIfPresent(OutputFormat.self, forKey: .outputFormat) ?? .png
+    outputQuality = try c.decodeIfPresent(Double.self, forKey: .outputQuality) ?? 0.9
+    requiresPrivacyReview = try c.decodeIfPresent(Bool.self, forKey: .requiresPrivacyReview) ?? false
     templateID = try c.decodeIfPresent(String.self, forKey: .templateID)
     silhouette = try c.decodeIfPresent(CollageShape.self, forKey: .silhouette)
+    silhouetteFontName = try c.decodeIfPresent(String.self, forKey: .silhouetteFontName) ?? "HelveticaNeue-Bold"
+    silhouetteTextLayout = try c.decodeIfPresent(Int.self, forKey: .silhouetteTextLayout) ?? 1
     silhouetteText = try c.decodeIfPresent(String.self, forKey: .silhouetteText) ?? silhouetteText
     mosaicReferenceID = try c.decodeIfPresent(UUID.self, forKey: .mosaicReferenceID)
     width = try c.decodeIfPresent(Int.self, forKey: .width) ?? width
@@ -160,7 +170,7 @@ extension ImageProcessor {
     var cache: [CollageTileKey:CGImage] = [:], cachedBytes = 0
     var sourceSizes: [UUID:CGSize] = [:]
     if let shape = project.silhouette {
-      let path = shape.path(in: CGRect(x:0,y:project.title.isEmpty ? 0 : size.height*0.12,width:size.width,height:project.title.isEmpty ? size.height : size.height*0.88), text:project.silhouetteText)
+      let path = shape.path(in: CGRect(x:0,y:project.title.isEmpty ? 0 : size.height*0.12,width:size.width,height:project.title.isEmpty ? size.height : size.height*0.88), text:project.silhouetteText, fontName: project.silhouetteFontName, multiline: project.silhouetteTextLayout >= 2)
       guard !path.isEmpty else { throw ProcessingError.invalidConfiguration }
       ctx.saveGState(); ctx.addPath(path); ctx.clip(using: .evenOdd)
     }
@@ -208,7 +218,7 @@ extension ImageProcessor {
           color: CGColor(gray: 0, alpha: 0.3))
       }
       if let shape = cell.shape, shape != .rectangle {
-        ctx.addPath(shape.path(in:rect,text:project.silhouetteText)); ctx.clip(using:.evenOdd)
+        ctx.addPath(shape.path(in:rect,text:project.silhouetteText, fontName: project.silhouetteFontName, multiline: project.silhouetteTextLayout >= 2)); ctx.clip(using:.evenOdd)
       }
       ctx.translateBy(x: rect.minX, y: rect.maxY)
       ctx.scaleBy(x: 1, y: -1)
@@ -217,7 +227,7 @@ extension ImageProcessor {
       if let shape=cell.shape, shape != .rectangle, project.canvas.border > 0 {
         ctx.saveGState()
         ctx.translateBy(x:rect.midX,y:rect.midY);ctx.rotate(by:cell.rotation * .pi/180);ctx.translateBy(x:-rect.midX,y:-rect.midY)
-        ctx.addPath(shape.path(in:rect,text:project.silhouetteText))
+        ctx.addPath(shape.path(in:rect,text:project.silhouetteText, fontName: project.silhouetteFontName, multiline: project.silhouetteTextLayout >= 2))
         ctx.setStrokeColor(project.canvas.borderColour.cgColor)
         ctx.setLineWidth(project.canvas.border*min(rect.width,rect.height))
         ctx.strokePath();ctx.restoreGState()
@@ -264,4 +274,41 @@ extension ImageProcessor {
 
 private struct CollageTileKey: Hashable {
   var sourceID: UUID; var crop: CropConfiguration; var width: Int; var height: Int; var shaped: Bool
+}
+
+/// Identifies exactly the inputs that can affect one rendered composition.
+/// Unrelated library edits do not invalidate an otherwise current output.
+public struct CollageRenderIdentity: Equatable, Sendable {
+  public var project: CollageProject
+  public var sources: [SourceAsset]
+  public var configurations: [UUID: ProcessingConfiguration]
+  public init(project: CollageProject, sources: [SourceAsset], edits: EditingSnapshot) {
+    self.project = project
+    let used = Set(project.cells.map(\.sourceID)).union(project.mosaicReferenceID.map { [$0] } ?? [])
+    self.sources = sources.filter { used.contains($0.id) }.sorted { $0.id.uuidString < $1.id.uuidString }
+    configurations = Dictionary(uniqueKeysWithValues: self.sources.map { ($0.id, edits.configuration(for: $0.id)) })
+  }
+}
+
+public enum CollageGeometry {
+  public static func moved(_ cell: CollageCell, translation: CGSize, viewport: CGSize, titleBand: Double = 0, snap: Bool = true) -> CollageCell {
+    guard viewport.width > 0, viewport.height > 0 else { return cell }
+    var value = cell
+    value.x = min(max(0, 1 - cell.width), max(0, cell.x + translation.width / viewport.width))
+    value.y = min(max(0, 1 - cell.height), max(0, cell.y + translation.height / (viewport.height * max(0.01, 1 - titleBand))))
+    if snap {
+      for target in [0.0, (1 - cell.width) / 2, 1 - cell.width] where abs(value.x - target) < 0.012 { value.x = target; break }
+      for target in [0.0, (1 - cell.height) / 2, 1 - cell.height] where abs(value.y - target) < 0.012 { value.y = target; break }
+    }
+    return value
+  }
+  public static func resized(_ cell: CollageCell, handle: OverlayResizeHandle, translation: CGSize, viewport: CGSize) -> CollageCell {
+    let changed = OverlayGeometry.resized(OverlayBounds(x: cell.x, y: cell.y, width: cell.width, height: cell.height, rotation: cell.rotation), handle: handle, translation: translation, viewport: viewport)
+    var value = cell; value.x = changed.x; value.y = changed.y; value.width = changed.width; value.height = changed.height
+    return value
+  }
+  public static func rotated(_ cell: CollageCell, from: CGPoint, to: CGPoint, viewport: CGSize) -> CollageCell {
+    let changed = OverlayGeometry.rotated(OverlayBounds(x: cell.x, y: cell.y, width: cell.width, height: cell.height, rotation: cell.rotation), from: from, to: to, viewport: viewport)
+    var value = cell; value.rotation = changed.rotation; return value
+  }
 }

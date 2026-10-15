@@ -40,9 +40,10 @@ import XCTest
     let window = UIWindow(windowScene: scene)
     window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
     defer { model.persistenceTask?.cancel(); window.isHidden = true; window.rootViewController = nil }
-    func capture<V: View>(_ name: String, view: V, type: DynamicTypeSize, scheme: ColorScheme, scrollY: CGFloat? = nil, requirePhoto: Bool = false) async throws {
+    func capture<V: View>(_ name: String, view: V, type: DynamicTypeSize, scheme: ColorScheme, scrollY: CGFloat? = nil, requirePhoto: Bool = false, regular: Bool = false, viewport: CGSize = CGSize(width: 390, height: 844)) async throws {
+      window.frame = CGRect(origin: .zero, size: viewport)
       let controller = UIHostingController(rootView:
-        NavigationStack { view }.environment(\.horizontalSizeClass, .compact)
+        NavigationStack { view }.environment(\.horizontalSizeClass, regular ? .regular : .compact)
           .environment(\.dynamicTypeSize, type).environment(\.colorScheme, scheme))
       window.rootViewController = controller
       window.isHidden = false
@@ -101,6 +102,15 @@ import XCTest
     model.newCollage(template:CollageTemplate.catalog[1])
     try await capture("Phone collage tabs",view:CollageEditor(model:model),type:.large,scheme:.light)
     try await capture("Phone collage layout gallery",view:CollageGallery(model:model),type:.large,scheme:.light)
+    model.openPhoto(model.assets[0])
+    model.choosePhotoInspector(.adjust)
+    try await capture("iPad-width editor and inspector components", view: HStack(spacing: 0) {
+      PhotoEditorWorkspace(model: model)
+      Divider()
+      SettingsEditor(model: model, focused: true).frame(width: 340)
+    }, type: .large, scheme: .light, regular: true, viewport: CGSize(width: 1024, height: 768))
+    try await capture("Narrow iPad-width editor components", view: PhotoEditorWorkspace(model: model), type: .large, scheme: .dark, regular: true, viewport: CGSize(width: 600, height: 900))
+
 
   }
 }

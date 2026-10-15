@@ -374,23 +374,30 @@ struct AutomationDashboard: View {
   @State private var editing: UUID?
   @State private var preview: CGImage?
   @State private var deleting: UUID?
+  @State private var dashboardSection = "Workflows"
   @Environment(\.dismiss) private var dismiss
   var body: some View {
     NavigationStack {
       List {
         Section {
+          Picker("Automation view", selection: $dashboardSection) {
+            Text("Workflows").tag("Workflows")
+            Text("Pending Reviews").tag("Pending Reviews")
+            Text("Failed Jobs").tag("Failed Jobs")
+          }.pickerStyle(.segmented)
           Text(automations.message).font(.caption)
           Button("New Automation") {
             automations.recipes.append(AutomationRecipe())
             automations.save()
           }
         }
-        ForEach(automations.recipes) { recipe in
+        ForEach(automations.recipes.filter { dashboardSection == "Workflows" || (dashboardSection == "Pending Reviews" ? !$0.pending.isEmpty : !$0.failures.isEmpty) }) { recipe in
           Section(recipe.name) {
             Label(
               recipe.error != nil ? "Needs attention" : recipe.enabled ? "Monitoring" : "Paused",
               systemImage: recipe.enabled ? "circle.fill" : "pause.circle")
-            Text("\(recipe.inputLabel) → \(recipe.outputLabel)")
+            Text("Input: \(recipe.inputLabel) → Output: \(recipe.outputLabel)")
+            Text(recipe.mode == .automatic ? "Publication: Automatic" : "Publication: Review Before Export").font(.caption.weight(.semibold))
             Text(
               "\(recipe.completed) completed · \(recipe.pending.count) pending · \(recipe.failures.count) failed"
             ).font(.caption)
@@ -420,7 +427,7 @@ struct AutomationDashboard: View {
               Button("Delete", role: .destructive) { deleting = recipe.id }.disabled(
                 automations.busy)
             }
-            ForEach(recipe.pending + recipe.failures) { job in
+            ForEach(dashboardSection == "Pending Reviews" ? recipe.pending : dashboardSection == "Failed Jobs" ? recipe.failures : recipe.pending + recipe.failures) { job in
               DisclosureGroup(job.error == nil ? "Pending review" : "Failed job") {
                 AutomationReviewPreview(automations: automations, job: job)
                 Button(job.error == nil ? "Approve export" : "Retry export") {

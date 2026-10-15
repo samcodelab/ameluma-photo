@@ -127,15 +127,44 @@ Reset Changes offers three explicit actions for every imported photo, including 
 
 Use New Collage for a separate composition. Close a tab without deleting it; reopen it from Layout Gallery → Your Collages. Mac Command-W closes the current collage tab. Each composition keeps its own session Undo/Redo history, and projects save the compositions and open tabs.
 
-Layout Gallery contains 74 arrangements with category/search controls. A card starts a new collage; right-click/long-press can apply it to the current collage. Source and reference choosers show thumbnails.
+Layout Gallery contains 74 arrangements with category/search controls. A card applies its layout to the current collage by default. Choose Create New Collage for a separate tab. Source and reference choosers show thumbnails.
 
 Expand Art Collages for Shape, Text and Photomosaic. Shape/Text fill a silhouette with your chosen number of photo tiles, repeating selected photos when needed. All photo frames changes individual tile shapes; selected tiles have their own frame-shape control. Use HELLO or other short outline text to create photo-filled lettering. For a reference mosaic, import the reference, choose it visually, select candidate photos or Use entire photo library, and Generate. Colour/tone matching is approximate and depends on the photo palette. Disable reuse only when there are enough distinct usable photos. Generation shows progress and supports Cancel; Undo restores the previous arrangement. Up to 10,000 tiles are supported within output size limits. Very thin text may need fewer tiles. Only the active composition is exported as one PNG; originals are untouched.
 
 
 ### Direct crop boundaries and contextual tools
 
-In Editor → Crop & Frame, drag the crop boundary’s corners or edges to select a freeform crop; drag inside to move it. The output width is retained and height follows the new aspect ratio. Changes commit as one Undo step when the gesture ends. The full transformed, adjusted source remains visible around the boundary. This labelled Crop view omits masks, annotations, watermark and canvas decoration; switch to Edited preview to review their final output placement. Numeric precision controls remain available. Batch Frame continues to move the photograph inside a fixed output frame.
+In Editor → Crop & Frame, drag the crop boundary’s corners or edges to select a freeform crop; drag inside to move it. Lock aspect ratio preserves the chosen proportions during boundary resizing. Keep export dimensions preserves the requested output size; otherwise width is retained and height follows the new aspect ratio. Changes commit as one Undo step when the gesture ends. The full transformed, adjusted source remains visible around the boundary. The source Crop view omits overlays. Choose Crop Options → Preview Edited Output to inspect masks, annotations, watermark and canvas treatment without leaving the crop tool. Numeric precision controls remain available. Batch Frame continues to move the photograph inside a fixed output frame.
 
 Privacy and Annotate retain the open-photo strip (and sidebar on Mac/iPad) while editing a draft. Tab navigation is locked until Apply or Cancel, so changes cannot accidentally target a different document. Closing the draft does not close the photo tab.
 
 Collages offers visible Photo Layout, Shape Collage, Text Collage and Photo Mosaic creation choices. Shape/text/mosaic choices open their setup controls directly. The layout gallery defaults to Apply to Current Collage when a composition is open; choose Create New Collage for a separate tab. Applying a layout supports Undo.
+
+
+### Inspecting detail, tools and documents
+
+Inspect Pixels renders full-resolution output for Fit, 100% and zoom/pan inspection. At 100%, one image pixel maps to one display pixel; this is separate from crop zoom and thumbnail size. Encoded Output Preview uses the same viewer, offers a profile selector and previous/next batch samples, and displays actual dimensions and byte count. Large full-resolution renders use more memory and may take time. On Mac, focus the photo and hold M to compare with the original.
+
+On iPhone, Adjust, Crop and Privacy stay in the bottom tool strip; Tools contains Resize, Annotate, Watermark and Export Settings. At accessibility text sizes, Tools and View menus preserve space for the photograph. Watermark editing provides direct move, resize and rotation controls for a single watermark; tiled patterns use inspector settings.
+
+Photo tabs have thumbnails, drag ordering, Close Others and a searchable open-photo list. Collage tabs also support ordering and Close Others. Closing tabs never deletes their sources or saved edits. Project names appear above the library and can be changed in Projects. Source storage accounting and Clear Imported Photos are in the separate Local Source Storage section.
+
+### Fixed batch inputs and privacy coverage
+
+Keep These Batch Inputs saves the current target IDs so filtering and gallery navigation do not change the job. Use Live Selection Instead returns to selection-based targeting. Individual Overrides filters photos with per-photo edits. Mixed width, height, fit mode and format are labelled; adjustment controls also indicate Mixed values. Use Current Edits Only clears checked export-profile selection without changing saved profiles or edits. Export plans show a resolved filename example; destination collisions receive numeric suffixes.
+
+Changes to image geometry after masking flag Privacy Review and Needs Review. Review the final edited output and confirm mask coverage in Editor. The review state is saved in project instructions and cannot be cleared by accepting only framing. It is a reminder, not automatic validation of concealment or a guarantee that an image is safe. Review coverage separately for each export profile.
+
+Quick Fix has progress/cancellation, preserves newer manual values if analysis finishes later and adds one Undo step for its whole batch. Cancelled analysis applies no automatic changes. Undo names the photo/operation where available; histories remain session-based.
+
+### Current collage output
+
+Composition previews identify pending or failed updates. Only an export matching the current composition inputs is offered as Current Export; changed compositions require another render. Previous output files are retained. In Freeform, Move Frames edits frame position/size/rotation, while Reframe Photos moves the photo inside its frame. Handles, snapping, layer order and numeric controls are available. Replace Photograph opens thumbnails; drag a photo from a chooser onto a tile to replace it, or use the selected tile’s Drag to Swap label to exchange photos and framing. Captions remain attached to their frames.
+
+Layout cards preview up to 24 chosen photos, with recommended/category/orientation filters. Saved collages show actual composition previews outside Private Editing Mode. A reference mosaic’s setup separates reference choice, tile photos and requested detail; matching quality still depends on the photo palette. Text art supports selected outline fonts and multiple lines. Existing projects keep their prior text geometry until regenerated.
+
+Automations separates Workflows, Pending Reviews and Failed Jobs. Input, output and publication mode remain visible. Test previews do not publish; required review must be approved explicitly before export.
+
+Collage mask review is independent of source-photo review: changing a cell/layout can expose a detail even when the source photo’s mask was previously checked. Inspect and confirm the final composition separately. The reminder does not prevent you from exporting; you remain responsible for checking final coverage.
+
+Collage output offers the native formats available on this system, quality controls and an encoded preview. Non-transparent formats use a white background. After review, Export Reviewed Files copies approved encoded files to a selected folder without recompression; collisions receive safe suffixes. Completed copies remain available if a later copy fails or is cancelled.

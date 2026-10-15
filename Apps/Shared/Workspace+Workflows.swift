@@ -172,6 +172,7 @@ extension Workspace {
   }
   var editScopeHeading: String {
     if workflow == .photo { return "Editing this photo" }
+    if batchInputIDs != nil { return "Editing \(targets.count) saved batch inputs" }
     switch scope {
     case .all: return "Editing all \(assets.count) imported photos"
     case .selected: return "Editing \(targets.count) selected \(targets.count == 1 ? "photo" : "photos")"
@@ -222,7 +223,7 @@ extension Workspace {
       status = "Full image restored at original size. Other edits are retained. Undo is available."
     } catch { issues.append("Could not reset this crop: " + error.localizedDescription) }
   }
-  func applyPhotoCrop(_ rectangle: CGRect, sourceSize: CGSize, id: UUID) {
+  func applyPhotoCrop(_ rectangle: CGRect, sourceSize: CGSize, id: UUID, keepOutputSize: Bool = false) {
     guard workflow == .photo, !browsingLibrary, !overlayEditor, !running,
       current?.id == id, assets.contains(where: { $0.id == id }),
       rectangle.width > 0, rectangle.height > 0 else { return }
@@ -230,7 +231,7 @@ extension Workspace {
     value.crop = CropGeometry.crop(selecting: rectangle, source: sourceSize, existing: value.crop)
     let height = Double(value.width) / (value.crop.aspectRatio ?? 1)
     guard height.isFinite else { return }
-    value.height = max(1, min(20000, Int(min(20000, max(1, height.rounded())))))
+    if !keepOutputSize { value.height = max(1, min(20000, Int(min(20000, max(1, height.rounded()))))) }
     applyChange(ConfigurationPatch(values: value, fields: [
       .crop_mode, .crop_framing, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .height
     ]), ids: [id])
@@ -330,5 +331,52 @@ extension Workspace {
       try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
       export(to: folder, targetIDs: [id]) { self.beginSharing($0) }
     } catch { issues.append(error.localizedDescription) }
+  }
+}
+
+extension Workspace {
+  static let privacyCoverageReason = "Privacy coverage changed; inspect masks in the edited preview."
+  func privacyCoverageNeedsReview(_ id: UUID) -> Bool {
+    !configuration(forID: id).masks.isEmpty && privacyCoverageReviewIDs.contains(id)
+  }
+  func markPrivacyCoverageChanges(from previous: EditingSnapshot, to next: EditingSnapshot) {
+    let spatial: Set<ConfigurationField> = [.width, .height, .resizeBasis, .percentage, .canvasAlignment, .preventUpscaling, .quarterTurns, .flipHorizontal, .flipVertical, .straighten, .crop_mode, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .crop_quarterTurns, .crop_flipHorizontal, .crop_flipVertical, .crop_straighten]
+    let candidates: Set<UUID>
+    if !previous.settings.masks.isEmpty || !next.settings.masks.isEmpty { candidates = Set(assets.map(\.id)) }
+    else { candidates = Set(previous.overrides.keys).union(next.overrides.keys).union(privacyCoverageReviewIDs) }
+    for id in candidates {
+      let before = previous.configuration(for: id), after = next.configuration(for: id)
+      if after.masks.isEmpty { privacyCoverageReviewIDs.remove(id); continue }
+      guard !before.masks.isEmpty,
+        !ConfigurationPatch(from: before, to: after).fields.isDisjoint(with: spatial) else { continue }
+      privacyCoverageReviewIDs.insert(id)
+    }
+  }
+  func confirmPrivacyCoverage(_ id: UUID) {
+    privacyCoverageReviewIDs.remove(id)
+    persist()
+  }
+  var undoActionTitle: String {
+    if overlayEditor { return "Undo Area Edit" }
+    if collageHasFocus { return "Undo · " + activeCollageName }
+    return "Undo " + (history.steps.first(where: { $0.isCurrent })?.title ?? "Edit")
+  }
+  var redoActionTitle: String {
+    if overlayEditor { return "Redo Area Edit" }
+    if collageHasFocus { return "Redo · " + activeCollageName }
+    return "Redo " + (history.steps.first(where: { $0.isRedo })?.title ?? "Edit")
+  }
+}
+
+extension Workspace {
+  func moveEditorTab(_ source: UUID, before target: UUID) {
+    guard !overlayEditor, source != target, let index = editorTabs.firstIndex(of: source), editorTabs.contains(target) else { return }
+    editorTabs.remove(at: index)
+    if let destination = editorTabs.firstIndex(of: target) { editorTabs.insert(source, at: destination) }
+    persist()
+  }
+  func closeOtherEditorTabs(keeping id: UUID) {
+    guard !overlayEditor, editorTabs.contains(id) else { return }
+    editorTabs = [id]; activateEditorTab(id); persist()
   }
 }

@@ -42,6 +42,7 @@ struct MobileWorkspace: View {
               if model.overlayEditor {
                 VStack(spacing: 0) {
                   PhotoDocumentTabs(model: model).padding(12).disabled(true)
+          PhotoEditorTools(model: model).padding(.horizontal, 16).disabled(true)
                   OverlayEditor(model: model, embedded: true)
                 }.privacyCurtain(model: model)
               } else {
@@ -193,7 +194,7 @@ struct MobileWorkspace: View {
           ).privacyCurtain(model: model).navigationTitle(activity).toolbar {
             Button("Done") { settingsSheet = false }
           }
-        }
+        }.presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
       }
       .sheet(
         isPresented: $exportSheet,
