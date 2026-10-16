@@ -46,15 +46,26 @@ final class GIFTests: XCTestCase {
     let out = try await renderer.export(p, sources: [asset], directory: root)
     let second = try await renderer.export(p, sources: [asset], directory: root)
     XCTAssertNotEqual(out, second)
+    let copyFolder = root.appendingPathComponent("Copies"); try FileManager.default.createDirectory(at: copyFolder, withIntermediateDirectories: true)
+    let copied = try await ImageProcessor().copyValidatedOutput(out, to: copyFolder)
+    XCTAssertEqual(copied.pathExtension, "gif"); XCTAssertEqual(try Data(contentsOf: out), try Data(contentsOf: copied))
     let s = try XCTUnwrap(CGImageSourceCreateWithURL(out as CFURL, nil))
     XCTAssertEqual(CGImageSourceGetCount(s), 2)
     let props = try XCTUnwrap(CGImageSourceCopyProperties(s, nil) as? [CFString: Any])
-    XCTAssertEqual((props[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFLoopCount] as? Int, 2)
+    XCTAssertEqual((props[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFLoopCount] as? Int, 3)
     for (i, f) in p.frames.enumerated() {
       let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(s, i, nil)); XCTAssertEqual(image.width, 64); XCTAssertEqual(image.height, 64)
       let info = try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(s, i, nil) as? [CFString: Any])
       let gif = try XCTUnwrap(info[kCGImagePropertyGIFDictionary] as? [CFString: Any])
       XCTAssertEqual(try XCTUnwrap(gif[kCGImagePropertyGIFUnclampedDelayTime] as? Double), p.timing(for: f), accuracy: 0.011)
+    }
+    for plays in [0, 1] {
+      p.plays = plays
+      let loopURL = try await renderer.export(p, sources: [asset], directory: root)
+      let loopSource = try XCTUnwrap(CGImageSourceCreateWithURL(loopURL as CFURL, nil))
+      let global = CGImageSourceCopyProperties(loopSource, nil) as? [CFString: Any]
+      let repeatCount = (global?[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFLoopCount] as? Int
+      if plays == 0 { XCTAssertEqual(repeatCount, 0) } else { XCTAssertEqual(repeatCount, 1); XCTAssertNil(try Data(contentsOf: loopURL).range(of: Data("NETSCAPE2.0".utf8))) }
     }
     XCTAssertEqual(try Data(contentsOf: asset.url), original)
     XCTAssertFalse(try FileManager.default.contentsOfDirectory(atPath: root.path).contains { $0.hasSuffix(".tmp") })
@@ -77,6 +88,11 @@ final class GIFTests: XCTestCase {
     p.fit = .fill
     let fill = try await renderer.renderFrame(p.frames[0], project: p, sources: [asset])
     let red = try pixel(fill, 0, 0); XCTAssertGreaterThan(red[0], 240); XCTAssertLessThan(red[1], 60); XCTAssertLessThan(red[2], 10)
+    var mask = PrivacyMask(); mask.x = 0; mask.y = 0; mask.width = 0.5; mask.height = 1
+    p.frames[0].configuration.masks = [mask]; p.frames[0].crop.zoom = 2; p.frames[0].crop.centerX = 0.25
+    let maskedCrop = try await renderer.renderFrame(p.frames[0], project: p, sources: [asset])
+    XCTAssertEqual(try pixel(maskedCrop, 40, 40), [0,0,0], "Privacy cover must move with the photo during GIF cropping")
+    p.frames[0].configuration.masks = []; p.frames[0].crop = CropConfiguration()
     var a = Annotation(); a.kind = .rectangle; a.x = 0.2; a.y = 0.2; a.width = 0.5; a.height = 0.5; a.lineWidth = 0.05; a.colour = RGBAColour(0,0,0,1)
     p.annotations = [GIFAnnotation(annotation: a)]
     let composed = try await renderer.renderFrame(p.frames[0], project: p, sources: [asset])
@@ -109,5 +125,19 @@ final class GIFTests: XCTestCase {
     f.period = .any; f.orientation = .portrait; XCTAssertEqual(f.apply(to: assets, information: info).map(\.id), [assets[1].id])
     f.orientation = .any; f.format = "public.png"; XCTAssertEqual(f.apply(to: assets, information: info).count, 1)
     f.format = ""; f.sort = .filename; XCTAssertEqual(f.apply(to: assets, information: info).map(\.id), assets.reversed().map(\.id))
+  }
+}
+
+extension GIFTests {
+  func testLargeSourceAndDiskBackedManyFramePreview() async throws {
+    let root = try folder(), large = try source(in: root, width: 6000, height: 4000)
+    var p = GIFProject(); p.width = 64; p.height = 64
+    p.frames = (0..<24).map { _ in GIFFrame(sourceID: large.id) }
+    let preview = try await GIFPreviewBuilder().prepare(p, sources: [large])
+    defer { preview.remove() }
+    XCTAssertEqual(preview.frames.count, 24)
+    let output = try await GIFRenderer().export(p, sources: [large], directory: root)
+    let decoded = try XCTUnwrap(CGImageSourceCreateWithURL(output as CFURL, nil))
+    XCTAssertEqual(CGImageSourceGetCount(decoded), 24)
   }
 }

@@ -10,6 +10,7 @@ public actor GIFRenderer {
   private let processor = ImageProcessor()
   private let context = CIContext(options: [.cacheIntermediates: false])
   public init() {}
+  public func setPrivateMode(_ enabled: Bool) async { await processor.setPrivateMode(enabled) }
   public func renderFrame(_ frame: GIFFrame, project: GIFProject, sources: [SourceAsset], maximum: Int? = nil) async throws -> CGImage {
     try Task.checkCancellation()
     guard let source = sources.first(where: { $0.id == frame.sourceID }) else { throw GIFError.missingSource }
@@ -24,7 +25,11 @@ public actor GIFRenderer {
       let scale = min(1, Double(limit) / Double(max(project.width, project.height)))
       let size = CGSize(width: max(1, (Double(project.width) * scale).rounded()), height: max(1, (Double(project.height) * scale).rounded()))
       let factor = project.fit == .fit ? min(size.width / Double(base.width), size.height / Double(base.height)) : max(size.width / Double(base.width), size.height / Double(base.height))
-      let image = CIImage(cgImage: base).transformed(by: CGAffineTransform(scaleX: factor, y: factor))
+      let sourceSize = CGSize(width: base.width, height: base.height)
+      let topCrop = CropGeometry.rect(source: sourceSize, ratio: Double(base.width) / Double(base.height), crop: frame.crop)
+      let crop = CGRect(x: topCrop.minX, y: sourceSize.height - topCrop.maxY, width: topCrop.width, height: topCrop.height)
+      let zoom = sourceSize.width / crop.width
+      let image = CIImage(cgImage: base).cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY)).transformed(by: CGAffineTransform(scaleX: factor * zoom, y: factor * zoom))
       let translated = image.transformed(by: CGAffineTransform(translationX: (size.width - image.extent.width) / 2, y: (size.height - image.extent.height) / 2))
       let bounds = CGRect(origin: .zero, size: size)
       var colour = project.background; colour.alpha = 1
@@ -44,8 +49,10 @@ public actor GIFRenderer {
     try StagingWriter.write(Data(), to: staging)
     defer { try? FileManager.default.removeItem(at: staging) }
     guard let destination = CGImageDestinationCreateWithURL(staging as CFURL, UTType.gif.identifier as CFString, project.frames.count, nil) else { throw ProcessingError.encoding }
+    // Image I/O takes total plays, and writes total-1 into the GIF repeat extension.
+    // Omitting the extension is Play Once; its decoded Image I/O default is 1.
     if project.plays != 1 {
-      CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: project.plays == 0 ? 0 : project.plays - 1]] as CFDictionary)
+      CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: project.plays]] as CFDictionary)
     }
     for (index, frame) in project.frames.enumerated() {
       try Task.checkCancellation()
@@ -62,7 +69,9 @@ public actor GIFRenderer {
     try Task.checkCancellation()
     try validate(staging, project: project)
     let clean = project.name.components(separatedBy: CharacterSet.alphanumerics.union(.init(charactersIn: " -_" )).inverted).joined().prefix(80)
-    let stem = clean.isEmpty ? "Animation" : String(clean)
+    var bounded = ""
+    for character in clean { if (bounded + String(character)).utf8.count > 180 { break }; bounded.append(character) }
+    let stem = bounded.isEmpty ? "Animation" : bounded
     for suffix in 0..<10000 {
       try Task.checkCancellation()
       let output = directory.appendingPathComponent(stem + (suffix == 0 ? "" : "-\(suffix)") + ".gif")
@@ -76,6 +85,9 @@ public actor GIFRenderer {
   private func validate(_ url: URL, project: GIFProject) throws {
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil), CGImageSourceGetType(source) as String? == UTType.gif.identifier,
       CGImageSourceGetCount(source) == project.frames.count else { throw ProcessingError.validation }
+    let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any]
+    let gif = properties?[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+    guard (gif?[kCGImagePropertyGIFLoopCount] as? Int ?? 1) == project.plays else { throw ProcessingError.validation }
     for (index, frame) in project.frames.enumerated() {
       try Task.checkCancellation()
       try autoreleasepool {

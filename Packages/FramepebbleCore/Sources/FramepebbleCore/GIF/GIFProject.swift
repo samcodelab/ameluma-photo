@@ -4,10 +4,21 @@ public struct GIFFrame: Codable, Sendable, Equatable, Identifiable {
   public var id = UUID()
   public var sourceID: UUID
   public var duration = 0.5
+  /// Additional framing of the finished photo; source masks and annotations remain attached.
+  public var crop = CropConfiguration()
   /// Captured edits: workspace/batch edits cannot silently alter an existing animation.
   public var configuration: ProcessingConfiguration
   public init(sourceID: UUID, configuration: ProcessingConfiguration = ProcessingConfiguration()) {
     self.sourceID = sourceID; self.configuration = configuration
+  }
+  private enum CodingKeys: String, CodingKey { case id, sourceID, duration, crop, configuration }
+  public init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    sourceID = try c.decode(UUID.self, forKey: .sourceID)
+    configuration = try c.decode(ProcessingConfiguration.self, forKey: .configuration)
+    id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+    duration = try c.decodeIfPresent(Double.self, forKey: .duration) ?? 0.5
+    crop = try c.decodeIfPresent(CropConfiguration.self, forKey: .crop) ?? CropConfiguration()
   }
 }
 public struct GIFAnnotation: Codable, Sendable, Equatable, Identifiable {
@@ -71,7 +82,8 @@ public struct GIFProject: Codable, Sendable, Equatable, Identifiable {
     guard !frames.isEmpty, frames.count <= 1000, Set(frames.map(\.id)).count == frames.count,
       (16...2000).contains(width), (16...2000).contains(height), width * height <= 4_000_000,
       plays >= 0, plays <= 65535, speed.isFinite, (0.1...10).contains(speed),
-      frames.allSatisfy({ $0.duration.isFinite && (0.1...60).contains($0.duration) }),
+      frames.allSatisfy({ $0.duration.isFinite && (0.1...60).contains($0.duration) && $0.crop.zoom.isFinite && (1...20).contains($0.crop.zoom) && $0.crop.centerX.isFinite && (0...1).contains($0.crop.centerX) && $0.crop.centerY.isFinite && (0...1).contains($0.crop.centerY) }),
+      [background.red, background.green, background.blue, background.alpha].allSatisfy({ $0.isFinite && (0...1).contains($0) }),
       annotations.count <= 200 else { throw ProcessingError.invalidConfiguration }
   }
 }

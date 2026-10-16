@@ -11,8 +11,9 @@ public actor GIFPreviewBuilder {
   private let renderer = GIFRenderer()
   public init() {}
   /// Disk-backed preview avoids retaining every decoded frame in memory.
-  public func prepare(_ project: GIFProject, sources: [SourceAsset]) async throws -> GIFPreview {
+  public func prepare(_ project: GIFProject, sources: [SourceAsset], privateMode: Bool = false) async throws -> GIFPreview {
     try project.validate()
+    await renderer.setPrivateMode(privateMode)
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent("Ameluma-GIF-Preview-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     var complete = false
