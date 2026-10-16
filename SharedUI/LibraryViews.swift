@@ -39,6 +39,13 @@ struct LibrarySidebar: View {
           #endif
         }
       }
+      Section("Quick Tasks") {
+        Button("Convert Photos", systemImage: "arrow.triangle.2.circlepath") { model.selectPhotos(for: .convert) }
+        Button("Censor a Photo", systemImage: "eye.slash") { model.selectPhotos(for: .censor) }
+        Button("Choose Photos to Edit", systemImage: "slider.horizontal.3") { model.selectPhotos(for: .edit) }
+        Button("Choose Batch Inputs", systemImage: "square.stack") { model.selectPhotos(for: .batch) }
+        Button("Create Collage from Photos", systemImage: "rectangle.split.2x2") { model.selectPhotos(for: .collage) }
+      }.disabled(model.gifSelectionContext != nil || model.overlayEditor)
       Section("Smart Search") {
         TextField("Filename or recognised content", text: $model.query)
           .onChange(of: model.query) { _, _ in model.showLibrary() }
@@ -59,7 +66,7 @@ struct LibrarySidebar: View {
             }
           }
         }
-        Text("\(model.index.records.count) / \(model.assets.count) indexed locally").font(.caption2)
+        Text("\(model.index.records.count) / \(model.workspaceAssets.count) indexed locally").font(.caption2)
           .foregroundStyle(.secondary)
       }
       Section {
@@ -100,11 +107,11 @@ struct LibrarySidebar: View {
   }
   func count(_ category: LibraryScope) -> Int {
     switch category {
-    case .exceptions: model.assets.filter { model.edits.overrides[$0.id] != nil }.count
-    case .all: model.assets.count
+    case .exceptions: model.workspaceAssets.filter { model.edits.overrides[$0.id] != nil }.count
+    case .all: model.workspaceAssets.count
     case .favourites: model.favourites.count
-    case .edited: model.assets.filter { model.isEdited($0.id) }.count
-    case .review: model.assets.filter { model.proposals[$0.id]?.needsReview == true || model.privacyCoverageNeedsReview($0.id) }.count
+    case .edited: model.workspaceAssets.filter { model.isEdited($0.id) }.count
+    case .review: model.workspaceAssets.filter { model.proposals[$0.id]?.needsReview == true || model.privacyCoverageNeedsReview($0.id) }.count
     case .privacyReview: model.sensitivity.flagged.union(model.privacyCoverageReviewIDs).count
     }
   }
@@ -161,7 +168,7 @@ struct LibraryToolbar: View {
               Button("Keep These Batch Inputs") { model.batchInputIDs = Set(model.targets.map(\.id)); model.scope = .selected; model.persist() }
                 .disabled(model.targets.isEmpty)
             } else {
-              Button("Use Live Selection Instead") { model.batchInputIDs = nil; model.scope = .selected; model.persist() }
+              if model.conversionInputIDs == nil { Button("Use Live Selection Instead") { model.batchInputIDs = nil; model.scope = .selected; model.persist() } }
               Text("Inputs stay fixed while browsing and filtering.").font(.caption).foregroundStyle(.secondary)
             }
           }
@@ -246,7 +253,7 @@ struct LibraryToolbar: View {
       }
     }.padding(.horizontal, 16).padding(.vertical, 10)
       .sheet(isPresented: $model.historyPresented) { EditingHistoryView(model: model) }
-      .confirmationDialog(resetPurpose + " for \(model.assets.count) photos?", isPresented: $confirmResetAll, titleVisibility: .visible) {
+      .confirmationDialog(resetPurpose + " for \(model.workspaceAssets.count) photos?", isPresented: $confirmResetAll, titleVisibility: .visible) {
         Button(resetPurpose, role: .destructive) {
           switch resetPurpose {
           case "Reset Batch Settings": model.resetBatchSettingsOnly()
@@ -276,7 +283,7 @@ struct LibraryToolbar: View {
       ForEach(["Restore Original Appearance", "Reset Batch Settings", "Remove Individual Overrides"], id: \.self) { purpose in
         Button(purpose + "…", role: .destructive) { resetPurpose = purpose; confirmResetAll = true }
       }
-    }.disabled(model.running || model.analysing || model.assets.isEmpty)
+    }.disabled(model.running || model.analysing || model.workspaceAssets.isEmpty)
       .help("Choose which changes to reset. Each action supports Undo.")
   }
   var gallerySummary: some View {
@@ -323,7 +330,7 @@ struct LibraryToolbar: View {
     HStack {
       if model.gifSelectionContext == nil { Menu("Actions") { WorkspaceActions(model: model, ids: model.orderedSelection) } }
       Button(model.selecting ? "Done" : "Select") { model.toggleSelectionMode() }.disabled(
-        model.assets.isEmpty || model.gifSelectionContext != nil)
+        model.workspaceAssets.isEmpty || model.gifSelectionContext != nil)
       Menu {
         if typeSize.isAccessibilitySize {
           if model.browsingLibrary {
@@ -568,14 +575,14 @@ struct ImageCollection: View {
   @Environment(\.dynamicTypeSize) private var typeSize
   var body: some View {
     VStack(spacing: 0) {
-      LibraryToolbar(model: model).fixedSize(horizontal: false, vertical: true)
+      if model.gifSelectionContext == nil { LibraryToolbar(model: model).fixedSize(horizontal: false, vertical: true) }
       WorkspaceFilterControls(model: model)
       Divider()
-      if model.assets.isEmpty {
+      if model.workspaceAssets.isEmpty {
         ContentUnavailableView {
-          Label(model.gifSelectionContext == nil ? "Your photo workspace" : "Choose photos for your GIF", systemImage: "photo.on.rectangle.angled")
+          Label(model.gifSelectionContext == nil ? "Your photo workspace" : "Choose photos · " + (model.gifSelectionContext?.task.rawValue ?? "Task"), systemImage: "photo.on.rectangle.angled")
         } description: {
-          Text(model.gifSelectionContext == nil ? "Add some photos to start editing, creating or converting." : "Add or select photos to create an animated GIF.")
+          Text(model.gifSelectionContext == nil ? "Add some photos to start editing, creating or converting." : "Add photos to continue this task.")
         } actions: {
           if let importAction {
             Button("Add Photos", action: importAction).buttonStyle(.borderedProminent)

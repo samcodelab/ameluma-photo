@@ -34,6 +34,13 @@ struct SettingsEditor: View {
   }
   var body: some View {
     Form {
+      if model.workflow == .batch, let ids = model.conversionInputIDs {
+        Section("Convert \(ids.count) \(ids.count == 1 ? "photo" : "photos")") {
+          Text("Source dimensions by default. Existing visual edits are retained; cropped photos retain their crop. Selected export profiles use their own dimensions.").font(.caption)
+          Toggle("Also Resize", isOn: $model.conversionResizingEnabled).onChange(of: model.conversionResizingEnabled) { _, enabled in if enabled { model.inspectorTask = .resize }; model.persist() }
+        }
+      }
+      if focused && model.workflow == .photo { Text("This photo inherits batch defaults except where it has individual overrides. Changes here affect only this photo.").font(.caption).foregroundStyle(.secondary) }
       Section {
         if focused { Text(model.inspectorTask.rawValue).font(.headline) }
         else if typeSize.isAccessibilitySize {
@@ -47,7 +54,7 @@ struct SettingsEditor: View {
             ForEach(InspectorTask.allCases.filter { !recipeEditing || $0 != .creative }, id: \.self) { Text($0.rawValue).tag($0) }
           }.pickerStyle(.segmented)
         }
-        if !recipeEditing && model.workflow == .batch {
+        if !recipeEditing && model.workflow == .batch && model.conversionInputIDs == nil {
           Picker("Batch inputs / edit target", selection: $model.scope) {
             ForEach([ApplyScope.all, .selected, .results], id: \.self) { Text($0.rawValue).tag($0) }
           }
@@ -107,14 +114,14 @@ struct SettingsEditor: View {
           Text(
             "Private mode disables the app’s memory thumbnail cache. Saved originals and recovery data remain on disk; this is not secure deletion or an encrypted vault."
           ).font(.caption).foregroundStyle(.secondary)
-          Button("Make a Collage…") { open(.collage) }.disabled(model.assets.isEmpty)
+          Button("Make a Collage…") { open(.collage) }.disabled(model.workspaceAssets.isEmpty)
           Button("Annotations & Privacy…") { open(.overlays) }.disabled(
             model.current == nil)
           Text("Opaque covers and cropping provide stronger concealment than blur or pixelation.")
             .font(.caption).foregroundStyle(.secondary)
         }
       }
-      if model.inspectorTask == .resize {
+      if model.inspectorTask == .resize && (model.conversionInputIDs == nil || model.conversionResizingEnabled || recipeEditing) {
         Section("Resize & Canvas") {
           Menu("Choose a size preset") {
             ForEach([512, 1024, 2048, 1080], id: \.self) { edge in

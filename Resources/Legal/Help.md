@@ -66,7 +66,7 @@ Drawing now immediately selects the new mask or annotation. Clicking the selecte
 
 ## Workflow targets, inheritance and output proof
 
-Editor shows a large processed preview of one named photo; its export/share produces one current-edits rendition. Batch Edit shows its input scope and photo count. On Mac, Command-click toggles batch selection, Shift-click selects a range and Command-A selects visible photos with gallery focus. Arrow navigation changes the active photo, preserving group membership. Changing filters removes hidden selected photos and chooses a visible active photo. All images explicitly targets the whole library, including photos outside the filter; choose Search results to limit the batch to that filter.
+Editor shows a large processed preview of one named photo; its export/share produces one current-edits rendition. Batch Edit shows its input scope and photo count. On Mac, Command-click toggles batch selection, Shift-click selects a range and Command-A selects visible photos with gallery focus. Arrow navigation changes the active photo, preserving group membership. Changing filters retains selected photos hidden by the filter and chooses a visible active photo. All images explicitly targets the visible workspace membership, including photos outside the filter; choose Search results to limit the batch to that filter.
 
 Inspector changes affect only the changed fields. Individual edits inherit untouched batch settings. Mixed values are listed; controls represent the first target until changed. Reset Active Photo’s Overrides restores chosen categories to batch inheritance. Copy Chosen Edits lets you select categories; Paste changes only those categories. Context-menu actions name the clicked photo or selected group.
 
@@ -103,7 +103,7 @@ When the editing toolbar cannot fit, use **More** for the remaining tools. At ac
 
 Double-click a library photo (tap on iPhone) to open it in Editor. Reopening the same photo activates its existing tab. Tabs retain their own tool context while the app is running. Close a tab to close its view; its edits remain in the project, and original files are never deleted. Closing the last tab returns to the library. Mac Command-W closes the current photo tab. Open-photo IDs and the active tab are saved with the project; older projects open normally with no tabs. Tool context starts with Adjust after reopening a saved project.
 
-Privacy Review remains a gallery filter, not a separate editing workflow. Right-click/long-press **Edit with Privacy Tool** opens that photo’s editor tab with Privacy active. Apply or Cancel the privacy/annotation draft before changing tabs. Batch selection and export scope are not changed by opening or closing a photo tab. Library filtering still removes hidden photos from the explicit selected group.
+Privacy Review remains a gallery filter, not a separate editing workflow. Right-click/long-press **Edit with Privacy Tool** opens that photo’s editor tab with Privacy active. Apply or Cancel the privacy/annotation draft before changing tabs. Batch selection and export scope are not changed by opening or closing a photo tab. Workspace filtering retains hidden selections; the summary reports their count.
 
 
 ### Restore an original photo
@@ -120,7 +120,7 @@ In Crop & Frame, choose **Reset Crop · Full Image** (also available as **Origin
 
 Batch Edit has visible **Undo History…** and **Reset Changes…** controls. The photo-edit timeline is shared by batch changes and individual editor tabs. Choose a history row to return to its state, then use later rows or Redo to move forward again. A new edit removes the redo branch. History holds up to 80 Undo steps for the current session; reopening a project starts history at its saved state. Imports, exports, collages and automation recipes have separate lifecycles and are not part of this timeline. Editor’s Edits menu and the Mac Edit menu also open history.
 
-Reset Changes offers three explicit actions for every imported photo, including hidden photos. **Restore Original Appearance** removes visual edits and restores native size while retaining encoding and metadata protection. **Reset Batch Settings** restores shared defaults (1600 × 1200 Fit, JPEG) while retaining individual overrides. **Remove Individual Overrides** makes photos inherit current batch settings; it does not restore originals. Each action supports Undo. Original files, collages, automation recipes and saved profiles remain intact. Checked export profiles still apply at export; inspect the output plan or choose Current edits separately. Reset selected edits removes only the selected photos’ overrides.
+Reset Changes offers three explicit actions for workspace photos, including photos hidden by filters. Sources retained only for creations are excluded. **Restore Original Appearance** removes visual edits and restores native size while retaining encoding and metadata protection. **Reset Batch Settings** restores shared defaults (1600 × 1200 Fit, JPEG) while retaining individual overrides. **Remove Individual Overrides** makes photos inherit current batch settings; it does not restore originals. Each action supports Undo. Original files, collages, automation recipes and saved profiles remain intact. Checked export profiles still apply at export; inspect the output plan or choose Current edits separately. Reset selected edits removes only the selected photos’ overrides.
 
 
 ### Multiple collages and art collages
@@ -171,7 +171,7 @@ Collage output offers the native formats available on this system, quality contr
 
 ## Workspace and GIF Creator
 
-Workspace holds the photos you bring to a task. Filters never clear selections: the summary includes selected photos hidden by filters. Use Actions to edit, convert, make a collage, create a GIF or export explicit inputs. Right-clicking an unselected photo targets that photo; a selected photo exposes labelled group actions. Removing a workspace photo leaves the original file unchanged.
+Workspace holds the photos you bring to a task. Filters never clear selections: the summary includes selected photos hidden by filters. Use Actions to edit, convert, make a collage, create a GIF or export explicit inputs. Right-clicking an unselected photo targets that photo; a selected photo exposes labelled group actions. Removing a workspace photo leaves the original file unchanged and retains the source while a current or saved creation uses it.
 
 Open Create GIF and Select Photos, or select workspace photos and choose Actions → Create GIF. Cancel restores your previous selection and filters. Frames start in selection order; range selections use workspace order. Drag frames or use Frame → Move Earlier/Later; duplicate, remove or replace them from that menu. Order sorts only when you request it. Add Photos uses the same workspace picker.
 
@@ -182,3 +182,14 @@ GIF instructions save automatically with the workspace. More → Save Workspace 
 Export uses native GIF encoding. Small File, Balanced and Best Quality change dimensions; you can enter custom dimensions afterwards. Photographic GIFs have a limited palette and can show banding. File size is reported after export. Review every encoded frame before sharing. iPhone/iPad use the native sharing and reviewed Files destination flow. GIFs do not use the optional still-image sensitive-content checker.
 
 GIF previews use temporary downsampled files, removed when the editor closes or enters the background. Unexpected termination may leave temporary files for system cleanup. Private Editing Mode disables the GIF source thumbnail memory cache too; it is not encryption or secure deletion.
+
+
+## Source ownership, recovery and conversion
+
+Remove from Workspace hides a photo from ordinary workspace actions. GIFs, collages and their session Undo/Redo keep the same source record and working copy while needed. Saving and reopening preserves this ownership and membership. Free Unused Working Copies removes only unreferenced owned copies after checking current instructions, saved project copies and watermark references. Clear Workspace & Creations is a separate confirmed operation that discards current photo edits and creations; save a workspace copy first if they are needed.
+
+Relink keeps the source UUID and editing instructions but replaces its managed pixels. Review the affected photo and every current or saved GIF/collage. GIF flags include masks captured when a frame was added, even if the workspace photo no longer has masks. Framing and protective coverage require explicit review. Old exported files remain unchanged; current sharing approval is revoked. Missing GIF preview errors identify the failed frame, with Replace Photo and Locate Missing Photo actions. Saved GIFs remain available from the empty creator as well as More.
+
+Convert is available from Workspace Actions, Mac/iPad Quick Tasks and the iPhone home. It captures explicit inputs and uses source dimensions by default, retaining visual edits and crop geometry. Also Resize enables deliberate resizing. Existing projects and presets retain their saved output sizing. Existing explicit export profiles use their own sizes. Editor photos inherit batch defaults except for individual field overrides; edits in Editor target that photo only. Tool-first Edit, Batch, Convert, Censor and Collage selection uses the same workspace. Adding photos to an existing collage preserves its current cells and settings.
+
+Project instructions reference local working copies and are not self-contained cross-device projects. To move work between devices, source files must be transferred and relinked separately. Sensitive-content checking requires the appropriate signing capability and system policy; manual review remains available. GIF review is always manual. GIF presets primarily change dimensions, not a photographic-quality guarantee. Explicit Mac browser-image drops may download an HTTPS image from its website; image processing remains local. Physical-device performance, Pencil/trackpad and complete VoiceOver accessibility still require appropriate verification.

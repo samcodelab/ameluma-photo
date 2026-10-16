@@ -98,6 +98,15 @@ import XCTest
     model.startGIF(ids: model.assets.prefix(3).map(\.id))
     window.contentView = hosting
     try await capture("Mac GIF Creator")
+    model.archiveCurrentGIF(); let savedGIF = try XCTUnwrap(model.gifProject); model.gifProject = nil
+    try await capture("Review — Mac empty GIF saved creations")
+    model.openGIF(savedGIF)
+    if let index = model.assets.firstIndex(where: { $0.id == savedGIF.frames[1].sourceID }) { model.assets[index].url = root.appendingPathComponent("Missing-photo.png") }
+    try await capture("Review — Mac missing GIF frame")
+    if let index = model.assets.firstIndex(where: { $0.id == savedGIF.frames[1].sourceID }) { model.assets[index].url = model.directory.appendingPathComponent("Landscape 2.png") }
+    model.selectPhotos(for: .convert)
+    try await capture("Review — Mac contextual Convert")
+    model.finishGIFSelection(cancel: true)
     model.selection=Set(model.assets.map(\.id))
     model.switchWorkflow(.collages);model.ensureCollageDocument()
     model.newCollage(template:CollageTemplate.catalog[0])

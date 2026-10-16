@@ -30,6 +30,7 @@ public struct CollageProject: Codable, Sendable, Equatable {
   public static let maximumCells = 10_000
   public var outputFormat: OutputFormat = .png
   public var outputQuality = 0.9
+  public var requiresFramingReview = false
   public var requiresPrivacyReview = false
   public var templateID: String?
   public var silhouette: CollageShape?
@@ -50,7 +51,7 @@ public struct CollageProject: Codable, Sendable, Equatable {
   public var shadow = false
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case silhouetteFontName, silhouetteTextLayout, outputFormat, outputQuality, requiresPrivacyReview, templateID, silhouette, silhouetteText, mosaicReferenceID, width, height, spacing, background, layout, cells, title, captions, titleColour, canvas,
+    case requiresFramingReview, silhouetteFontName, silhouetteTextLayout, outputFormat, outputQuality, requiresPrivacyReview, templateID, silhouette, silhouetteText, mosaicReferenceID, width, height, spacing, background, layout, cells, title, captions, titleColour, canvas,
       shadow
   }
   public init(from decoder: Decoder) throws {
@@ -58,6 +59,7 @@ public struct CollageProject: Codable, Sendable, Equatable {
     let c = try decoder.container(keyedBy: CodingKeys.self)
     outputFormat = try c.decodeIfPresent(OutputFormat.self, forKey: .outputFormat) ?? .png
     outputQuality = try c.decodeIfPresent(Double.self, forKey: .outputQuality) ?? 0.9
+    requiresFramingReview = try c.decodeIfPresent(Bool.self, forKey: .requiresFramingReview) ?? false
     requiresPrivacyReview = try c.decodeIfPresent(Bool.self, forKey: .requiresPrivacyReview) ?? false
     templateID = try c.decodeIfPresent(String.self, forKey: .templateID)
     silhouette = try c.decodeIfPresent(CollageShape.self, forKey: .silhouette)

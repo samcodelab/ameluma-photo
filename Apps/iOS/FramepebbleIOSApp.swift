@@ -284,19 +284,19 @@ struct MobileWorkspace: View {
           model.showLibrary(.all, clearSearch: true)
           home = false
         } label: {
-          Label("Workspace · \(model.assets.count) photos", systemImage: "photo.on.rectangle.angled")
+          Label("Workspace · \(model.workspaceAssets.count) photos", systemImage: "photo.on.rectangle.angled")
             .font(.headline).frame(maxWidth: .infinity, alignment: .leading).padding(16)
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
         }.buttonStyle(.plain)
         ForEach(
           [
-            "Batch Edit", "Editor", "Create GIF", "Collages",
+            "Batch Edit", "Editor", "Convert", "Censor", "Create GIF", "Collages",
           ], id: \.self
         ) { name in
           Button {
             activity = name
             home = false
-            pendingTaskImport = model.assets.isEmpty
+            pendingTaskImport = model.workspaceAssets.isEmpty
             launchTask()
           } label: {
             HStack {
@@ -315,10 +315,10 @@ struct MobileWorkspace: View {
           }.buttonStyle(.plain)
         }
         Button("Projects & Clear Photos", systemImage: "folder") { model.projectsView = true }
-        if !model.assets.isEmpty {
+        if !model.workspaceAssets.isEmpty {
           Text("Recent workspace").font(.headline)
           Button(
-            "Continue editing \(model.assets.count) \(model.assets.count == 1 ? "photo" : "photos")"
+            "Continue editing \(model.workspaceAssets.count) \(model.workspaceAssets.count == 1 ? "photo" : "photos")"
           ) { home = false }
           Text("Your current workspace is saved on this device.").font(.caption).foregroundStyle(
             .secondary)
@@ -334,7 +334,8 @@ struct MobileWorkspace: View {
     case "Editor", "Perfect a Photo": "slider.horizontal.3"
     case "Collages", "Make a Collage": "rectangle.split.2x2"
     case "Create GIF": "photo.stack"
-    case "Privacy": "eye.slash"
+    case "Convert": "arrow.triangle.2.circlepath"
+    case "Censor", "Privacy": "eye.slash"
     case "Prepare to Share": "square.and.arrow.up"
     default: "arrow.up.left.and.arrow.down.right"
     }
@@ -344,13 +345,14 @@ struct MobileWorkspace: View {
     case "Editor", "Perfect a Photo": "Edit one photo, then export or share it"
     case "Collages", "Make a Collage": "Choose sources and edit your composition"
     case "Create GIF": "Turn photos into an animation with captions"
-    case "Privacy": "Cover details you want to keep private"
+    case "Convert": "Change format while keeping source dimensions"
+    case "Censor", "Privacy": "Cover details you want to keep private"
     case "Prepare to Share": "Review and save your finished photos"
     default: "Select photos, apply shared edits and export a batch"
     }
   }
   func finishTaskImport() {
-    if pendingTaskImport && !model.assets.isEmpty {
+    if pendingTaskImport && !model.workspaceAssets.isEmpty {
       pendingTaskImport = false
       if !model.precision && !model.overlayEditor && !model.collageEditor && !settingsSheet {
         launchTask()
@@ -358,9 +360,14 @@ struct MobileWorkspace: View {
     }
   }
   func launchTask() {
+    if activity == "Batch Edit" { model.selectPhotos(for: .batch); return }
+    if activity == "Editor" { model.selectPhotos(for: .edit); return }
+    if activity == "Collages" { model.selectPhotos(for: .collage); return }
+    if activity == "Convert" { model.selectPhotos(for: .convert); return }
+    if activity == "Censor" { model.selectPhotos(for: .censor); return }
     let workflow: StudioWorkflow = activity == "Editor" ? .photo : activity == "Collages" ? .collages : activity == "Create GIF" ? .gif : .batch
     model.switchWorkflow(workflow)
-    guard !model.assets.isEmpty else { return }
+    guard !model.workspaceAssets.isEmpty else { return }
     if activity == "Create GIF" { return }
     if activity == "Batch Edit" || activity == "Editor" || activity == "Collages" {
       model.inspectorTask = .resize
@@ -392,18 +399,18 @@ struct MobileWorkspace: View {
   var collection: some View {
     Group {
       if model.browsingLibrary { libraryCollection }
-      else if model.workflow == .photo && !model.assets.isEmpty { PhotoEditorWorkspace(model: model, openSettings: {
+      else if model.workflow == .photo && !model.workspaceAssets.isEmpty { PhotoEditorWorkspace(model: model, openSettings: {
         if UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular && detailWidth >= 760 { showInspector = true }
         else { settingsSheet = true }
       }) }
       else if model.workflow == .gif { GIFEditor(model: model, importAction: { importFiles = true }) }
-      else if model.workflow == .collages && !model.assets.isEmpty { CollageEditor(model: model, embedded: true) }
+      else if model.workflow == .collages && !model.workspaceAssets.isEmpty { CollageEditor(model: model, embedded: true) }
       else { libraryCollection }
     }
   }
   var libraryCollection: some View {
     VStack(spacing: 0) {
-      if model.assets.isEmpty && model.gifSelectionContext == nil {
+      if model.workspaceAssets.isEmpty && model.gifSelectionContext == nil {
         VStack(spacing: 16) {
           PebbleMark(size: 48)
           Text(model.browsingLibrary ? "Your photo workspace" : activity).font(.title2.weight(.semibold))
@@ -418,40 +425,17 @@ struct MobileWorkspace: View {
             Label("Browse Files", systemImage: "folder").frame(maxWidth: .infinity)
           }.buttonStyle(.bordered).controlSize(.large)
         }.padding(24)
-      } else {
-        HStack {
-          TextField("Search recognised content", text: $model.query).textFieldStyle(.roundedBorder)
-            .submitLabel(.search)
-          if !model.query.isEmpty {
-            Button {
-              model.query = ""
-            } label: {
-              Image(systemName: "xmark.circle.fill")
-            }.accessibilityLabel("Clear search")
-          }
-          Menu {
-            ForEach(LibraryScope.allCases, id: \.self) { scope in
-              Button {
-                model.showLibrary(scope)
-              } label: {
-                Label(scope.rawValue, systemImage: model.library == scope ? "checkmark" : "circle")
-              }
-            }
-            if !model.browsingLibrary { Button("Smart Auto-frame") { model.autoFrame(.smart) } }
-          } label: {
-            Image(systemName: "line.3.horizontal.decrease")
-          }.accessibilityLabel("Filter photos")
-        }.padding(.horizontal).padding(.top, 10)
       }
-      if !model.assets.isEmpty || model.gifSelectionContext != nil { ImageCollection(model: model, importAction: { importFiles = true }) } else { Spacer(minLength: 12) }
-      if !model.browsingLibrary && model.current != nil {
+      if !model.workspaceAssets.isEmpty || model.gifSelectionContext != nil { ImageCollection(model: model, importAction: { importFiles = true }) } else { Spacer(minLength: 12) }
+      if !model.browsingLibrary && model.workflow == .batch && model.current != nil {
         HStack {
-          Button(activity, systemImage: taskSymbol(activity)) { launchTask() }.buttonStyle(
-            .borderedProminent
-          ).controlSize(.large).frame(maxWidth: .infinity)
+          Button(model.conversionInputIDs != nil ? "Format & Export" : "Batch Settings", systemImage: "slider.horizontal.3") {
+            if model.conversionInputIDs != nil { exportSheet = true }
+            else { model.inspectorTask = .resize; settingsSheet = true }
+          }.buttonStyle(.borderedProminent).controlSize(.large).frame(maxWidth: .infinity)
         }.padding(.horizontal)
       }
-      if !model.browsingLibrary && model.current != nil {
+      if !model.browsingLibrary && model.current != nil && model.conversionInputIDs == nil {
         if typeSize.isAccessibilitySize {
           Menu("Photo actions") {
             Button("Rotate clockwise", systemImage: "rotate.right") { rotateCurrent() }
@@ -548,9 +532,14 @@ struct MobileWorkspace: View {
           .title2.weight(.semibold))
         Text("Edits are applied to new copies. Your originals stay unchanged.").font(.subheadline)
           .foregroundStyle(.secondary)
-        if model.workflow == .batch {
+        if model.workflow == .batch && model.conversionInputIDs == nil {
           Picker("Batch inputs", selection: $model.scope) {
             ForEach([ApplyScope.all, .selected, .results], id: \.self) { Text($0.rawValue).tag($0) }
+          }
+        }
+        if model.conversionInputIDs != nil {
+          Picker("Format", selection: Binding(get: { model.controlConfiguration.format }, set: { model.updateField(\.format, value: $0, fields: [.format]) })) {
+            ForEach(ImageProcessor.outputFormats, id: \.self) { Text($0.rawValue.uppercased()).tag($0) }
           }
         }
         ExportPlanView(model: model)
@@ -558,11 +547,11 @@ struct MobileWorkspace: View {
           "Individual edits are included. Active export profiles may produce additional sizes and formats."
         ).font(.caption).foregroundStyle(.secondary)
         Text(
-          "\(model.controlConfiguration.width) × \(model.controlConfiguration.height) px · \(model.controlConfiguration.format.rawValue.uppercased())"
+          "\(ExportPlanView(model: model).sizeSummary(model.controlConfiguration)) · \(model.controlConfiguration.format.rawValue.uppercased())"
         ).font(.subheadline).foregroundStyle(.secondary)
         Button("Change size or format", systemImage: "slider.horizontal.3") {
           exportSheet = false
-          model.inspectorTask = .resize
+          model.inspectorTask = model.conversionInputIDs != nil ? .output : .resize
           editAfterExport = true
         }
         Button {

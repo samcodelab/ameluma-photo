@@ -81,7 +81,7 @@ extension Workspace {
     persist()
   }
   func restoreEditorTabs(_ document: ProjectDocument) {
-    let valid = Set(assets.map(\.id))
+    let valid = Set(workspaceAssets.map(\.id))
     var seen: Set<UUID> = []
     editorTabs = document.editorTabIDs.filter { valid.contains($0) && seen.insert($0).inserted }
     editorPhotoID = document.activeEditorPhotoID.flatMap { editorTabs.contains($0) ? $0 : nil } ?? editorTabs.first
@@ -121,7 +121,7 @@ extension Workspace {
   func reconcileVisibleSelection() {
     let visible = filtered
     let ids = Set(visible.map(\.id))
-    selection.formIntersection(Set(assets.map(\.id)))
+    selection.formIntersection(Set(workspaceAssets.map(\.id)))
     if !(activePhotoID.map { ids.contains($0) } ?? false) { activePhotoID = visible.first?.id }
     if let anchor = selectionAnchor, !ids.contains(anchor) { selectionAnchor = nil }
   }
@@ -166,7 +166,9 @@ extension Workspace {
   func resetAllProcessingChanges() {
     guard !running, !analysing, !overlayEditor else { return }
     endInteraction()
-    commit(EditingSnapshot(), title: "Reset All Changes · \(assets.count) photos")
+    var next = EditingSnapshot()
+    for id in hiddenSourceIDs { next.apply(ConfigurationPatch(values: configuration(forID: id), fields: Set(ConfigurationField.allCases)), to: id) }
+    commit(next, title: "Reset All Changes · \(assets.count) photos")
     proposals.removeAll()
     precision = false
     status = "Batch defaults and all individual photo edits reset. Undo restores them. Photos and originals remain untouched."
@@ -175,7 +177,7 @@ extension Workspace {
     if workflow == .photo { return "Editing this photo" }
     if batchInputIDs != nil { return "Editing \(targets.count) saved batch inputs" }
     switch scope {
-    case .all: return "Editing all \(assets.count) imported photos"
+    case .all: return "Editing all \(workspaceAssets.count) workspace photos"
     case .selected: return "Editing \(targets.count) selected \(targets.count == 1 ? "photo" : "photos")"
     case .results: return "Editing \(targets.count) matching \(targets.count == 1 ? "photo" : "photos")"
     case .individual: return "Editing this photo"
@@ -189,13 +191,13 @@ extension Workspace {
   func restoreLibraryOriginalAppearance() {
     guard !running, !analysing, !overlayEditor else { return }
     var next = edits
-    for asset in assets { next.restoreOriginalAppearance(for: asset.id) }
+    for asset in workspaceAssets { next.restoreOriginalAppearance(for: asset.id) }
     commit(next, title: "Restore Original Appearance · \(assets.count) photos")
     proposals.removeAll()
   }
   func removeAllIndividualOverrides() {
     guard !running, !analysing, !overlayEditor else { return }
-    var next = edits; next.overrides.removeAll()
+    var next = edits; next.overrides = next.overrides.filter { hiddenSourceIDs.contains($0.key) }
     commit(next, title: "Remove All Individual Overrides")
     proposals.removeAll()
   }
@@ -262,7 +264,7 @@ extension Workspace {
   }
   func pasteEdits(to ids: Set<UUID>) {
     guard let copiedEdits else { return }
-    applyChange(copiedEdits, ids: ids.intersection(Set(assets.map(\.id))))
+    applyChange(copiedEdits, ids: ids.intersection(Set(workspaceAssets.map(\.id))))
   }
   var activeProfiles: [ExportProfile] {
     let selected = workflow == .photo ? [] : profiles.filter { exportProfiles.contains($0.id) }
@@ -303,7 +305,7 @@ extension Workspace {
     return config
   }
   func plannedRequests(targetIDs: Set<UUID>? = nil) -> [ExportRequest] {
-    let sources = targetIDs.map { ids in assets.filter { ids.contains($0.id) } } ?? targets
+    let sources = targetIDs.map { ids in workspaceAssets.filter { ids.contains($0.id) } } ?? targets
     let active = targetIDs == nil ? activeProfiles : [currentEditsProfile]
     return sources.flatMap { asset in
       active.map {

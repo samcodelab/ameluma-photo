@@ -4,7 +4,7 @@ import FramepebbleCore
 extension Workspace {
   func scanSensitiveImages(selectedOnly: Bool = false) {
     guard sensitivityTask == nil else { return }
-    let jobs = selectedOnly ? assets.filter { selection.contains($0.id) } : assets
+    let jobs = selectedOnly ? workspaceAssets.filter { selection.contains($0.id) } : workspaceAssets
     sensitivityCompleted = 0
     sensitivityTotal = jobs.count
     sensitivityTask = Task {

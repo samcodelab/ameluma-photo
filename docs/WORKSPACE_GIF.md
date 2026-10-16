@@ -1,5 +1,7 @@
 # Workspace and GIF implementation
 
+The current reliability fixes and verification are documented in [RELIABILITY_REVIEW](RELIABILITY_REVIEW.md). Earlier validation counts and captures below describe the original implementation, not the updated build.
+
 ## Initial architectural review
 
 The MainActor Workspace coordinator owns one source array, explicit selection, editor tabs, batch scopes and saved collages. Platform adapters supply Files/Finder/Photos import and native sharing. ImageProcessor imports private snapshots, downsamples previews, renders shared configurations and validates staged exports. AnnotationRenderer and normalised Annotation geometry are reusable. ProjectDocument schema 4 supports optional additive fields with legacy migration.
@@ -33,11 +35,11 @@ Optimisation presets set 480/800/1,600-pixel longest edges. Custom dimensions re
 
 The application retains only bounded-size rendered frames in its own pipeline; Image I/O may retain encoder state. The 24-frame synthetic 24-megapixel-source regression demonstrates functional large-source handling, not a measured peak-memory guarantee or 1,000-frame physical-device benchmark. Preparing many previews uses temporary disk space. Preview files are removed on editor exit/background or cooperative cancellation; abrupt termination can leave temporary files for system cleanup. Private mode also disables the GIF renderer's source thumbnail memory cache; it is not encryption or secure deletion.
 
-GIFs preserve visible photo edits in flattened output, use sRGB and omit copied source metadata. GIF palette limits preclude full photographic colour fidelity. Removing a referenced workspace photo leaves a missing composition reference, repairable with Replace Photo; when the reference remains but its file is missing, Projects → Relink is also available. Original files are never deleted by workspace removal.
+GIFs preserve visible photo edits in flattened output, use sRGB and omit copied source metadata. GIF palette limits preclude full photographic colour fidelity. Workspace removal now retains source records required by creations. If a retained file is genuinely missing, use frame replacement or Projects → Relink. Original files are never deleted by workspace removal.
 
 Native layout captures use synthetic photos. Physical iPhone/iPad gestures, Pencil, VoiceOver, energy/memory profiling, real large-collection throughput and cross-player photographic/dithering quality remain manual release checks. Generated layout captures and Simulator tests do not establish those claims.
 
-## Final validation — 16 October 2026
+## Historical validation of a41a4a9 — 16 October 2026
 
 - 110 macOS Core tests passed, including new native GIF roundtrips, once/finite/forever loops, collisions, byte-preserving reviewed copies, individual/global timing, frame identity/order/duplication/removal, annotation membership, fitting, privacy-preserving crops, missing references, cancellation and project migration/persistence. A 24-frame preview/export uses a synthetic 6,000 × 4,000 source.
 - 185 iPhone 17 Simulator app-hosted tests passed, including existing editing/batch regressions and new contextual selection, cancel/return, photo-first/action-first GIF entry, append/replace, independent captured edits, GIF history, workspace removal and restoration tests.

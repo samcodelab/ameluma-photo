@@ -60,6 +60,10 @@ struct CollageEditor: View {
           collageTabs
           if model.activeCollageID != nil {
           creationChoices
+          if model.collage.requiresFramingReview {
+            Label("Source replaced · review this composition’s framing", systemImage: "exclamationmark.triangle")
+            Button("I’ve Reviewed This Composition’s Framing") { var value = model.collage; value.requiresFramingReview = false; model.changeCollage(value) }.disabled(renderedIdentity != renderIdentity)
+          }
           if model.collage.requiresPrivacyReview {
             VStack(alignment: .leading, spacing: 6) {
               Label("Review masks after changing this composition", systemImage: "exclamationmark.shield").font(.headline)
@@ -70,7 +74,7 @@ struct CollageEditor: View {
             }.padding(10).background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
           }
           Text("Composition · \(model.collage.cells.count) photo \(model.collage.cells.count == 1 ? "cell" : "cells") → 1 \(model.collage.outputFormat.rawValue.uppercased()) file").font(.headline)
-          Button("Choose Source Photos…") { sourceSelection = Set(model.collage.cells.map(\.sourceID)); choosingSources = true }.disabled(model.running || model.collageGenerating)
+          Button(model.collage.cells.isEmpty ? "Choose Photos from Workspace…" : "Add Photos from Workspace…") { model.selectPhotos(for: .collageAdd) }.disabled(model.running || model.collageGenerating)
           Picker(
             "Layout",
             selection: Binding(
@@ -176,13 +180,14 @@ struct CollageEditor: View {
       .sheet(isPresented: $choosingSources) {
         CollagePhotoPicker(model:model,selection:$sourceSelection) {
           var value=model.collage
-          let ids=model.assets.filter {sourceSelection.contains($0.id)}.map(\.id)
+          let ids=model.workspaceAssets.filter {sourceSelection.contains($0.id)}.map(\.id)
           if let template=CollageTemplate.catalog.first(where:{$0.id==value.templateID}) {template.apply(to:&value,sources:ids)}
           else {value.arrange(ids,layout:value.layout)}
           model.changeCollage(value);choosingSources=false
         }
       }
-      .task(id:Set(model.collage.cells.map(\.sourceID))) {
+      .task(id: renderIdentity.sources) {
+        sizes = [:]
         let ids=Set(model.collage.cells.map(\.sourceID))
         for asset in model.assets where ids.contains(asset.id) {
           do {
@@ -208,6 +213,7 @@ struct CollageEditor: View {
         ShareReview(urls: session.outputs, summary: session.summary).privacyCurtain(model: model)
       }
       .onDisappear { model.collageTask?.cancel() }
+      .onChange(of: renderIdentity) { _, _ in reviewSession = nil; detailImage = nil; compositionByteCount = nil }
       .onAppear { model.ensureCollageDocument() }
       .onChange(of:model.activeCollageID) { _,_ in selected=nil; start=nil; interactionStart=nil }
 
@@ -486,12 +492,12 @@ struct CollageEditor: View {
       Text(useAllSources ? "All library photos are candidates. The reference is excluded." : "The current composition’s photos are candidates. Use Choose Source Photos to change them.").font(.caption).foregroundStyle(.secondary)
       Text("3. Choose detail and generate").font(.headline)
       TextField("Number of photo tiles (1–10,000)",value:$tileCount,format:.number)
-      Text("Candidates: \(useAllSources ? model.assets.count : Set(model.collage.cells.map(\.sourceID)).count) photos · Requested: \(tileCount) tiles").font(.caption)
+      Text("Candidates: \(useAllSources ? model.workspaceAssets.count : Set(model.collage.cells.map(\.sourceID)).count) photos · Requested: \(tileCount) tiles").font(.caption)
       Button("Generate \(artMode)") {
-        let ids=useAllSources ? Set(model.assets.map(\.id)) : Set(model.collage.cells.map(\.sourceID))
+        let ids=useAllSources ? Set(model.workspaceAssets.map(\.id)) : Set(model.collage.cells.map(\.sourceID))
         artPresented = false
         model.generateCollageArt(shape:artMode == "Photomosaic" ? nil : artMode == "Text" ? .text : artShape,text:artText,sourceIDs:ids,count:tileCount,referenceID:artMode == "Photomosaic" ? referenceID : nil,reuse:reuse,fontName:artFont)
-      }.disabled(model.collageGenerating || model.running || tileCount < 1 || tileCount > CollageProject.maximumCells || (useAllSources ? model.assets.isEmpty : model.collage.cells.isEmpty) || (artMode == "Photomosaic" && referenceID == nil))
+      }.disabled(model.collageGenerating || model.running || tileCount < 1 || tileCount > CollageProject.maximumCells || (useAllSources ? model.workspaceAssets.isEmpty : model.collage.cells.isEmpty) || (artMode == "Photomosaic" && referenceID == nil))
       Text("Generation replaces this composition’s arrangement. Undo restores the previous layout.").font(.caption).foregroundStyle(.secondary)
       Divider()
       Picker("Photo frame shape · all tiles",selection:Binding(get:{ model.collage.cells.first?.shape ?? .rectangle },set:{ shape in
@@ -615,7 +621,7 @@ struct CollageEditor: View {
             }
           }
           Menu("Add photograph") {
-            ForEach(model.assets) { asset in
+            ForEach(model.workspaceAssets) { asset in
               Button(asset.name) {
                 var p = model.collage
                 let ids = p.cells.map(\.sourceID) + [asset.id]

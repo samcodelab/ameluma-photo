@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -21,7 +22,10 @@ public actor GIFPreviewBuilder {
     var urls: [URL] = []
     for (index, frame) in project.frames.enumerated() {
       try Task.checkCancellation()
-      let image = try await renderer.renderFrame(frame, project: project, sources: sources, maximum: 480)
+      let image: CGImage
+      do { image = try await renderer.renderFrame(frame, project: project, sources: sources, maximum: 480) }
+      catch is CancellationError { throw CancellationError() }
+      catch { throw GIFPreviewFailure(frameID: frame.id, index: index, reason: error.localizedDescription) }
       let url = folder.appendingPathComponent("\(index).png")
       try autoreleasepool {
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else { throw ProcessingError.encoding }
@@ -33,4 +37,12 @@ public actor GIFPreviewBuilder {
     try Task.checkCancellation(); complete = true
     return GIFPreview(directory: folder, frames: urls)
   }
+}
+
+public struct GIFPreviewFailure: LocalizedError, Sendable {
+  public var frameID: UUID
+  public var index: Int
+  public var reason: String
+  public init(frameID: UUID, index: Int, reason: String) { self.frameID = frameID; self.index = index; self.reason = reason }
+  public var errorDescription: String? { "Frame \(index + 1): " + reason }
 }

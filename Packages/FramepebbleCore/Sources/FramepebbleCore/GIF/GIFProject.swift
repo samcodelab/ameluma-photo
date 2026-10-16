@@ -36,6 +36,8 @@ public enum GIFPreset: String, Codable, Sendable, CaseIterable {
 }
 public struct GIFProject: Codable, Sendable, Equatable, Identifiable {
   public var id = UUID()
+  public var reviewFrameIDs: Set<UUID>?
+  public var privacyReviewFrameIDs: Set<UUID>?
   public var name = "My Animation"
   public var frames: [GIFFrame] = []
   public var width = 800
@@ -66,10 +68,13 @@ public struct GIFProject: Codable, Sendable, Equatable, Identifiable {
   public mutating func duplicate(_ id: UUID) {
     guard let index = frames.firstIndex(where: { $0.id == id }) else { return }
     var copy = frames[index]; copy.id = UUID(); frames.insert(copy, at: index + 1)
+    if reviewFrameIDs?.contains(id) == true { reviewFrameIDs?.insert(copy.id) }
+    if privacyReviewFrameIDs?.contains(id) == true { privacyReviewFrameIDs?.insert(copy.id) }
     for i in annotations.indices where annotations[i].frameIDs?.contains(id) == true { annotations[i].frameIDs?.insert(copy.id) }
   }
   public mutating func remove(_ ids: Set<UUID>) {
     frames.removeAll { ids.contains($0.id) }
+    reviewFrameIDs?.subtract(ids); privacyReviewFrameIDs?.subtract(ids)
     for i in annotations.indices { annotations[i].frameIDs?.subtract(ids) }
     annotations.removeAll { $0.frameIDs?.isEmpty == true }
   }

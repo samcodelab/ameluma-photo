@@ -102,6 +102,18 @@ public struct EditingHistory: Sendable {
     private var undoStack: [State] = []
     private var redoStack: [State] = []
     public var current: EditingSnapshot { state.snapshot }
+    /// Session Undo/Redo can still need an image watermark after the current edit removes it.
+    public var referencedWatermarkURLs: Set<URL> {
+        var urls: Set<URL> = []
+        for snapshot in undoStack.map(\.snapshot) + [state.snapshot] + redoStack.map(\.snapshot) {
+            if let url = snapshot.settings.watermark.imageURL { urls.insert(url) }
+            for override in snapshot.overrides.values {
+                if let url = override.processing?.watermark.imageURL { urls.insert(url) }
+                if let url = override.patch?.values.watermark.imageURL { urls.insert(url) }
+            }
+        }
+        return urls
+    }
     public init(snapshot: EditingSnapshot = EditingSnapshot()) {
         state = State(title: "Session Start", snapshot: snapshot)
     }

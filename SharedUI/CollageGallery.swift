@@ -122,9 +122,9 @@ struct CollageCardPreview: View {
   init(model: Workspace, template: CollageTemplate) {
     self.model = model
     var value = CollageProject()
-    let selected = model.assets.filter { model.selection.contains($0.id) }.map(\.id)
+    let selected = model.workspaceAssets.filter { model.selection.contains($0.id) }.map(\.id)
     let candidates = selected.isEmpty ? model.collage.cells.map(\.sourceID) : selected
-    template.apply(to: &value, sources: Array((candidates.isEmpty ? model.assets.map(\.id) : candidates).prefix(24)))
+    template.apply(to: &value, sources: Array((candidates.isEmpty ? model.workspaceAssets.map(\.id) : candidates).prefix(24)))
     project = value
   }
   struct CardKey: Equatable { var identity: CollageRenderIdentity; var privateMode: Bool }

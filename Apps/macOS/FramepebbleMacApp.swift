@@ -86,9 +86,9 @@ import SwiftUI
           }.keyboardShortcut("r").disabled(model.current == nil)
           Button("Conceal Workspace") { model.concealed = true }.keyboardShortcut(
             "h", modifiers: [.command, .shift])
-          Button("Privacy Review") { model.showLibrary(.privacyReview, clearSearch: true) }.disabled(model.assets.isEmpty)
+          Button("Privacy Review") { model.showLibrary(.privacyReview, clearSearch: true) }.disabled(model.workspaceAssets.isEmpty)
           Button("Make a Collage…") { model.switchWorkflow(.collages) }.disabled(
-            model.assets.isEmpty || model.running)
+            model.workspaceAssets.isEmpty || model.running)
         }
       }
     MenuBarExtra("Ameluma Photo", systemImage: "photo.badge.arrow.down") {

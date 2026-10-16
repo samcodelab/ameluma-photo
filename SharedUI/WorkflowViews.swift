@@ -8,7 +8,7 @@ struct CopyEditsChooser: View {
   var body: some View {
     NavigationStack {
       Form {
-        Text("Copy from: " + (model.assets.first { $0.id == model.copySourceID }?.name ?? "Photo"))
+        Text("Copy from: " + (model.workspaceAssets.first { $0.id == model.copySourceID }?.name ?? "Photo"))
         ForEach(EditCategory.allCases, id: \.self) { category in
           Toggle(
             category.rawValue,
@@ -256,6 +256,7 @@ struct ExportPlanView: View {
     }.sheet(isPresented: $preview) { OutputPreview(model: model) }
   }
   func sizeSummary(_ config: ProcessingConfiguration) -> String {
+    if config.nativeOutputSizing == true { return "Source dimensions · existing crop retained" }
     guard config.crop.mode == .preserveAspectRatio else { return "\(config.width) × \(config.height) px" }
     switch config.resizeBasis {
     case .width: return "\(config.width) px wide · proportional height"

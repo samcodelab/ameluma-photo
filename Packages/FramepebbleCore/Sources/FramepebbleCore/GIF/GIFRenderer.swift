@@ -24,12 +24,12 @@ public actor GIFRenderer {
     return try autoreleasepool {
       let scale = min(1, Double(limit) / Double(max(project.width, project.height)))
       let size = CGSize(width: max(1, (Double(project.width) * scale).rounded()), height: max(1, (Double(project.height) * scale).rounded()))
-      let factor = project.fit == .fit ? min(size.width / Double(base.width), size.height / Double(base.height)) : max(size.width / Double(base.width), size.height / Double(base.height))
       let sourceSize = CGSize(width: base.width, height: base.height)
-      let topCrop = CropGeometry.rect(source: sourceSize, ratio: Double(base.width) / Double(base.height), crop: frame.crop)
+      let topCrop = CropGeometry.rect(source: sourceSize, ratio: project.fit == .fill ? Double(project.width) / Double(project.height) : Double(base.width) / Double(base.height), crop: frame.crop)
       let crop = CGRect(x: topCrop.minX, y: sourceSize.height - topCrop.maxY, width: topCrop.width, height: topCrop.height)
-      let zoom = sourceSize.width / crop.width
-      let image = CIImage(cgImage: base).cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY)).transformed(by: CGAffineTransform(scaleX: factor * zoom, y: factor * zoom))
+      guard crop.width > 0, crop.height > 0 else { throw ProcessingError.invalidConfiguration }
+      let factor = min(size.width / crop.width, size.height / crop.height)
+      let image = CIImage(cgImage: base).cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY)).transformed(by: CGAffineTransform(scaleX: factor, y: factor))
       let translated = image.transformed(by: CGAffineTransform(translationX: (size.width - image.extent.width) / 2, y: (size.height - image.extent.height) / 2))
       let bounds = CGRect(origin: .zero, size: size)
       var colour = project.background; colour.alpha = 1

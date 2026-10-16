@@ -82,6 +82,7 @@ import XCTest
         XCTAssertGreaterThan(Double(skyPixels) / Double(pixelsWide * pixelsHigh), 0.06,
           "The source photo must retain meaningful visible area at the largest text size")
       }
+      if name.hasPrefix("Review —") { try screenshot.pngData()?.write(to: root.appendingPathComponent(name.replacingOccurrences(of: " /", with: "_") + ".png")) }
       let attachment = XCTAttachment(image: screenshot)
       attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
@@ -102,6 +103,17 @@ import XCTest
     try await capture("Phone GIF Creator", view: GIFEditor(model: model, importAction: {}), type: .large, scheme: .light)
     try await capture("Phone GIF Creator accessibility", view: GIFEditor(model: model, importAction: {}), type: .accessibility3, scheme: .dark)
     try await capture("iPad GIF Creator", view: GIFEditor(model: model, importAction: {}), type: .large, scheme: .light, regular: true, viewport: CGSize(width: 1024, height: 768))
+    model.archiveCurrentGIF(); let savedGIF = try XCTUnwrap(model.gifProject); model.gifProject = nil
+    try await capture("Review — empty GIF with saved creations", view: GIFEditor(model: model, importAction: {}), type: .large, scheme: .light)
+    model.openGIF(savedGIF)
+    let missingID = savedGIF.frames[1].sourceID
+    if let index = model.assets.firstIndex(where: { $0.id == missingID }) { model.assets[index].url = root.appendingPathComponent("Missing-photo.png") }
+    try await capture("Review — GIF missing-frame recovery", view: GIFEditor(model: model, importAction: {}), type: .large, scheme: .light)
+    if let index = model.assets.firstIndex(where: { $0.id == missingID }) { model.assets[index].url = model.directory.appendingPathComponent("Holiday landscape 2.png") }
+    model.selectPhotos(for: .convert)
+    try await capture("Review — Convert selection large text", view: ImageCollection(model: model), type: .accessibility3, scheme: .dark)
+    model.select(model.assets[0]); model.finishGIFSelection(cancel: false)
+    try await capture("Review — native-size Convert", view: SettingsEditor(model: model), type: .large, scheme: .light)
     model.switchWorkflow(.collages);model.selection=Set(model.assets.map(\.id));model.ensureCollageDocument()
     model.newCollage(template:CollageTemplate.catalog[1])
     try await capture("Phone collage tabs",view:CollageEditor(model:model),type:.large,scheme:.light)

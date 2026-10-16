@@ -20,7 +20,16 @@ public enum ContentDigest {
 }
 public actor DuplicateIndex {
   private var digests: Set<String> = []
+  private var sources: [String: [UUID]] = [:]
   public init() {}
+  public func sourceID(for digest: String) -> UUID? { sources[digest]?.first }
+  public func register(_ id: UUID, digest: String) {
+    if !(sources[digest]?.contains(id) ?? false) { sources[digest, default: []].append(id) }; digests.insert(digest)
+  }
+  public func rebuild(_ assets: [SourceAsset]) {
+    sources = [:]; digests = []
+    for asset in assets { if let hash = try? ContentDigest.read(asset.url) { register(asset.id, digest: hash) } }
+  }
   public func insertDigest(_ digest: String) -> Bool { digests.insert(digest).inserted }
   public func contains(_ url: URL) throws -> Bool { digests.contains(try ContentDigest.read(url)) }
   public func insert(_ url: URL) throws -> Bool {

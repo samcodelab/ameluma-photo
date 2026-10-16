@@ -1,7 +1,11 @@
 import Foundation
 import FramepebbleCore
 
+enum WorkspaceTask: String { case gif = "Create GIF", collage = "Create Collage", collageAdd = "Add Photos", edit = "Edit Photo", batch = "Batch Edit", convert = "Convert", censor = "Censor" }
 struct GIFSelectionContext {
+  var task: WorkspaceTask = .gif
+  var collageID: UUID?
+
   var mode: WorkspaceMode
   var precision: Bool
   var inspector: InspectorTask
@@ -24,7 +28,7 @@ extension Workspace {
     if let i = archivedGIFs.firstIndex(where: { $0.id == project.id }) { archivedGIFs[i] = project } else { archivedGIFs.append(project) }
   }
   func openGIF(_ project: GIFProject) {
-    guard !gifExporting, project.id != gifProject?.id else { return }
+    guard !gifExporting, project.id != gifProject?.id || gifProject?.frames.isEmpty == true else { return }
     archiveCurrentGIF(); gifProject = project; gifUndo = []; gifRedo = []; switchWorkflow(.gif); persist()
   }
   func gifInteraction(_ active: Bool) {
@@ -43,7 +47,7 @@ extension Workspace {
     gifUndo = []; gifRedo = []; gifInteractionStart = nil
     archivedGIFs = doc.savedGIFs
     gifProject = doc.gifProject; gifSelectionContext = nil
-    selection = Set(doc.workspaceSelection).intersection(Set(assets.map(\.id)))
+    selection = Set(doc.workspaceSelection).intersection(Set(workspaceAssets.map(\.id)))
     var seen: Set<UUID> = []
     selectionOrder = doc.workspaceSelection.filter { selection.contains($0) && seen.insert($0).inserted }
   }
@@ -73,10 +77,41 @@ extension Workspace {
     showLibrary(.all, clearSearch: true); workspaceFilter = WorkspaceFilter()
     selection = []; selecting = true
   }
+  func selectPhotos(for task: WorkspaceTask) {
+    guard gifSelectionContext == nil, !overlayEditor else { return }
+    selectGIFPhotos()
+    gifSelectionContext?.task = task
+    gifSelectionContext?.collageID = activeCollageID
+  }
+  func performTask(_ task: WorkspaceTask, ids: [UUID], collageID: UUID? = nil) {
+    switch task {
+    case .gif: startGIF(ids: ids)
+    case .convert: beginConversion(ids: ids)
+    case .batch: beginBatch(ids: ids)
+    case .edit: for id in ids { if let source = workspaceAssets.first(where: { $0.id == id }) { openPhoto(source) } }
+    case .censor: if ids.count == 1, let source = workspaceAssets.first(where: { $0.id == ids[0] }) { openOverlayEditor(for: source) }
+    case .collage: switchWorkflow(.collages); newCollage(sourceIDs: ids)
+    case .collageAdd:
+      guard activeCollageID == collageID else { issues.append("The active collage changed. Select photos again."); return }
+      var value = collage
+      if value.cells.isEmpty { value.arrange(ids, layout: value.layout) }
+      else { value.cells += ids.map { CollageCell(sourceID: $0, x: 0.25, y: 0.25, width: 0.5, height: 0.5) } }
+      changeCollage(value); switchWorkflow(.collages)
+    }
+  }
+  var selectionContextValid: Bool {
+    guard let context = gifSelectionContext else { return false }
+    let count = selection.count
+    if count == 0 { return false }
+    if context.task == .censor || context.task == .edit || context.replacingFrame != nil { return count == 1 }
+    if context.task == .gif { return count + (context.adding ? (gifProject?.frames.count ?? 0) : 0) <= 1000 }
+    if context.task == .collageAdd { return count + collage.cells.count <= CollageProject.maximumCells }
+    return count <= CollageProject.maximumCells
+  }
   func finishGIFSelection(cancel: Bool) {
     guard let context = gifSelectionContext else { return }
     let ids = orderedSelection
-    if !cancel && (ids.isEmpty || (context.replacingFrame != nil && ids.count != 1) || ids.count + (context.adding ? (gifProject?.frames.count ?? 0) : 0) > 1000) { return }
+    if !cancel && !selectionContextValid { return }
     gifSelectionContext = nil
     selection = context.selection.intersection(Set(assets.map(\.id))); selectionOrder = context.order.filter { selection.contains($0) }
     selecting = context.selecting; scope = context.scope; library = context.category
@@ -84,9 +119,16 @@ extension Workspace {
     workflow = context.previousWorkflow; browsingLibrary = context.wasBrowsing
     mode = context.mode; precision = context.precision; inspectorTask = context.inspector
     if !cancel, !ids.isEmpty {
-      if let frame = context.replacingFrame, let id = ids.first,
+      if context.task != .gif { performTask(context.task, ids: ids, collageID: context.collageID) }
+      else if let frame = context.replacingFrame, let id = ids.first,
         let index = gifProject?.frames.firstIndex(where: { $0.id == frame }) {
-        if var project = gifProject { project.frames[index].sourceID = id; project.frames[index].configuration = gifConfiguration(for: id); updateGIF(project) }
+        if var project = gifProject {
+          let masked = !project.frames[index].configuration.masks.isEmpty
+          project.frames[index].sourceID = id; project.frames[index].configuration = gifConfiguration(for: id)
+          project.reviewFrameIDs = (project.reviewFrameIDs ?? []).union([frame])
+          if masked || !project.frames[index].configuration.masks.isEmpty { project.privacyReviewFrameIDs = (project.privacyReviewFrameIDs ?? []).union([frame]) }
+          updateGIF(project)
+        }
         switchWorkflow(.gif)
       } else if context.adding, var project = gifProject {
         let newFrames = ids.map { GIFFrame(sourceID: $0, configuration: gifConfiguration(for: $0)) }

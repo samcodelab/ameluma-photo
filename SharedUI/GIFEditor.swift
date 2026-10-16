@@ -12,10 +12,12 @@ struct GIFEditor: View {
   @State private var frameIndex = 0
   @State private var playing = false
   @State private var playbackGeneration = 0
-  @State private var preview: GIFPreview?
-  @State private var image: CGImage?
-  @State private var previewError: String?
-  @State private var preparing = false
+  @State private var previewSession = GIFPreviewSession()
+  var preview: GIFPreview? { previewSession.input == previewInput ? previewSession.preview : nil }
+  var image: CGImage? { previewSession.image(for: previewInput, frameID: activeFrame?.id) }
+  var previewError: String? { previewSession.input == previewInput ? previewSession.error : nil }
+  var preparing: Bool { previewSession.input != previewInput || previewSession.preparing }
+  var previewInput: GIFPreviewInput { GIFPreviewInput(project: project, sources: model.assets, allowed: previewAllowed) }
   @State private var previewAllowed = true
   @State private var duration = 0.5
   @State private var annotationID: UUID?
@@ -25,9 +27,10 @@ struct GIFEditor: View {
   @Environment(\.dynamicTypeSize) private var typeSize
   @Environment(\.self) private var environment
   @Environment(\.horizontalSizeClass) private var sizeClass
-  private let previewBuilder = GIFPreviewBuilder()
+  @State private var previewBuilder = GIFPreviewBuilder()
   var project: GIFProject { model.gifProject ?? GIFProject() }
   var activeFrame: GIFFrame? { project.frames.indices.contains(frameIndex) ? project.frames[frameIndex] : nil }
+  var recoveryFrame: GIFFrame? { project.frames.first { $0.id == previewSession.failedFrameID } ?? activeFrame }
   var compact: Bool {
     #if os(macOS)
     false
@@ -70,11 +73,11 @@ struct GIFEditor: View {
         }.padding().background(.bar)
       }
     }
-    .task(id: GIFPreviewInput(project: project, sources: model.assets, allowed: previewAllowed)) { await preparePreview() }
+    .task(id: previewInput) { await preparePreview() }
     .task(id: frameIndex) { await loadCurrentFrame() }
     .task(id: "\(playing)-\(playbackGeneration)") { if playing { await playback() } }
     .onChange(of: phase) { _, value in if value == .background { playing = false; previewAllowed = false } else if value == .active { previewAllowed = true } }
-    .onDisappear { playing = false; preview?.remove(); preview = nil }
+    .onDisappear { playing = false; previewSession.invalidate() }
     .confirmationDialog("Start a new GIF?", isPresented: $showNew) {
       Button("Save Workspace Copy & Start New") {
         Task { do { _ = try await model.saveProjectCopy(); model.archiveCurrentGIF(); model.gifProject = nil; model.selectGIFPhotos() } catch { model.issues.append(error.localizedDescription) } }
@@ -88,11 +91,22 @@ struct GIFEditor: View {
       Text("Turn your photos into a looping animation. Add captions, adjust timing and make it your own.")
     } actions: {
       Button("Select Photos") { model.selectGIFPhotos() }.buttonStyle(.borderedProminent).controlSize(.large)
-      if model.assets.isEmpty { Button("Add Photos", action: importAction) }
+      if model.workspaceAssets.isEmpty { Button("Add Photos", action: importAction) }
+      savedGIFMenu
     }
+  }
+  var savedGIFMenu: some View {
+    Menu("Saved GIFs") {
+      ForEach(model.archivedGIFs.filter { $0.id != model.gifProject?.id || project.frames.isEmpty }) { saved in Button(saved.name) { model.openGIF(saved) } }
+    }.disabled(model.archivedGIFs.allSatisfy { $0.id == model.gifProject?.id && !project.frames.isEmpty })
   }
   var header: some View {
     VStack(alignment: .leading, spacing: 8) {
+      if !(project.reviewFrameIDs ?? []).isEmpty {
+        Label("Source replaced · review framing in \((project.reviewFrameIDs ?? []).count) frames", systemImage: "exclamationmark.triangle").font(.caption)
+        if !(project.privacyReviewFrameIDs ?? []).isEmpty { Text("Review captured mask coverage in \((project.privacyReviewFrameIDs ?? []).count) frames.").font(.caption) }
+        Button("I’ve Reviewed These Frames") { change { $0.reviewFrameIDs = nil; $0.privacyReviewFrameIDs = nil } }.disabled(preparing || preview == nil || previewError != nil)
+      }
       if typeSize.isAccessibilitySize {
         Text("Create GIF").font(.title2.weight(.semibold))
         HStack { historyButtons; Spacer(); moreMenu }
@@ -109,7 +123,7 @@ struct GIFEditor: View {
   }
   var moreMenu: some View {
     Menu("More") {
-      if !model.archivedGIFs.isEmpty { Menu("Saved GIFs") { ForEach(model.archivedGIFs.filter { $0.id != model.gifProject?.id }) { saved in Button(saved.name) { model.openGIF(saved) } } } }
+      if !model.archivedGIFs.isEmpty { Menu("Saved GIFs") { ForEach(model.archivedGIFs.filter { $0.id != model.gifProject?.id || project.frames.isEmpty }) { saved in Button(saved.name) { model.openGIF(saved) } } } }
       Button("Add Photos") { model.selectGIFPhotos(adding: true) }
       Button("New GIF…") { showNew = true }
       Button("Save Workspace Copy") { Task { do { _ = try await model.saveProjectCopy(); model.status = "Workspace and GIF saved." } catch { model.issues.append(error.localizedDescription) } } }
@@ -122,10 +136,10 @@ struct GIFEditor: View {
       let height = width / aspect
       ZStack {
         Color.black.opacity(0.04)
-        if let image { Image(decorative: image, scale: 1).resizable().scaledToFit() }
-        else if let previewError {
-          VStack { Text(previewError).font(.callout); Button("Replace This Frame’s Photo") { if let frame = activeFrame { model.selectGIFPhotos(replacing: frame.id) } }; Button("Locate Missing Photo…") { if let frame = activeFrame { model.library = .all; model.query = ""; model.workspaceFilter = WorkspaceFilter(); model.activePhotoID = frame.sourceID }; model.projectsView = true } }.padding()
+        if let previewError {
+          VStack { Text(previewError).font(.callout); Button("Replace This Frame’s Photo") { if let frame = recoveryFrame { model.selectGIFPhotos(replacing: frame.id) } }; Button("Locate Missing Photo…") { if let frame = recoveryFrame { model.relinkSourceID = frame.sourceID; model.projectsView = true } } }.padding()
         }
+        else if let image { Image(decorative: image, scale: 1).resizable().scaledToFit() }
         if preparing { ProgressView("Preparing preview…").padding().background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10)) }
         if !playing, let id = annotationID, let item = project.annotations.first(where: { $0.id == id }), let frame = activeFrame,
           item.frameIDs?.contains(frame.id) ?? true {
@@ -135,7 +149,7 @@ struct GIFEditor: View {
         }
       }.frame(width: width, height: height).clipped()
         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-    }.frame(minHeight: 200).accessibilityLabel("GIF preview, frame \(frameIndex + 1) of \(project.frames.count)")
+    }.frame(minHeight: 200).accessibilityElement(children: .contain).accessibilityLabel("GIF preview, frame \(frameIndex + 1) of \(project.frames.count)")
   }
   var transport: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -340,25 +354,16 @@ struct GIFEditor: View {
     return Binding(get: { project.annotations.first { $0.id == id }?.annotation[keyPath: path] ?? fallback }, set: { value in change { p in if let i = p.annotations.firstIndex(where: { $0.id == id }) { p.annotations[i].annotation[keyPath: path] = value } } })
   }
   func preparePreview() async {
-    playing = false; preview?.remove(); preview = nil; previewError = nil
-    guard !project.frames.isEmpty, previewAllowed else { preparing = false; image = nil; return }
-    preparing = true
-    do {
+    playing = false
+    let captured = project, sources = model.assets, allowed = previewAllowed
+    await previewSession.prepare(project: captured, sources: sources, allowed: allowed) {
       try await Task.sleep(for: .milliseconds(180))
-      let value = try await previewBuilder.prepare(project, sources: model.assets, privateMode: model.privateEditing)
-      guard !Task.isCancelled else { value.remove(); return }
-      preview = value; preparing = false; await loadCurrentFrame()
-    } catch is CancellationError {} catch { previewError = error.localizedDescription; preparing = false }
+      return try await previewBuilder.prepare(captured, sources: sources, privateMode: model.privateEditing)
+    }
+    guard !Task.isCancelled, project == captured else { return }
+    await loadCurrentFrame()
   }
-  func loadCurrentFrame() async {
-    guard let preview, preview.frames.indices.contains(frameIndex) else { return }
-    let url = preview.frames[frameIndex]
-    let value = await Task.detached { () -> CGImage? in
-      guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-      return CGImageSourceCreateImageAtIndex(source, 0, nil)
-    }.value
-    guard !Task.isCancelled else { return }; image = value
-  }
+  func loadCurrentFrame() async { await previewSession.load(index: frameIndex, project: project) }
   func playback() async {
     let clock = ContinuousClock(); var deadline = clock.now; var cycles = 0
     do {
@@ -446,5 +451,3 @@ private struct GIFAnnotationHandles: View {
       .onDisappear { if start != nil { interaction(false) } }
   }
 }
-
-private struct GIFPreviewInput: Equatable { var project: GIFProject; var sources: [SourceAsset]; var allowed: Bool }

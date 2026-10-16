@@ -10,6 +10,7 @@ extension Workspace {
     func clearImportedPhotos() async {
         guard !clearingWorkspace else { return }
         clearingWorkspace = true
+        sourceSessionID = UUID()
         defer { clearingWorkspace = false }
         await stopWork()
         await flush() // Publish the final cancelled-import arrivals before resetting.
@@ -24,7 +25,7 @@ extension Workspace {
             resetEditorTabs()
             resetCollageDocuments()
             gifProject = nil; archivedGIFs = []; gifSelectionContext = nil
-            assets = []; selected = nil; selection = []; selecting = false
+            hiddenSourceIDs = []; assets = []; selected = nil; selection = []; selecting = false
             edits = EditingSnapshot(); history = EditingHistory(); favourites = []
             sensitivity = SensitiveReviewState(); privacyCoverageReviewIDs = []; proposals = [:]; index = ClassificationIndex()
             results = []; pendingExports = []; collage = CollageProject(); collageOutputs = []

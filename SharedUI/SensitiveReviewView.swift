@@ -25,7 +25,7 @@ struct SensitiveReviewView: View {
             }.disabled(model.selection.isEmpty)
           }.disabled(
             !model.sensitivityAvailability.canAnalyze || model.sensitivityTask != nil
-              || model.assets.isEmpty)
+              || model.workspaceAssets.isEmpty)
           if model.sensitivityTask != nil {
             ProgressView(
               value: Double(model.sensitivityCompleted),
@@ -44,7 +44,7 @@ struct SensitiveReviewView: View {
           ).font(.caption).foregroundStyle(.secondary)
         }
         Section("Manual review and editing") {
-          ForEach(model.assets) { asset in
+          ForEach(model.workspaceAssets) { asset in
             VStack(alignment: .leading, spacing: 8) {
               HStack {
                 FramingSurface(model: model, asset: asset, interactive: false, maximum: 240).frame(

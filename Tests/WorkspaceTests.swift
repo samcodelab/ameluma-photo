@@ -204,6 +204,7 @@ import FramepebbleCore
         var crop=CropConfiguration();crop.centerX=0.7;model.setCrop(crop,for:asset.id);model.settings.watermark.enabled=true;model.settings.width=1024
         model.autoFrame(.smart);await model.analysisTask?.value
         XCTAssertEqual(model.configuration(for:asset).crop.centerX,0.7)
+        model.skipDuplicates = false
         await model.importURLs([url]);XCTAssertTrue(model.settings.watermark.enabled);XCTAssertEqual(model.settings.width,1024);XCTAssertEqual(model.assets.count,2)
         model.indexingTask?.cancel();model.persistenceTask?.cancel()
     }

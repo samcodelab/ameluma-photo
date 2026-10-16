@@ -126,3 +126,9 @@ PixelZoomViewer takes actual full-resolution CGImage data for output-pixel inspe
 ### Composition output and review publication
 
 Collage projects add optional output format/quality and outline font/layout-version fields. Missing text-layout version decodes to legacy geometry; new text art uses multiline outlines. Encoded composition proof and publication share Core encoding, explicitly flattening transparency on white for non-alpha formats. Reviewed destination copies validate encoded bytes and stage/exclusively publish without recompression. Collage privacy coverage review is independent of source-photo review.
+
+## Workspace membership and creation ownership
+
+`Workspace.assets` remains the sole source registry; `workspaceAssets` excludes optional schema-4 `hiddenSourceIDs` for ordinary gallery operations. Removing workspace membership preserves source ownership for current/saved GIFs and collages, including session histories. The shared renderers receive canonical sources, not a filtered gallery. Explicit working-copy cleanup scans current/saved instructions and watermark history before releasing unused UUID-named snapshots. See [current reliability review](RELIABILITY_REVIEW.md) for migration, recovery and verification details.
+
+`GIFPreviewSession` owns only preview freshness/resources, not editing instructions. Concrete task destinations reuse the existing workspace selection context. New Convert operations use an optional native-output-sizing instruction; older configurations decode with the original sizing semantics.

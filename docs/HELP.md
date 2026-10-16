@@ -1,4 +1,4 @@
-# Using Framepebble
+# Using Ameluma Photo
 
 Import photos/files or a folder. The app makes local source copies and begins on-device classification. Existing editing settings remain in place when adding images.
 
@@ -51,3 +51,6 @@ The menu bar remains available with Studio closed. Quit stops monitoring. Missin
 Drag the image itself from a browser. Framepebble uses supplied image bytes first, or downloads an explicitly dropped HTTPS image address without browser cookies or saved credentials. Browser downloads are limited to 25 MB. Login-protected, HTTP-only or page links may need to be saved in the browser first.
 
 File/folder imports show copy progress below the grid. Completed images appear incrementally; you can scroll, crop and reframe them while the remaining files copy. Folder totals are discovered as the import runs. Cancel retains completed images. A stalled NAS read may take time to respond to cancellation. Vision search indexing starts after acquisition finishes.
+
+
+For the current workflow, ownership, conversion and recovery behaviour, use the bundled [Help](../Resources/Legal/Help.md), which is the authoritative end-user guide. Workspace filtering preserves hidden selections. Sources required by GIFs and collages remain owned by the project after workspace removal. Project instructions are local references, not self-contained cross-device files. Current verification is in [the reliability review](RELIABILITY_REVIEW.md); older audits and screenshots are historical evidence only.

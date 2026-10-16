@@ -42,14 +42,16 @@ struct ProjectsView: View {
           Button("Close Project") { Task { await model.closeProject(); reload() } }
           Text("Close saves your work. Clear removes current photos and edits, and frees unused local copies. Originals, exported images and copies needed by saved projects remain untouched.").font(.caption).foregroundStyle(.secondary)
           Button("Open project instructions…") { open = true }
-          if model.current != nil {
-            Button("Relink selected source…") { relink = true }
+          if model.current != nil || model.relinkSourceID != nil {
+            Button("Relink " + (model.assets.first { $0.id == (model.relinkSourceID ?? model.selected) }?.name ?? "selected source") + "…") { relink = true }
             Text("Choose the matching original. Existing edits remain attached; review the result.")
               .font(.caption)
           }
         }
         Section("Local Source Storage") {
-          Button("Clear Imported Photos…", role: .destructive) { confirmClear = true }
+          Text("Workspace photos: \(model.workspaceAssets.count). Retained creation sources: \(model.hiddenSourceIDs.count). Removing a workspace photo keeps sources needed by creations.").font(.caption)
+          Button("Free Unused Working Copies") { Task { do { let count = try await model.freeUnusedWorkingCopies(); model.status = "Freed \(count) unused working copies."; await refreshStorage() } catch { storageError = error.localizedDescription } } }.disabled(model.clearingWorkspace || model.isImporting || model.sourceAcquisitions > 0 || model.running || model.gifExporting || model.collageGenerating)
+          Button("Clear Workspace & Creations…", role: .destructive) { confirmClear = true }
             .disabled(model.clearingWorkspace)
           if let storage {
             LabeledContent("Managed source copies", value: "\(storage.managedFiles)")
@@ -99,18 +101,16 @@ struct ProjectsView: View {
           }
         }
     }.alert("Clear imported photos and edits?", isPresented: $confirmClear) {
-      Button("Clear Imported Photos", role: .destructive) { Task { await model.clearImportedPhotos(); reload(); await refreshStorage() } }
+      Button("Clear Workspace & Creations", role: .destructive) { Task { await model.clearImportedPhotos(); reload(); await refreshStorage() } }
       Button("Cancel", role: .cancel) {}
-    } message: { Text("This cannot be undone. Current unsaved edits will be discarded. Import and processing will stop. Only unused copies in Ameluma Photo’s local source storage are removed. Your originals, saved projects and exported files are preserved. Save a project copy first if you want to return to this work.") }
+    } message: { Text("This removes current workspace photos, photo edits, GIFs and collages. Saved project copies, originals and exported files remain. To remove photos while keeping creations, use Remove from Workspace. Save a project copy first to preserve this work.") }
     .frame(minWidth: 320, minHeight: 440)
   }
   func refreshStorage() async {
     do {
       let cleanup = SourceStorageCleanup()
-      let configuration: [String: Data] = ["profiles": try JSONEncoder().encode(model.profiles), "watermarks": try JSONEncoder().encode(model.watermarkPresets)]
-      let objects = try configuration.mapValues { try JSONSerialization.jsonObject(with: $0) }
       let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Projects")
-      let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONSerialization.data(withJSONObject: objects))
+      let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONEncoder().encode(model.document()))
       storage = try await cleanup.summary(in: model.directory, retaining: retained)
     } catch is CancellationError {} catch { storageError = "Storage accounting unavailable: " + error.localizedDescription }
   }

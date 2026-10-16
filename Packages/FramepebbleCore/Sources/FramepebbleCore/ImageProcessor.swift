@@ -79,6 +79,17 @@ public actor ImageProcessor {
         return CGSize(width: rotated.width * cos(angle) + rotated.height * sin(angle), height: rotated.height * cos(angle) + rotated.width * sin(angle))
     }
     public nonisolated static func outputSize(source: CGSize, configuration c: ProcessingConfiguration) -> CGSize {
+        if c.nativeOutputSizing == true {
+            if c.crop.mode == .fill || c.crop.mode == .manualCrop {
+                let crop = CropGeometry.rect(source: source, ratio: Double(c.width) / Double(max(1, c.height)), crop: c.crop)
+                return CGSize(width: max(1, crop.width.rounded()), height: max(1, crop.height.rounded()))
+            }
+            if c.crop.mode == .canvas || c.crop.mode == .stretch {
+                let factor = max(source.width, source.height) / CGFloat(max(c.width, c.height, 1))
+                return CGSize(width: max(1, (CGFloat(c.width) * factor).rounded()), height: max(1, (CGFloat(c.height) * factor).rounded()))
+            }
+            return CGSize(width: max(1, source.width.rounded()), height: max(1, source.height.rounded()))
+        }
         var w = CGFloat(c.width); var h = CGFloat(c.height)
         if c.crop.mode == .preserveAspectRatio {
             switch c.resizeBasis {

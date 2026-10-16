@@ -184,7 +184,7 @@ import XCTest
     let model = try makeModel()
     model.workflow = .batch; model.scope = .all
     model.selection = [model.assets[0].id]
-    XCTAssertEqual(model.editScopeHeading, "Editing all 5 imported photos")
+    XCTAssertEqual(model.editScopeHeading, "Editing all 5 workspace photos")
     model.scope = .selected
     XCTAssertEqual(model.editScopeHeading, "Editing 1 selected photo")
     model.switchWorkflow(.collages)
@@ -929,7 +929,8 @@ extension WorkflowWorkspaceTests {
     model.startGIF(ids: [source.id]); model.removeFromWorkspace([source.id])
     XCTAssertTrue(FileManager.default.fileExists(atPath: source.url.path))
     XCTAssertEqual(model.gifProject?.frames.first?.sourceID, source.id)
-    XCTAssertFalse(model.assets.contains(where: { $0.id == source.id }))
+    XCTAssertTrue(model.assets.contains(where: { $0.id == source.id }))
+    XCTAssertFalse(model.workspaceAssets.contains(where: { $0.id == source.id }))
     model.persistenceTask?.cancel()
   }
 }

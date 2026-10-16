@@ -73,6 +73,8 @@ public struct WatermarkConfiguration: Codable, Sendable, Equatable {
     public init() {}
 }
 public struct ProcessingConfiguration: Codable, Sendable, Equatable {
+    /// Opt-in operation sizing. Absent in legacy projects/presets; their output is unchanged.
+    public var nativeOutputSizing: Bool?
     public var width: Int = 1600
     public var height: Int = 1200
     public var quarterTurns: Int = 0
@@ -98,9 +100,10 @@ public struct ProcessingConfiguration: Codable, Sendable, Equatable {
     public var annotations: [Annotation] = []
     public var canvasStyle = CanvasStyle()
     public init() {}
-    private enum CodingKeys: String, CodingKey { case width, height, quarterTurns, flipHorizontal, flipVertical, straighten, crop, resizeBasis, percentage, preventUpscaling, background, canvasAlignment, format, quality, targetBytes, minimumQuality, colourPolicy, metadata, watermark, adjustments, masks, privacyExport, annotations, canvasStyle }
+    private enum CodingKeys: String, CodingKey { case nativeOutputSizing, width, height, quarterTurns, flipHorizontal, flipVertical, straighten, crop, resizeBasis, percentage, preventUpscaling, background, canvasAlignment, format, quality, targetBytes, minimumQuality, colourPolicy, metadata, watermark, adjustments, masks, privacyExport, annotations, canvasStyle }
     public init(from decoder: Decoder) throws {
         self.init(); let container = try decoder.container(keyedBy: CodingKeys.self)
+        nativeOutputSizing = try container.decodeIfPresent(Bool.self, forKey: .nativeOutputSizing)
         width = try container.decodeIfPresent(Int.self, forKey: .width) ?? width
         height = try container.decodeIfPresent(Int.self, forKey: .height) ?? height
         quarterTurns = (try container.decodeIfPresent(Int.self, forKey: .quarterTurns) ?? quarterTurns) % 4

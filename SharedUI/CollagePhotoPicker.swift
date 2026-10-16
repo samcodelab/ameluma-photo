@@ -9,7 +9,7 @@ struct CollagePhotoPicker: View {
   var apply: () -> Void
   @State private var query = ""
   @Environment(\.dismiss) private var dismiss
-  var photos: [SourceAsset] { query.isEmpty ? model.assets : model.assets.filter {$0.name.localizedCaseInsensitiveContains(query)} }
+  var photos: [SourceAsset] { query.isEmpty ? model.workspaceAssets : model.workspaceAssets.filter {$0.name.localizedCaseInsensitiveContains(query)} }
   var body: some View {
     NavigationStack {
       ScrollView {
