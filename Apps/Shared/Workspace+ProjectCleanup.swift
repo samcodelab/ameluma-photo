@@ -23,6 +23,7 @@ extension Workspace {
             projectName = "Untitled Project"; batchInputIDs = nil
             resetEditorTabs()
             resetCollageDocuments()
+            gifProject = nil; archivedGIFs = []; gifSelectionContext = nil
             assets = []; selected = nil; selection = []; selecting = false
             edits = EditingSnapshot(); history = EditingHistory(); favourites = []
             sensitivity = SensitiveReviewState(); privacyCoverageReviewIDs = []; proposals = [:]; index = ClassificationIndex()

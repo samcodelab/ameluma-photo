@@ -54,6 +54,7 @@ import XCTest
         target.cacheDisplay(in: target.bounds, to: bitmap)
       }
       let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+      if name == "Mac GIF Creator" { try data.write(to: URL(fileURLWithPath: "/tmp/ameluma-gif-mac.png")) }
       let attachment = XCTAttachment(data: data, uniformTypeIdentifier: UTType.png.identifier)
       attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
       XCTAssertEqual(target.bounds.width, expectedSize.width)
@@ -94,6 +95,9 @@ import XCTest
     historyHost.frame = NSRect(origin: .zero, size: expectedSize)
     window.contentView = historyHost
     try await capture("Undo History timeline", view: historyHost)
+    model.startGIF(ids: model.assets.prefix(3).map(\.id))
+    window.contentView = hosting
+    try await capture("Mac GIF Creator")
     model.selection=Set(model.assets.map(\.id))
     model.switchWorkflow(.collages);model.ensureCollageDocument()
     model.newCollage(template:CollageTemplate.catalog[0])

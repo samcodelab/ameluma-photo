@@ -31,8 +31,9 @@ struct WorkspaceActions: View {
       }
       Button("Edit \(ids.count) Selected Photos") { model.beginBatch(ids: ids) }
       Button("Convert \(ids.count) Photos") { model.beginBatch(ids: ids, tool: .output) }
+      Button("Create GIF from \(ids.count) Photos") { model.startGIF(ids: ids) }
       Button("Create Collage from \(ids.count) Photos") {
-        model.selection = Set(ids); model.switchWorkflow(.collages); model.newCollage()
+        model.switchWorkflow(.collages); model.newCollage(sourceIDs: ids)
       }
       Button("Export & Share \(ids.count) Photos") {
         let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Exports")
@@ -50,6 +51,16 @@ struct WorkspaceFilterControls: View {
   let reader = WorkspaceMetadataReader()
   var body: some View {
     VStack(alignment: .leading) {
+      if let context = model.gifSelectionContext {
+        Text(context.adding ? "Add photos to your GIF" : context.replacingFrame != nil ? "Choose a replacement photo" : "Select photos for your GIF").font(.headline)
+        HStack {
+          Text("\(model.selection.count) selected")
+          Spacer()
+          Button("Cancel") { model.finishGIFSelection(cancel: true) }
+          Button(context.adding ? "Add Photos" : context.replacingFrame != nil ? "Replace Photo" : "Create GIF") { model.finishGIFSelection(cancel: false) }
+            .buttonStyle(.borderedProminent).disabled(model.selection.isEmpty || (context.replacingFrame != nil && model.selection.count != 1) || model.selection.count + (context.adding ? (model.gifProject?.frames.count ?? 0) : 0) > 1000)
+        }
+      }
       HStack {
         Menu("Filters", systemImage: "line.3.horizontal.decrease.circle") {
           Picker("Date", selection: $model.workspaceFilter.period) { ForEach(WorkspaceFilter.Period.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
@@ -69,6 +80,7 @@ struct WorkspaceFilterControls: View {
       }
       if model.workspaceFilter.period != .any { Text("Capture date where available; otherwise local file date.").font(.caption).foregroundStyle(.secondary) }
     }.padding(.horizontal).padding(.vertical, 6)
+      .onChange(of: model.workspaceFilter.start) { _, date in if model.workspaceFilter.end < date { model.workspaceFilter.end = date } }
       .task(id: model.assets.map(\.id)) {
         do { let info = try await reader.read(model.assets); try Task.checkCancellation(); model.photoInfo = info }
         catch is CancellationError {} catch { model.issues.append("Could not read photo details: " + error.localizedDescription) }

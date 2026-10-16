@@ -4,12 +4,14 @@ import FramepebbleCore
 enum StudioWorkflow: String, CaseIterable {
   case batch = "Batch Edit"
   case photo = "Editor"
+  case gif = "Create GIF"
   case collages = "Collages"
   case automations = "Automations"
   var symbol: String {
     switch self {
     case .batch: "square.stack.3d.up"
     case .photo: "photo"
+    case .gif: "photo.stack"
     case .collages: "rectangle.split.2x2"
     case .automations: "folder.badge.gearshape"
     }
@@ -17,7 +19,7 @@ enum StudioWorkflow: String, CaseIterable {
 }
 extension Workspace {
   func switchWorkflow(_ workflow: StudioWorkflow) {
-    guard !overlayEditor else { return }
+    guard !overlayEditor, gifSelectionContext == nil else { return }
     rememberEditorTool()
     let wasBrowsing = browsingLibrary
     if !wasBrowsing && self.workflow == .batch { batchGalleryMode = mode }
@@ -90,7 +92,7 @@ extension Workspace {
   }
   func resetEditorTabs() { editorTabs = []; editorPhotoID = nil; editorTools = [:]; activePhotoID = nil }
   func openPhoto(_ asset: SourceAsset, refine: Bool = false) {
-    guard assets.contains(where: { $0.id == asset.id }), !overlayEditor else { return }
+    guard assets.contains(where: { $0.id == asset.id }), !overlayEditor, gifSelectionContext == nil else { return }
     // Precision editing a batch exception does not change the surrounding batch scope.
     if refine && !browsingLibrary && workflow == .batch {
       selected = asset.id; precision = true; return
@@ -106,8 +108,7 @@ extension Workspace {
   }
   func editSelectedBatch() {
     guard !selection.isEmpty else { return }
-    switchWorkflow(.batch)
-    scope = .selected
+    beginBatch(ids: orderedSelection)
     selecting = true
   }
   /// Choosing an inspector changes only the visible tool, never the current photo's edits.
@@ -358,11 +359,13 @@ extension Workspace {
   }
   var undoActionTitle: String {
     if overlayEditor { return "Undo Area Edit" }
+    if workflow == .gif && !browsingLibrary { return "Undo GIF Change" }
     if collageHasFocus { return "Undo · " + activeCollageName }
     return "Undo " + (history.steps.first(where: { $0.isCurrent })?.title ?? "Edit")
   }
   var redoActionTitle: String {
     if overlayEditor { return "Redo Area Edit" }
+    if workflow == .gif && !browsingLibrary { return "Redo GIF Change" }
     if collageHasFocus { return "Redo · " + activeCollageName }
     return "Redo " + (history.steps.first(where: { $0.isRedo })?.title ?? "Edit")
   }

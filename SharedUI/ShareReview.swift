@@ -29,6 +29,7 @@ struct ShareReview: View {
   @State private var copyTask: Task<Void, Never>?
   @State private var copiedURLs: [URL] = []
   @Environment(\.dismiss) private var dismiss
+  var hasAnimations: Bool { urls.contains { $0.pathExtension.lowercased() == "gif" } }
   var body: some View {
     NavigationStack {
       List {
@@ -40,11 +41,12 @@ struct ShareReview: View {
           ).font(.caption)
         }
         Section("Optional sensitive-content check") {
+          if hasAnimations { Text("Animations require manual review of every frame. Automatic checks are unavailable for GIFs.").font(.caption) }
           if case .unavailable(let reason) = capability {
             Text(reason).font(.caption).foregroundStyle(.secondary)
           }
           Toggle("Check before sharing", isOn: $checkBeforeSharing).disabled(
-            !capability.canAnalyze || checking)
+            !capability.canAnalyze || checking || hasAnimations)
           if checkBeforeSharing {
             Button("Check final images") { scanOutputs() }.disabled(checking)
             if checking {
@@ -67,7 +69,8 @@ struct ShareReview: View {
         }
         ForEach(urls, id: \.self) { url in
           HStack {
-            OutputThumbnail(url: url, revealed: session.revealed.contains(url))
+            if url.pathExtension.lowercased() == "gif", session.revealed.contains(url) { GIFOutputPreview(url: url) }
+            else { OutputThumbnail(url: url, revealed: session.revealed.contains(url)) }
             VStack(alignment: .leading) {
               if flagged.contains(url) {
                 Label("May contain sensitive content", systemImage: "exclamationmark.shield").font(
@@ -113,7 +116,7 @@ struct ShareReview: View {
             #endif
             if !status.isEmpty { Text(status) }
             if let first = chosen.first {
-              Button("Copy processed image") { copy(first) }
+              if first.pathExtension.lowercased() != "gif" { Button("Copy processed image") { copy(first) } }
               #if os(macOS)
                 Button("Reveal in Finder") {
                   NSWorkspace.shared.activateFileViewerSelecting(chosen)

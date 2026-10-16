@@ -68,7 +68,7 @@ struct MobileWorkspace: View {
                 Label("Import", systemImage: "plus")
               }
               Button("Projects", systemImage: "folder") { model.projectsView = true }
-              if !model.browsingLibrary && model.workflow != .collages {
+              if !model.browsingLibrary && model.workflow != .collages && model.workflow != .gif {
               Button {
                 if detailWidth >= 760 { showInspector.toggle() } else { settingsSheet = true }
               } label: {
@@ -105,7 +105,7 @@ struct MobileWorkspace: View {
                 } label: {
                   Image(systemName: "plus")
                 }
-                if !model.browsingLibrary && model.workflow != .collages {
+                if !model.browsingLibrary && model.workflow != .collages && model.workflow != .gif {
                 Button {
                   settingsSheet = true
                 } label: {
@@ -255,6 +255,7 @@ struct MobileWorkspace: View {
           if model.privateEditing { model.concealed = true }
           model.sensitivityTask?.cancel()
           model.cancelImport()
+          model.gifExportTask?.cancel()
           model.collageTask?.cancel()
           model.task?.cancel()
           model.analysisTask?.cancel()
@@ -289,7 +290,7 @@ struct MobileWorkspace: View {
         }.buttonStyle(.plain)
         ForEach(
           [
-            "Batch Edit", "Editor", "Collages",
+            "Batch Edit", "Editor", "Create GIF", "Collages",
           ], id: \.self
         ) { name in
           Button {
@@ -332,6 +333,7 @@ struct MobileWorkspace: View {
     switch name {
     case "Editor", "Perfect a Photo": "slider.horizontal.3"
     case "Collages", "Make a Collage": "rectangle.split.2x2"
+    case "Create GIF": "photo.stack"
     case "Privacy": "eye.slash"
     case "Prepare to Share": "square.and.arrow.up"
     default: "arrow.up.left.and.arrow.down.right"
@@ -341,6 +343,7 @@ struct MobileWorkspace: View {
     switch name {
     case "Editor", "Perfect a Photo": "Edit one photo, then export or share it"
     case "Collages", "Make a Collage": "Choose sources and edit your composition"
+    case "Create GIF": "Turn photos into an animation with captions"
     case "Privacy": "Cover details you want to keep private"
     case "Prepare to Share": "Review and save your finished photos"
     default: "Select photos, apply shared edits and export a batch"
@@ -355,9 +358,10 @@ struct MobileWorkspace: View {
     }
   }
   func launchTask() {
-    let workflow: StudioWorkflow = activity == "Editor" ? .photo : activity == "Collages" ? .collages : .batch
+    let workflow: StudioWorkflow = activity == "Editor" ? .photo : activity == "Collages" ? .collages : activity == "Create GIF" ? .gif : .batch
     model.switchWorkflow(workflow)
     guard !model.assets.isEmpty else { return }
+    if activity == "Create GIF" { return }
     if activity == "Batch Edit" || activity == "Editor" || activity == "Collages" {
       model.inspectorTask = .resize
       return
@@ -392,20 +396,21 @@ struct MobileWorkspace: View {
         if UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular && detailWidth >= 760 { showInspector = true }
         else { settingsSheet = true }
       }) }
+      else if model.workflow == .gif { GIFEditor(model: model, importAction: { importFiles = true }) }
       else if model.workflow == .collages && !model.assets.isEmpty { CollageEditor(model: model, embedded: true) }
       else { libraryCollection }
     }
   }
   var libraryCollection: some View {
     VStack(spacing: 0) {
-      if model.assets.isEmpty {
+      if model.assets.isEmpty && model.gifSelectionContext == nil {
         VStack(spacing: 16) {
           PebbleMark(size: 48)
-          Text(activity).font(.title2.weight(.semibold))
-          Text("Beautiful results, entirely on your device.").font(.subheadline).foregroundStyle(
+          Text(model.browsingLibrary ? "Your photo workspace" : activity).font(.title2.weight(.semibold))
+          Text("Add some photos to start editing, creating or converting.").font(.subheadline).foregroundStyle(
             .secondary)
           PhotosPicker(selection: $photos, matching: .images, preferredItemEncoding: .compatible) {
-            Label("Select Photos", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
+            Label("Add Photos", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
           }.buttonStyle(.borderedProminent).controlSize(.large).disabled(model.isImporting)
           Button {
             importFiles = true
@@ -438,7 +443,7 @@ struct MobileWorkspace: View {
           }.accessibilityLabel("Filter photos")
         }.padding(.horizontal).padding(.top, 10)
       }
-      if !model.assets.isEmpty { ImageCollection(model: model) } else { Spacer(minLength: 12) }
+      if !model.assets.isEmpty || model.gifSelectionContext != nil { ImageCollection(model: model, importAction: { importFiles = true }) } else { Spacer(minLength: 12) }
       if !model.browsingLibrary && model.current != nil {
         HStack {
           Button(activity, systemImage: taskSymbol(activity)) { launchTask() }.buttonStyle(

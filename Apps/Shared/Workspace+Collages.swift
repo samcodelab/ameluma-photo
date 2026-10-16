@@ -5,20 +5,24 @@ extension Workspace {
   var collageHasFocus: Bool { !browsingLibrary && workflow == .collages && !overlayEditor }
   var canUndoActiveWorkspace: Bool {
     if overlayEditor { return overlaySession?.canUndo ?? false }
+    if workflow == .gif && !browsingLibrary { return !gifUndo.isEmpty && !gifExporting && gifInteractionStart == nil }
     return collageHasFocus ? !collageUndo.isEmpty && !collageGenerating && !running : canUndo
   }
   var canRedoActiveWorkspace: Bool {
     if overlayEditor { return overlaySession?.canRedo ?? false }
+    if workflow == .gif && !browsingLibrary { return !gifRedo.isEmpty && !gifExporting && gifInteractionStart == nil }
     return collageHasFocus ? !collageRedo.isEmpty && !collageGenerating && !running : canRedo
   }
   func undoActiveWorkspace() {
     guard canUndoActiveWorkspace else {return}
-    if overlayEditor {overlaySession?.undo()}
+    if workflow == .gif && !browsingLibrary, let previous = gifUndo.popLast(), let current = gifProject { gifRedo.append(current); gifProject = previous; persist() }
+    else if overlayEditor {overlaySession?.undo()}
     else if collageHasFocus {undoCollage()} else {undo()}
   }
   func redoActiveWorkspace() {
     guard canRedoActiveWorkspace else {return}
-    if overlayEditor {overlaySession?.redo()}
+    if workflow == .gif && !browsingLibrary, let next = gifRedo.popLast(), let current = gifProject { gifUndo.append(current); gifProject = next; persist() }
+    else if overlayEditor {overlaySession?.redo()}
     else if collageHasFocus {redoCollage()} else {redo()}
   }
   var activeCollageName: String { collageDocuments.first { $0.id == activeCollageID }?.name ?? "Untitled Collage" }
@@ -61,11 +65,11 @@ extension Workspace {
     template.apply(to: &project, sources: project.cells.map(\.sourceID))
     changeCollage(project)
   }
-  func newCollage(template: CollageTemplate? = nil) {
+  func newCollage(template: CollageTemplate? = nil, sourceIDs: [UUID]? = nil) {
     guard !running, !collageGenerating else { return }
     syncCollageDocument()
     var project=CollageProject()
-    let selectedIDs = assets.filter { selection.contains($0.id) }.map(\.id)
+    let selectedIDs = sourceIDs ?? assets.filter { selection.contains($0.id) }.map(\.id)
     let ids = selectedIDs.count <= CollageProject.maximumCells ? selectedIDs : []
     if selectedIDs.count > CollageProject.maximumCells { issues.append("Starting collage is empty: select at most 10,000 photos, or use the entire library as art-collage candidates.") }
     if let template { template.apply(to:&project,sources:ids) }

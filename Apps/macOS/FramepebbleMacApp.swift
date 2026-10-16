@@ -120,6 +120,8 @@ struct MacWorkspace: View {
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
       } else if model.workflow == .automations {
         AutomationDashboard(automations: Automations.shared, embedded: true)
+      } else if model.workflow == .gif {
+        GIFEditor(model: model, importAction: importImages)
       } else if model.workflow == .collages {
         CollageEditor(model: model, embedded: true)
       } else {

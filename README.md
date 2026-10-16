@@ -88,9 +88,9 @@ Batch Edit, Editor and Collages share one library; Mac also offers a dedicated A
 The completed UI/UX polish pass and native layout captures are documented in [UI_UX_COMPLETION_AUDIT.md](docs/UI_UX_COMPLETION_AUDIT.md), including physical-device, accessibility and release-validation limits.
 
 
-## Library and tabbed Editor
+## Workspace and tabbed Editor
 
-The Photo Library is the gallery. Batch Edit, Editor, Collages and Mac Automations are separate workspaces sharing its sources and editing state. Privacy Review is a library filter; Privacy is an Editor tool, available from the editor toolbar or a photo’s context menu.
+Workspace is the imported working area. Batch Edit, Editor, Collages and Mac Automations are separate workspaces sharing its sources and editing state. Privacy Review is a library filter; Privacy is an Editor tool, available from the editor toolbar or a photo’s context menu.
 
 Mac and iPad Editor show explicit, closable photo tabs. iPhone uses an Open Photos menu. Tabs are unique per source and independent of gallery focus, filters and batch membership. Export/share targets only the active editor photo. Closing a tab preserves all project edits and original files; closing the last returns to the gallery. Optional tab IDs and the active tab are saved in schema-4 projects, with absent fields defaulting to an empty session in older projects. Per-tab tool context is retained during the current app session and starts at Adjust after reopening a project. Apply or cancel an overlay draft before switching tabs or workspaces.
 
@@ -102,3 +102,11 @@ The application is **Ameluma Photo**. Its iPhone/iPad home-screen display name i
 See [Collage tools and limits](docs/COLLAGES.md) for photo-filled shapes/text, reference mosaics, persistence and export behaviour.
 
 The [workflow review implementation ledger](docs/REVIEW_ACTIONS.md) records the latest usability changes, verification and remaining limitations.
+
+## Workspace and animated GIFs
+
+Workspace is the imported working area, not a synchronised photo catalogue. Date, format, orientation, filename and existing Vision-label filters retain hidden selections. Actions capture explicit inputs; context actions distinguish the clicked photo from a selected group. Remove from Workspace removes references without deleting original files.
+
+Create GIF starts from Tools or Workspace → Actions. Its photo picker restores the previous selection and filters on Cancel. GIFs capture photo edits independently, support ordered/duplicate/reordered frames, individual/group/all-frame timing, cropping, Fit/Fill, canvas sizes, captions, arrows, rectangles, ellipses and speech bubbles. Annotation visibility supports This Frame, Until Removed and All Frames. Preview and native Image I/O export share frame composition and centisecond timing. New creations retain earlier GIFs under More → Saved GIFs; workspace/session copies include unfinished GIF instructions.
+
+GIFs support 1–1,000 frames, 16–2,000 pixels per side, 0.1–60 seconds per frame and finite/forever looping. Optimisation presets change dimensions; native palette encoding can introduce photographic banding. Size is measured after encoding. Export renders frames sequentially, validates every encoded frame and publishes without replacement. Reviewed Files copies preserve the animation bytes; GIFs require manual review of all frames. Physical-device performance and gesture verification remain release checks. See [implementation and validation](docs/WORKSPACE_GIF.md).

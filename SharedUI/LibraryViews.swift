@@ -198,7 +198,7 @@ struct LibraryToolbar: View {
           }
         }.disabled(model.running || model.analysing)
       }
-      if model.browsingLibrary && !typeSize.isAccessibilitySize {
+      if model.browsingLibrary && model.gifSelectionContext == nil && !typeSize.isAccessibilitySize {
         ViewThatFits(in: .horizontal) {
           HStack {
             Button("Edit Photo", systemImage: "slider.horizontal.3") {
@@ -321,9 +321,9 @@ struct LibraryToolbar: View {
   }
   var selectionControls: some View {
     HStack {
-      Menu("Actions") { WorkspaceActions(model: model, ids: model.orderedSelection) }
+      if model.gifSelectionContext == nil { Menu("Actions") { WorkspaceActions(model: model, ids: model.orderedSelection) } }
       Button(model.selecting ? "Done" : "Select") { model.toggleSelectionMode() }.disabled(
-        model.assets.isEmpty)
+        model.assets.isEmpty || model.gifSelectionContext != nil)
       Menu {
         if typeSize.isAccessibilitySize {
           if model.browsingLibrary {
@@ -354,7 +354,7 @@ struct LibraryToolbar: View {
         }
       } label: {
         Image(systemName: "ellipsis.circle")
-      }.comfortableHitTarget().accessibilityLabel("Gallery actions")
+      }.comfortableHitTarget().disabled(model.gifSelectionContext != nil).accessibilityLabel("Gallery actions")
     }
   }
   var frameHint: String {
@@ -480,9 +480,9 @@ struct ImageTile: View {
     .contentShape(Rectangle())
     #if os(macOS)
     .onTapGesture { if model.mode != .browse && !model.selecting { model.select(asset, extending: false, range: false) } }
-    .onTapGesture(count: 2) { model.openPhoto(asset, refine: !model.browsingLibrary) }
+    .onTapGesture(count: 2) { if model.gifSelectionContext == nil { model.openPhoto(asset, refine: !model.browsingLibrary) } else { model.select(asset) } }
     #else
-    .onTapGesture(count: 2) { model.openPhoto(asset, refine: !model.browsingLibrary) }
+    .onTapGesture(count: 2) { if model.gifSelectionContext == nil { model.openPhoto(asset, refine: !model.browsingLibrary) } else { model.select(asset) } }
     .onTapGesture {
       if model.browsingLibrary && sizeClass == .compact && !model.selecting { model.openPhoto(asset) }
       else { model.select(asset) }
@@ -495,7 +495,8 @@ struct ImageTile: View {
       model.openPhoto(asset, refine: true)
     }
     .contextMenu {
-      WorkspaceActions(model: model, ids: model.contextIDs(for: asset.id))
+      if model.gifSelectionContext == nil {
+      WorkspaceActions(model: model, ids: model.contextIDs(for: asset.id)).disabled(model.gifSelectionContext != nil)
       Divider()
       Text("This photo: " + asset.name)
       Button("Open in Editor", systemImage: "slider.horizontal.3") { model.openPhoto(asset) }
@@ -536,11 +537,12 @@ struct ImageTile: View {
       Button(model.favourites.contains(asset.id) ? "Remove Favourite" : "Favourite") {
         model.toggleFavourite(asset.id)
       }
+      }
     }
   }
   #if os(macOS)
   func nativeSelect(_ extending: Bool, _ range: Bool, _ double: Bool) {
-    if double { model.openPhoto(asset, refine: !model.browsingLibrary) }
+    if double { if model.gifSelectionContext == nil { model.openPhoto(asset, refine: !model.browsingLibrary) } else { model.select(asset) } }
     else { model.select(asset, extending: extending, range: range) }
   }
   #endif
@@ -571,9 +573,9 @@ struct ImageCollection: View {
       Divider()
       if model.assets.isEmpty {
         ContentUnavailableView {
-          Label("Your photo workspace", systemImage: "photo.on.rectangle.angled")
+          Label(model.gifSelectionContext == nil ? "Your photo workspace" : "Choose photos for your GIF", systemImage: "photo.on.rectangle.angled")
         } description: {
-          Text("Add some photos to start editing, creating or converting.")
+          Text(model.gifSelectionContext == nil ? "Add some photos to start editing, creating or converting." : "Add or select photos to create an animated GIF.")
         } actions: {
           if let importAction {
             Button("Add Photos", action: importAction).buttonStyle(.borderedProminent)

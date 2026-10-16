@@ -9,9 +9,10 @@ extension Workspace {
     thumbnailEditing = false
     if let first = filtered.first { selected = first.id }
     status =
-      "Flagged photos. Right-click or long-press a photo and choose Edit with Privacy Tool. You can also flag photos from All Images."
+      "Flagged photos. Right-click or long-press a photo and choose Edit with Privacy Tool. You can also flag photos from Workspace."
   }
   func openOverlayEditor(for asset: SourceAsset, masking: Bool = true) {
+    guard gifSelectionContext == nil else { return }
     analysisTask?.cancel()
     overlayStartsWithMasks = masking
     openPhoto(asset)

@@ -7,6 +7,18 @@ enum LibraryScope: String, CaseIterable { case exceptions = "Individual Override
 enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Selected images", results = "Search results", individual = "Current image" }
 
 @MainActor @Observable final class Workspace {
+    var archivedGIFs: [GIFProject] = []
+    var gifInteractionStart: GIFProject?
+    var gifUndo: [GIFProject] = []
+    var gifRedo: [GIFProject] = []
+    var gifProject: GIFProject?
+    var gifSelectionContext: GIFSelectionContext?
+    let gifRenderer = GIFRenderer()
+    var gifExportTask: Task<Void, Never>?
+    var gifExporting = false
+    var gifExportCompleted = 0
+    var gifExportTotal = 0
+    var gifExportURL: URL?
     var workflow: StudioWorkflow = .batch
     var browsingLibrary = false
     var batchGalleryMode: WorkspaceMode = .browse
@@ -23,7 +35,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var activePhotoID: UUID?
     /// Legacy UI accessor; active photo and the explicit selected-ID set are independent.
     var selected: UUID? { get { workflow == .photo && !browsingLibrary ? editorPhotoID ?? activePhotoID : activePhotoID } set { if workflow == .photo && !browsingLibrary { editorPhotoID = newValue } else { activePhotoID = newValue } } }
-    var selection: Set<UUID> = [] { didSet { selectionOrder.removeAll { !selection.contains($0) }; selectionOrder.append(contentsOf: assets.map(\.id).filter { selection.contains($0) && !selectionOrder.contains($0) }) } }
+    var selection: Set<UUID> = [] { didSet { selectionOrder.removeAll { !selection.contains($0) }; var seen = Set(selectionOrder); selectionOrder.append(contentsOf: assets.lazy.map(\.id).filter { self.selection.contains($0) && seen.insert($0).inserted }) } }
     var selecting = false
     var selectionOrder: [UUID] = []
     var workspaceFilter = WorkspaceFilter() { didSet { reconcileVisibleSelection() } }
@@ -212,7 +224,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var targets: [SourceAsset] {
         if browsingLibrary { return [] }
         if workflow == .photo { return current.map { [$0] } ?? [] }
-        if workflow == .automations || workflow == .collages { return [] }
+        if workflow == .automations || workflow == .collages || workflow == .gif { return [] }
         if let ids = batchInputIDs { return assets.filter { ids.contains($0.id) } }
         return switch scope { case .all: assets; case .selected: assets.filter { selection.contains($0.id) }; case .results: filtered; case .individual: current.map { [$0] } ?? [] }
     }
@@ -404,6 +416,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
                 results = doc.completedJobs.compactMap { job in guard let source = assets.first(where: { $0.id == job.sourceID }) else { return nil }; var result = ProcessingResult(source: source, output: job.output, error: job.error); result.id = job.id; return result }
                 selected = assets.first?.id
                 restoreEditorTabs(doc)
+                restoreGIF(doc)
                 restoreCollageDocuments(doc)
                 let missing = assets.filter { !FileManager.default.fileExists(atPath: $0.url.path) }
                 for asset in missing { issues.append("Missing source: \(asset.name). Reimport the original to continue.") }
@@ -431,6 +444,8 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
             if let patch = doc.edits.overrides[id]?.patch { doc.edits.overrides[id]?.patch?.values = config(patch.values) }
         }
         for position in doc.profiles.indices { if let c = doc.profiles[position].processing { doc.profiles[position].processing = config(c) } }
+        if var gif = doc.gifProject { for i in gif.frames.indices { gif.frames[i].configuration = config(gif.frames[i].configuration) }; doc.gifProject = gif }
+        for i in doc.savedGIFs.indices { for j in doc.savedGIFs[i].frames.indices { doc.savedGIFs[i].frames[j].configuration = config(doc.savedGIFs[i].frames[j].configuration) } }
         doc.collageOutputs = doc.collageOutputs.map { local($0) ?? $0 }
         for position in doc.watermarkPresets.indices { doc.watermarkPresets[position].imageURL = local(doc.watermarkPresets[position].imageURL) }
         for position in doc.pendingExports.indices { doc.pendingExports[position].source.url = local(doc.pendingExports[position].source.url) ?? doc.pendingExports[position].source.url; doc.pendingExports[position].configuration = config(doc.pendingExports[position].configuration); if let c = doc.pendingExports[position].profile.processing { doc.pendingExports[position].profile.processing = config(c) } }
@@ -438,7 +453,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         return doc
     }
     func document() -> ProjectDocument {
-        var doc = ProjectDocument(); doc.name = projectName; doc.batchInputIDs = batchInputIDs; doc.editorTabIDs = editorTabs; doc.activeEditorPhotoID = editorPhotoID; doc.sources = assets; doc.edits = edits; doc.favourites = favourites; doc.classifications = index; doc.proposals = proposals; doc.privacyCoverageReviewIDs = privacyCoverageReviewIDs; doc.profiles = profiles; doc.namingTemplate = namingTemplate; doc.selectedProfiles = exportProfiles; doc.watermarkPresets = watermarkPresets; doc.collage = collage; doc.collages = savedCollages; doc.openCollageIDs = openCollageIDs; doc.activeCollageID = activeCollageID; doc.collageOutputs = collageOutputs; doc.privateEditing = privateEditing; doc.requirePrivacyReview = requirePrivacyReview; doc.pendingExports = pendingExports; doc.completedJobs = results.map { ProcessingJob(id: $0.id, sourceID: $0.source.id, output: $0.output, error: $0.error) }; return doc
+        var doc = ProjectDocument(); doc.gifProject = gifProject; doc.savedGIFs = archivedGIFs; doc.workspaceSelection = gifSelectionContext?.order ?? orderedSelection; doc.name = projectName; doc.batchInputIDs = batchInputIDs; doc.editorTabIDs = editorTabs; doc.activeEditorPhotoID = editorPhotoID; doc.sources = assets; doc.edits = edits; doc.favourites = favourites; doc.classifications = index; doc.proposals = proposals; doc.privacyCoverageReviewIDs = privacyCoverageReviewIDs; doc.profiles = profiles; doc.namingTemplate = namingTemplate; doc.selectedProfiles = exportProfiles; doc.watermarkPresets = watermarkPresets; doc.collage = collage; doc.collages = savedCollages; doc.openCollageIDs = openCollageIDs; doc.activeCollageID = activeCollageID; doc.collageOutputs = collageOutputs; doc.privateEditing = privateEditing; doc.requirePrivacyReview = requirePrivacyReview; doc.pendingExports = pendingExports; doc.completedJobs = results.map { ProcessingJob(id: $0.id, sourceID: $0.source.id, output: $0.output, error: $0.error) }; return doc
     }
     var completedOutputs: [URL] { results.compactMap(\.output) + collageOutputs }
     func saveProjectCopy() async throws -> URL {
@@ -446,10 +461,10 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         let label=Date().formatted(.iso8601).replacingOccurrences(of:":",with:"-")
         let url=folder.appendingPathComponent("Project-"+label+"-"+UUID().uuidString.prefix(6)+".json");try await store.save(document(),to:url);return url
     }
-    func stopWork() async { quickFixTask?.cancel(); await quickFixTask?.value; sensitivityTask?.cancel(); await sensitivityTask?.value; cancelImport(); await importTask?.value; await fileImportTask?.value; collageGenerationTask?.cancel(); await collageGenerationTask?.value; collageTask?.cancel(); await collageTask?.value; task?.cancel(); analysisTask?.cancel(); indexingTask?.cancel(); await task?.value; await analysisTask?.value; await indexingTask?.value }
+    func stopWork() async { gifExportTask?.cancel(); await gifExportTask?.value; quickFixTask?.cancel(); await quickFixTask?.value; sensitivityTask?.cancel(); await sensitivityTask?.value; cancelImport(); await importTask?.value; await fileImportTask?.value; collageGenerationTask?.cancel(); await collageGenerationTask?.value; collageTask?.cancel(); await collageTask?.value; task?.cancel(); analysisTask?.cancel(); indexingTask?.cancel(); await task?.value; await analysisTask?.value; await indexingTask?.value }
     func newProject() async {
         guard !clearingWorkspace else { return }
-        do { await stopWork(); _ = try await saveProjectCopy(); sensitivity = SensitiveReviewState();resetEditorTabs();resetCollageDocuments();projectName="Untitled Project";privacyCoverageReviewIDs=[];batchInputIDs=nil;assets=[];selected=nil;selection=[];favourites=[];duplicates=DuplicateIndex();edits=EditingSnapshot();history=EditingHistory();proposals=[:];index=ClassificationIndex();results=[];pendingExports=[];collage=CollageProject();collageOutputs=[];collageUndo=[];collageRedo=[];await flush();status="New project. Previous work remains in Recent Projects." } catch { issues.append("Could not preserve the previous project: \(error.localizedDescription)") }
+        do { await stopWork(); _ = try await saveProjectCopy(); sensitivity = SensitiveReviewState();resetEditorTabs();resetCollageDocuments();gifProject=nil;archivedGIFs=[];gifSelectionContext=nil;projectName="Untitled Project";privacyCoverageReviewIDs=[];batchInputIDs=nil;assets=[];selected=nil;selection=[];favourites=[];duplicates=DuplicateIndex();edits=EditingSnapshot();history=EditingHistory();proposals=[:];index=ClassificationIndex();results=[];pendingExports=[];collage=CollageProject();collageOutputs=[];collageUndo=[];collageRedo=[];await flush();status="New project. Previous work remains in Recent Projects." } catch { issues.append("Could not preserve the previous project: \(error.localizedDescription)") }
     }
     func openProject(_ url:URL) async {
         guard !clearingWorkspace else { return }
@@ -457,6 +472,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         do {
             let doc=relocate(try await store.load(url));if doc.privateEditing {concealed=true};await stopWork();_ = try await saveProjectCopy();sensitivity = SensitiveReviewState();resetEditorTabs();projectName=doc.name;batchInputIDs=doc.batchInputIDs;if batchInputIDs != nil {scope = .selected};assets=doc.sources;edits=doc.edits;history=EditingHistory(snapshot:edits);favourites=doc.favourites;index=doc.classifications;proposals=doc.proposals;privacyCoverageReviewIDs=doc.privacyCoverageReviewIDs;profiles=doc.profiles;collage=doc.collage ?? CollageProject();collageOutputs=doc.collageOutputs;collageUndo=[];collageRedo=[];pendingExports=doc.pendingExports;results=[];selected=assets.first?.id;selection=[];watermarkPresets=doc.watermarkPresets;namingTemplate=doc.namingTemplate;exportProfiles=doc.selectedProfiles;privateEditing=doc.privateEditing;requirePrivacyReview=doc.requirePrivacyReview
             restoreEditorTabs(doc)
+            restoreGIF(doc)
             restoreCollageDocuments(doc)
             for asset in assets where !FileManager.default.fileExists(atPath:asset.url.path) {issues.append("Missing source: \(asset.name). Select it and use Projects → Relink.")};await flush();startIndexing()
         } catch {issues.append("Project could not be opened: \(error.localizedDescription)")}

@@ -482,7 +482,7 @@ struct CollageEditor: View {
         Text("Matches photo colours and local tones to the reference, which fills the canvas. Repetition improves matching with smaller libraries. No reference pixels are pasted into the tiles, and photos are not tinted. Results depend on your photo palette.").font(.caption).foregroundStyle(.secondary)
       }
       Text(artMode == "Photomosaic" ? "2. Choose tile photos" : "Choose photos to fill the composition").font(.headline)
-      Toggle("Use entire photo library",isOn:$useAllSources)
+      Toggle("Use entire workspace",isOn:$useAllSources)
       Text(useAllSources ? "All library photos are candidates. The reference is excluded." : "The current composition’s photos are candidates. Use Choose Source Photos to change them.").font(.caption).foregroundStyle(.secondary)
       Text("3. Choose detail and generate").font(.headline)
       TextField("Number of photo tiles (1–10,000)",value:$tileCount,format:.number)

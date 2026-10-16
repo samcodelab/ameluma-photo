@@ -263,16 +263,16 @@ import XCTest
     model.favourites = [assets[0].id]
     model.library = .favourites
     XCTAssertEqual(model.selected, assets[0].id)
-    XCTAssertTrue(model.selection.isEmpty)
-    XCTAssertTrue(model.targets.isEmpty)
+    XCTAssertEqual(model.selection, Set(assets[2...4].map(\.id)))
+    XCTAssertEqual(model.targets.count, 3)
     model.selectVisiblePhotos()
-    XCTAssertEqual(model.targets.map(\.id), [assets[0].id])
+    XCTAssertEqual(Set(model.targets.map(\.id)), Set([assets[0].id] + assets[2...4].map(\.id)))
     model.library = .all
     model.selectVisiblePhotos()
     XCTAssertEqual(model.targets.count, 5)
     model.query = "no_actual_classification"
     XCTAssertNil(model.current)
-    XCTAssertTrue(model.targets.isEmpty)
+    XCTAssertEqual(model.targets.count, 5)
     model.persistenceTask?.cancel()
   }
   func testExplicitFramingIDsPreserveBatchScopeAndManualException() async throws {
@@ -441,7 +441,7 @@ extension WorkflowWorkspaceTests {
     XCTAssertTrue(model.browsingLibrary)
     XCTAssertEqual(model.mode, .browse)
     XCTAssertFalse(model.precision)
-    XCTAssertEqual(model.workspaceTitle, "All Images")
+    XCTAssertEqual(model.workspaceTitle, "Workspace")
     XCTAssertTrue(model.targets.isEmpty, "Browsing must not implicitly expose batch export targets")
     XCTAssertEqual(model.edits, edits)
     XCTAssertEqual(model.selection, selection)
@@ -874,5 +874,78 @@ extension WorkflowWorkspaceTests {
     XCTAssertEqual(model.edits,EditingSnapshot())
     XCTAssertEqual(model.collage.title,"Title")
     model.persistenceTask?.cancel()
+  }
+}
+
+extension WorkflowWorkspaceTests {
+  func testWorkspaceSelectionSurvivesFiltersAndCapturesStableOperations() throws {
+    let model = try makeModel(); let a = model.assets[0], b = model.assets[1], c = model.assets[2]
+    model.showLibrary(); model.selecting = true; model.select(a); model.select(b)
+    model.query = "photo-2"; XCTAssertEqual(model.selection, [a.id, b.id])
+    model.select(c); XCTAssertEqual(model.orderedSelection, [a.id,b.id,c.id])
+    XCTAssertEqual(model.contextIDs(for: model.assets[4].id), [model.assets[4].id])
+    XCTAssertEqual(model.contextIDs(for: a.id), [a.id,b.id,c.id])
+    model.beginBatch(ids: model.orderedSelection)
+    model.selection = []; model.query = "nothing"
+    XCTAssertEqual(Set(model.targets.map(\.id)), [a.id,b.id,c.id])
+    model.persistenceTask?.cancel()
+  }
+  func testGIFActionFirstCancelRestoresSelectionAndUnfinishedProject() throws {
+    let model = try makeModel(); let a = model.assets[0], b = model.assets[1]
+    model.startGIF(ids: [b.id,a.id]); let project = model.gifProject
+    model.selection = [a.id]; model.query = "photo-0"; model.selecting = false
+    model.selectGIFPhotos(adding: true); XCTAssertTrue(model.browsingLibrary); XCTAssertTrue(model.selecting)
+    model.select(b); model.query = "unmatched"; XCTAssertEqual(model.selection, [b.id])
+    model.finishGIFSelection(cancel: true)
+    XCTAssertEqual(model.gifProject, project); XCTAssertEqual(model.selection, [a.id]); XCTAssertEqual(model.query, "photo-0")
+    XCTAssertFalse(model.browsingLibrary); XCTAssertEqual(model.workflow, .gif); XCTAssertFalse(model.selecting)
+    model.persistenceTask?.cancel()
+  }
+  func testGIFBothEntryPointsAddReplacePersistenceAndIndependentEdits() throws {
+    let model = try makeModel(); let a = model.assets[0], b = model.assets[1], c = model.assets[2]
+    model.switchWorkflow(.gif); model.selectGIFPhotos(); model.select(b); model.select(a)
+    model.finishGIFSelection(cancel: false)
+    XCTAssertEqual(model.gifProject?.frames.map(\.sourceID), [b.id,a.id])
+    let captured = try XCTUnwrap(model.gifProject?.frames.first?.configuration)
+    model.rotatePhoto(b.id); model.selection = [c.id]
+    XCTAssertEqual(model.gifProject?.frames.first?.configuration, captured)
+    var range = GIFAnnotation(annotation: Annotation(), frameIDs: Set(model.gifProject?.frames.map(\.id) ?? [])); range.extendsToNewFrames = true
+    model.gifProject?.annotations = [range]
+    model.selectGIFPhotos(adding: true); model.select(c); model.finishGIFSelection(cancel: false)
+    XCTAssertEqual(model.gifProject?.annotations.first?.frameIDs?.count, 3)
+    XCTAssertEqual(model.gifProject?.frames.map(\.sourceID), [b.id,a.id,c.id])
+    let frame = try XCTUnwrap(model.gifProject?.frames.first?.id)
+    model.selectGIFPhotos(replacing: frame); model.select(a); model.finishGIFSelection(cancel: false)
+    XCTAssertEqual(model.gifProject?.frames.first?.id, frame); XCTAssertEqual(model.gifProject?.frames.first?.sourceID, a.id)
+    let doc = model.document(); let restored = try makeModel(); restored.assets = doc.sources; restored.restoreGIF(doc)
+    XCTAssertEqual(restored.gifProject, model.gifProject); XCTAssertEqual(restored.selection, model.selection)
+    model.openPhoto(b); let before = model.configuration(for: a); model.rotatePhoto(b.id)
+    XCTAssertEqual(model.targets.map(\.id), [b.id]); XCTAssertEqual(model.configuration(for: a), before)
+    model.persistenceTask?.cancel(); restored.persistenceTask?.cancel()
+  }
+  func testWorkspaceRemovalPreservesOriginalFilesAndGIFReferences() throws {
+    let model = try makeModel(); let source = model.assets[0]
+    try Data("original".utf8).write(to: source.url)
+    model.startGIF(ids: [source.id]); model.removeFromWorkspace([source.id])
+    XCTAssertTrue(FileManager.default.fileExists(atPath: source.url.path))
+    XCTAssertEqual(model.gifProject?.frames.first?.sourceID, source.id)
+    XCTAssertFalse(model.assets.contains(where: { $0.id == source.id }))
+    model.persistenceTask?.cancel()
+  }
+}
+
+extension WorkflowWorkspaceTests {
+  func testGIFHistoryAndSavedCreationsNeverChangePhotoEdits() throws {
+    let model = try makeModel(); model.startGIF(ids: model.assets.prefix(2).map(\.id))
+    let first = try XCTUnwrap(model.gifProject), edits = model.edits
+    var changed = first; changed.width = 640
+    model.gifInteraction(true); model.updateGIF(changed); changed.width = 480; model.updateGIF(changed); model.gifInteraction(false)
+    XCTAssertEqual(model.gifUndo.count, 1)
+    model.undoActiveWorkspace(); XCTAssertEqual(model.gifProject, first); XCTAssertEqual(model.edits, edits)
+    model.redoActiveWorkspace(); XCTAssertEqual(model.gifProject?.width, 480)
+    model.startGIF(ids: [model.assets[2].id]); XCTAssertEqual(model.archivedGIFs.first?.width, 480)
+    let doc = model.document(), restored = try makeModel(); restored.assets = doc.sources; restored.restoreGIF(doc)
+    XCTAssertEqual(restored.archivedGIFs, model.archivedGIFs)
+    model.persistenceTask?.cancel(); restored.persistenceTask?.cancel()
   }
 }

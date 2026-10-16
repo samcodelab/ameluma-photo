@@ -101,7 +101,7 @@ struct PhotoEditorWorkspace: View {
         ContentUnavailableView(
           "Choose a photo", systemImage: "photo",
           description: Text("Open photos from the library to edit them in tabs."))
-        Button("Open Photo Library", systemImage: "square.grid.2x2") { model.showLibrary() }
+        Button("Open Workspace", systemImage: "square.grid.2x2") { model.showLibrary() }
       }
     }.padding(16)
       .safeAreaInset(edge: .bottom, spacing: 0) {

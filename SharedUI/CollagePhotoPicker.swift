@@ -14,7 +14,7 @@ struct CollagePhotoPicker: View {
     NavigationStack {
       ScrollView {
         VStack(alignment:.leading) {
-          Text(single ? (title == "Mosaic Reference" ? "Choose the reference to recreate. Import it into Photo Library first if needed." : "Choose a photo to place in the selected frame.") : "Choose the photos for this composition. Art collages can also use the entire library as candidates.")
+          Text(single ? (title == "Mosaic Reference" ? "Choose the reference to recreate. Import it into Workspace first if needed." : "Choose a photo to place in the selected frame.") : "Choose the photos for this composition. Art collages can also use the entire workspace as candidates.")
             .font(.callout).foregroundStyle(.secondary).padding(.horizontal)
           LazyVGrid(columns:[GridItem(.adaptive(minimum:140))],spacing:12) {
             ForEach(photos) { asset in
