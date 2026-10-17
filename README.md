@@ -2,6 +2,12 @@
 
 **Your photos. Your way.** A native, local photo toolbox by Broad Frame Studio for macOS 15+, iOS 18+ and iPadOS 18+. Open `Framepebble.xcodeproj` and choose **FramepebbleMac** or **FramepebbleiOS**. Both targets link the same local `FramepebbleCore` Swift package; there are no third-party runtime dependencies.
 
+## Product direction
+
+A focused everyday photo editor: a smaller set of tools held to a high standard of usability and output quality. Single-photo tools belong on one persistent canvas with nearby options, stable zoom/pan and coherent history. See the [current product contract](docs/PRODUCT_SPECIFICATION.md) and [immediate priorities](docs/DEVELOPMENT_ROADMAP.md).
+
+Retouch is currently local patch-based healing/cloning, not structural content-aware object removal. Complex removals crossing branches or object boundaries can leave fragments or damage texture; improving this is an open quality priority.
+
 ## Implemented workflows
 
 - Import multiple files, recursive folders, Finder drops and item-based Photos selections. Native decoder capabilities determine JPEG, PNG, HEIC, TIFF and WebP availability; input validation uses content, not extensions.

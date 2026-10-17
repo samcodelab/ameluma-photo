@@ -1,5 +1,17 @@
 # Development roadmap
 
+## Immediate priorities — 17 October 2026
+
+These priorities supersede older expansion items below. Preserve current features and saved results while improving a focused everyday photo editor.
+
+1. Audit every photo tool entry/exit against one persistent canvas. Consolidate remaining user-visible editor transitions; retain photo, viewport, cached source, pending edits and undo state. Test rapid tool changes and cancelled drafts on all three interfaces.
+2. Treat the bird tail/claw example as a failing retouch acceptance case. Retain the original and record stroke geometry and settings for reproducible comparisons. Separate Clone, Heal and structural object removal in implementation and claims. Evaluate a bounded, local reconstruction approach using representative photographic fixtures before choosing an algorithm; do not conceal failures through extra blur. Version new processing so existing strokes retain their output.
+3. Measure complete interaction latency: pointer feedback, stroke completion to preview, cancellation and export, including repeated strokes on large images. Isolated kernel timings are insufficient. Profile decode, graph replay, GPU completion and main-thread work before setting optimisation priorities.
+4. Standardise nearby tool options, visible selection coverage, keyboard/mouse and pinch/pan behavior, Undo/Redo, failure/retry and Apply/Cancel semantics. Avoid simultaneous duplicate inspectors and floating controls.
+5. Validate rendered quality and real interactions across Mac, iPhone and iPad, then save/reopen, preview/export parity and original hashes. Require physical-device checks where Simulator coverage cannot establish performance or Pencil behavior.
+
+The current translated-source Heal remains a foundation, not a completed content-aware removal tool. This roadmap records intended work; it does not claim these gates have passed.
+
 ## Existing foundation — retained
 
 Separate native app targets/local Core package; import/browse/preview/resize/crop/rotation; visual framing and shared precision/history; Vision classification/search/framing/review; watermarks/compression/formats/metadata/profiles; safe export/retry/local recovery.
@@ -41,7 +53,7 @@ Scoped workflow revision: implemented field-preserving edits, sparse inherited o
 
 ### Tabbed Editor update
 
-Completed: library-first navigation, separate batch and editor targets, unique closable photo tabs on Mac/iPad, compact Open Photos switcher, saved tab restoration, contextual Privacy tool and Privacy Review filter. Further work: draggable tab ordering, detachable editor windows and per-tab canvas zoom persistence are not implemented.
+Completed: library-first navigation, separate batch and editor targets, compact closable photo tabs on Mac; single-photo mobile editing with Back to Workspace, saved tab restoration, contextual Privacy tool and Privacy Review filter. Further work: draggable tab ordering, detachable editor windows and per-tab canvas zoom persistence are not implemented.
 
 
 ### Art collage extension

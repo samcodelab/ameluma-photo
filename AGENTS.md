@@ -2,8 +2,10 @@
 
 ## Product
 
-Framepebble is a native image batch-processing application
-developed by Broad Frame Studio.
+Ameluma Photo is a native photo editor for everyday users, developed by
+Broad Frame Studio. It aims to be a viable alternative to Photoshop, Affinity
+and Pixelmator for a deliberately smaller set of excellent editing tasks.
+Framepebble remains the internal module and storage identity.
 
 Supported platforms:
 - macOS 15+
@@ -532,3 +534,18 @@ User-facing product name: Ameluma Photo. iOS/iPadOS home-screen name: Ameluma. R
 ## Multiple collage compositions
 
 Collage tabs have separate source placements and session Undo/Redo, share the photo library, and close without deleting SavedCollage records. Optional schema-4 fields migrate the legacy single collage. Core collage paths/layouts/matching must remain shared. Art generation is local, cancellable and commits only complete, non-stale results. Do not promise perfect reference likeness, uniform tile geometry in shape/text art, arbitrary font/emoji silhouettes or physical-device scale validation that has not occurred. Share only the active composition’s successful captured export.
+
+
+## Focused photo editor direction (17 October 2026 — supersedes earlier UI direction)
+
+Build a credible everyday alternative to Photoshop, Affinity and Pixelmator through a focused subset of tools executed exceptionally well. Feature count is not the measure of progress. Preserve batch processing, creations, source compatibility and local-only operation; do not rewrite the application.
+
+Single-photo editing has one persistent canvas. Adjust, Filters, Crop, Resize, Retouch, Replace Colour, Annotate, Privacy and Watermark operate on that same photo in place. Tool changes update the options beside the toolbox or directly beneath it on compact layouts; they must not navigate to another editing screen, open another editing window, reset the viewport, or flash/reload an unchanged source. Import, export destinations, system pickers and workspace navigation may use their appropriate native surfaces. Tool-specific internal SwiftUI components are allowed; a separate user-visible editor is not.
+
+Keep active photo, viewport, source identity, selection and edit history coherent across tools. Preserve pending work during tool changes: commit through the established undoable edit path where safe, or explicitly resolve Apply/Discard/Cancel before leaving; never silently discard or apply it. Mac may retain compact photo tabs; mobile edits one photo with Back to Workspace. Do not confuse workspace selection with an on-canvas region or a brush stroke.
+
+Every direct manipulation must show immediate feedback: a moving brush footprint, painted coverage or selection outline, and a clear processing/cancel state. Zoom and pan remain available during editing with platform-native gestures and keyboard/mouse support. Preserve the viewport when changing tools. Progressive rendering must reject stale results and never pass a failed or unfinished render off as success.
+
+Retouch quality is a release gate, not satisfied by rendering tests alone. Clone copies an explicit source; Heal blends texture and tone; object removal must reconstruct missing content and continue surrounding structure. Do not describe the current translated-patch Heal as content-aware object removal. Tail/claw removal across a branch is a known failing case. Require representative visual review of branch edges, patterned fabrics, skin, object boundaries and large strokes, alongside measured pointer-to-feedback and stroke-to-result latency on declared hardware. Keep old stroke recipes reproducible; new algorithms need versioned records and preview/export parity. No cloud processing or unreviewed codec/model dependency is authorised by this direction.
+
+Prioritise: (1) persistent canvas and reliable input feedback, (2) retouch quality and latency, (3) consistent tool controls/history/recovery, (4) cross-platform visual and interaction validation. Do not add more tools to avoid fixing these fundamentals. Never claim competitor-level quality from synthetic tests or isolated kernel timings.

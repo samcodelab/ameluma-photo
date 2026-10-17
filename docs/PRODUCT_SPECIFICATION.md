@@ -2,6 +2,16 @@
 
 Framepebble, by Broad Frame Studio. **Your photos. Your way.** Native local photo tools for macOS 15+, iOS/iPadOS 18+. Intended commercial model: a one-time universal purchase, target A$29.99. No price, store listing, subscription or account has been created.
 
+## Current product contract — 17 October 2026
+
+Ameluma Photo targets everyday photo editors seeking a focused alternative to Photoshop, Affinity and Pixelmator. Ship fewer tools with dependable results, direct interaction and polished native controls. This direction supersedes older feature-expansion plans below; historical implemented inventories are not evidence of release readiness.
+
+Editing takes place on one persistent photo canvas. Tools change the active interaction and nearby options, preserving the viewport, image continuity and unrelated edits. There are no separate user-visible editing windows or destination screens for retouch, recolouring, privacy or annotations. Mobile edits one photo at a time with Back to Workspace. System import/export pickers remain appropriate. Workspace, batch, GIF and collage remain distinct tasks with explicit inputs.
+
+Retouch currently provides local translated-patch sampling and tone/texture blending. It does not perform structural object reconstruction. The reported bird tail/claw removal damages the branch and leaves fragments; this is an unresolved quality defect, not an acceptable finished removal result. Existing timing measurements cover narrow diagnostic renders, not end-to-end responsiveness or general removal quality.
+
+Acceptance requires continuous brush/selection feedback, viewport continuity, undoable edits, cancellable non-stale previews, source preservation and equivalent exported results. A credible object-removal implementation must reconstruct intersecting structures, not merely blur or copy nearby pixels. Approve representative real-photo results and end-to-end latency on Mac, iPhone and iPad before claiming parity or release readiness.
+
 ## Studio — implemented
 
 Native multiple-file/folder/Photos imports, thumbnails and a lazy library; favourites, edited and review filters; Vision label search with actual observations. Browse, Frame and Compare share one editing state. Drag/pinch/Option-scroll framing, precision position/zoom/aspect/rotation controls, Smart/Keep Subjects and manual overrides remain intact.
