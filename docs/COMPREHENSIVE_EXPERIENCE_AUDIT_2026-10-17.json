@@ -1,0 +1,573 @@
+{
+  "date": "2026-10-17",
+  "head": "02078d3",
+  "uncommittedWorkingTree": true,
+  "findings": [
+    {
+      "id": "R01",
+      "title": "R01 \u2014 P1 investigation: native Mac watermark-to-GIF layout transition still fails",
+      "area": "Reliability",
+      "priority": "P1",
+      "body": "Fresh full Mac run: WorkspaceLayoutTests/testLibraryAndPhotoToolsAtNativeWindowSize throws InvalidTransition (idle \u2192 failed(deinit)) at the GIF capture after watermark editing and window resizing. 62 tests ran, with one failure. Earlier fresh-derived-data and titled-window attempts also reproduced it. The independent demo screenshot sequence and state-only transition regression pass. Logs include MDB_MAP_FULL.\n\nRecommendation: obtain the native failure stack and reproduce the same sequence in the actual window before release. Do not suppress the test, classify the exception as harmless, or rewrite the processing engine without evidence.\n\nConfidence: reproduced native test failure; production cause and impact remain unclassified."
+    },
+    {
+      "id": "E01",
+      "title": "E01 P1 \u2014 Preview pinch magnifies a low-resolution image without promoting detail",
+      "area": "Editor",
+      "priority": "P1",
+      "body": "Source: `FramingViews.swift:638-645`, `548-565`; overlay `OverlayEditor.swift:225-226,575-587`.\nRepro: ordinary editor pinch to 4\u20138\u00d7, or Retouch pinch to 4\u00d7. Normal viewport only enlarges FramingSurface preview; draft rendering is explicitly capped at 1000px regardless of zoom. Full-resolution pixels require separate menu/mode and cannot be brushed there.\nImpact: precision retouch of the hero-shirt button requires seeing tiny texture at magnification, but current retouch UI magnifies roughly 1000px. A working pinch gesture does not prove adequate image detail.\nRecommendation: demand-driven higher-resolution/visible-region editing preview at zoom, with bounded memory and latest-generation cancellation. Keep display zoom separate from crop. Validate 24MP image at 1\u00d7/2\u00d7/4\u00d7, compare heal seam at actual pixels, never decode all frames.\nConfidence: source-confirmed rendering cap; pixel quality/performance needs interactive visual measurement."
+    },
+    {
+      "id": "E02",
+      "title": "E02 P1 \u2014 Filter intensity changes invalidate the entire tile collection",
+      "area": "Editor",
+      "priority": "P1",
+      "body": "Source: `Inspectors.swift:760-817`.\nRepro: choose preset and drag intensity. PreviewInput contains full configuration including intensity; every change restarts task, clears all previews at803, validates source again806, and iterates Original+six presets807.\nImpact: unnecessary placeholder flashes/work while user evaluates a look. Nonselected candidate images at fixed70% have not changed.\nRecommendation: retain valid tiles, separate base/candidate fingerprints from selected intensity, update only selected tile, prioritize canvas, coalesce requests. Test rapid sliders and photo switches for stale images and no all-tile flash. Do not claim measured lag until profiled.\nConfidence: source-confirmed invalidation, actual visible flashing to measure."
+    },
+    {
+      "id": "E03",
+      "title": "E03 P1 \u2014 Two comparison controls use different scopes with insufficient sighted explanation",
+      "area": "Editor",
+      "priority": "P1",
+      "body": "Source: `WorkflowViews.swift:167-170`; `Inspectors.swift:864-874`.\nRepro: toolbar overlapping-squares toggles all visual edits; filter Hold to Compare bypasses only creative+Auto Enhance. Icon control has excellent accessibility/help text but no persistent visible label/state; filter control says Showing Before without specifying before what.\nRecommendation: consistent Compare vocabulary with visible contextual state (Original / Before Filter), concise first-use or tooltip explanation, press-and-hold plus accessible toggle semantics. Preserve scopes; do not silently change exports.\nConfidence: confirmed."
+    },
+    {
+      "id": "E04",
+      "title": "E04 P1 \u2014 Tool switching repeatedly asks Apply/Discard only for some tools",
+      "area": "Editor",
+      "priority": "P1",
+      "body": "Source: `OverlayEditor.swift:277-285,314-331`; ordinary Adjust/Filters mutate committed state directly.\nRepro: retouch a blemish then tap Filters/Crop; dialog asks Apply & Switch / Discard / Keep Editing. Adjust\u2192Filters switches instantly. Privacy/annotation/retouch share the draft, but crossing into other tools is transactional.\nImpact: editor looks unified but has two commit models; repeated cosmetic work interleaving retouch and filters incurs dialogs.\nRecommendation: keep draft safety, but make draft state visible (Editing Retouch \u00b7 Apply), provide predictable explicit Done/Cancel; assess safe auto-apply on direct tool switch with grouped undo only after deliberate product decision and revision/conflict tests. Do not remove safeguards casually.\nConfidence: confirmed design friction, not correctness bug."
+    },
+    {
+      "id": "E05",
+      "title": "E05 P1 \u2014 Retouch manual source state is unclear and Auto recovery is buried",
+      "area": "Editor",
+      "priority": "P1",
+      "body": "Source: `OverlayEditor.swift:403-407,467-480`.\nRepro: Heal\u2192Set Source\u2192paint. Floating button returns to Set Source, but manual sampling remains active; no visible Auto/manual indicator there. Clearing source with Auto exists only detailed settings and only Heal. Switch Clone\u2192Heal retains retouchSource.\nImpact: user expects intelligent Heal again but repeatedly samples earlier unrelated fabric/skin; can look like bad healing.\nRecommendation: floating sampling selector Auto / Sampled with explicit Clear Source; label source-set state and show source crosshair. Explain aligned only when relevant. Test Clone\u2192Heal and zoom/crop state.\nConfidence: confirmed state logic. This may explain some reported results but not proven cause of user's specific stroke."
+    },
+    {
+      "id": "E06",
+      "title": "E06 P1 verification \u2014 Pan while zoomed conflicts with painting/selecting",
+      "area": "Editor",
+      "priority": "P1",
+      "body": "Source: `OverlayEditor.swift:580-587,675-699`.\nRepro: zoom then attempt to pan image with a finger; same image uses immediate zero-distance DragGesture to paint and surrounding ScrollView to pan. Pinch is explicit high-priority; a two-finger pan adapter/hand mode is absent.\nRecommendation: verify native touch arbitration; define two-finger pan / Pencil draw or explicit hand mode, and ensure first touches in pinch never leave a stroke. Add actual gesture test, not model-only test.\nConfidence: source-confirmed ambiguous gesture ownership; actual pan failure is hypothesis pending touch execution."
+    },
+    {
+      "id": "E07",
+      "title": "E07 P2 \u2014 Heal/Clone size remains a short slider with no precise value entry",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `OverlayEditor.swift:374-380,472-477`.\nRepro: adjust from3% to e.g.1.5%; floating slider fixed110pt, label Int rounds .5\u201325% to integer; detailed sliders also integer readouts and no numeric entry.\nImpact: user just complained finesse; Adjust fixed but retouch still uses different lower-precision control language.\nRecommendation: reuse consistent numeric-slider row, fractional smaller sizes, larger usable drag track; brush-size relative unit described clearly. Preserve output-relative model.\nConfidence: confirmed."
+    },
+    {
+      "id": "E08",
+      "title": "E08 P2 \u2014 Default floating panel is adjacent to rail, not selected tool",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `WorkflowViews.swift:93-100`; `OverlayEditor.swift:114-117`.\nRepro: Retouch/Privacy icons lower on right rail; options always top-right instead of beside active icon. Current native screenshot `F525152E-F229-499B-8EE9-EB1F7E2AA1B0.png` shows Retouch icon mid-right but panel at upper-right; photo overlap depends portrait/landscape.\nRecommendation: consistent anchored edge docking or anchor-aligned compact panel, movable/collapsible where useful. Maintain readable340pt width; never duplicate with inspector. Avoid auto-cropping photo to fill margins.\nConfidence: source+capture confirmed."
+    },
+    {
+      "id": "E09",
+      "title": "E09 P2 \u2014 Retouch draft has no before/after control",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `OverlayEditor.swift:194-202,401-439` compared `WorkflowViews.swift:167-170`.\nRepro: paint multiple strokes and want verify texture difference without undoing; draft shows undo/redo but no compare original/current-draft baseline.\nRecommendation: same compare affordance in drawing shell, explicitly compare current tool draft against its entry snapshot, preserving masks/privacy protection and no document mutation.\nConfidence: source-confirmed missing equivalent control."
+    },
+    {
+      "id": "E10",
+      "title": "E10 P2 \u2014 Draft error has no Retry or source recovery",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `OverlayEditor.swift:231-234,735-739` versus filter `Inspectors.swift:796-798`.\nRepro: draft source decode/render fails; Preview unavailable only describes text, Apply disabled; user must Cancel and reopen to recover. Filter errors offer Retry/Locate; Watermark offers Locate.\nRecommendation: consistent inline Retry / Locate Source actions; preserve draft, revoke invalid render and ensure replacement triggers coverage review. Distinguish renderer failure from missing original.\nConfidence: confirmed."
+    },
+    {
+      "id": "E11",
+      "title": "E11 P2 \u2014 Draft preview silently retains obsolete image while recomputing",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `OverlayEditor.swift:221-234,636-643,677`.\nRepro: change mask/annotation properties, undo, or remove stroke; previous image remains until next render. Apply correctly blocked by renderedConfiguration guard; retouch painting also blocked. General canvas has no Updating indicator; detailed retouch settings show it only492.\nRecommendation: retain image with visible updating state, mark controls awaiting preview, latest-input identity check; disable spatial drawing against mismatched geometry. Failure clearsimage correctly. Do not falsely call export stale: Apply guard prevents it.\nConfidence: confirmed presentation, latency impact unmeasured."
+    },
+    {
+      "id": "E12",
+      "title": "E12 P2 \u2014 Original reset/filter reset/crop reset vocabulary not unified",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `WorkflowViews.swift:225-235,325`; `Inspectors.swift:196-199,792-794`; `FramingViews.swift:323-335`.\nRepro: Original filter tile clears look; Show Original compares; Restore Original removes edits/dimensions; Reset Crop Full Image changes sizing; Reset adjustments changes light/color fields.\nRecommendation: consistent verbs: Preview Original / Remove Filter / Reset Light & Colour / Reset Crop; preserve full confirmation for destructive-looking full restore and source-safety distinction.\nConfidence: confirmed nomenclature, no source modification defect."
+    },
+    {
+      "id": "E13",
+      "title": "E13 P2 \u2014 Resize & Canvas exposes many overlapping concepts",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `Inspectors.swift:484-565`; `FramingViews.swift:327-344`.\nRepro: Crop has Output aspect ratio+image scale; Resize has Sizing/preserve aspect/fit/fill/canvas/manualCrop+Resize by width/height/longestedge/percentage; presets set both output dimensions and fit mode implicitly514.\nRecommendation: show current resulting width\u00d7height and crop/fit/pad outcome alongside a small preview; make source-size/resize versus canvas choices distinct; label preset's Fit/padding behavior. Do not remove underlying capabilities or change saved output.\nConfidence: confirmed control architecture, needs novice task study to quantify."
+    },
+    {
+      "id": "E14",
+      "title": "E14 P2 \u2014 Common portrait crop ratios absent in crop tool",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `FramingViews.swift:327-335` vs `Inspectors.swift:443-449`.\nRepro: Crop Output aspect menu offers Original,Square,4:3,3:2,16:9; Resize's aspect menu includes4:5. Mobile user needing4:5 must discover alternate tool or manual numeric geometry.\nRecommendation: same concise ratio presets across photo crop and canvas (include4:5/portrait variants), preserve custom capability, no new processing tool needed.\nConfidence: confirmed."
+    },
+    {
+      "id": "E15",
+      "title": "E15 P2 \u2014 Zoom is three different experiences",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: ordinary viewport `FramingViews.swift:548-565` (1\u20138\u00d7, double-tap reset); detail `569-601`(.01\u20138native,visible Fit+percentage); draft `OverlayEditor.swift:420-425,575-587`(1\u20134\u00d7,Fit only in menu). WatermarkCanvas is separate geometry surface.\nRecommendation: consistent display zoom affordance, Fit/actualpixels wording, transient state and gesture policy across normal/draft/watermark; avoid conflating crop scale. Preserve deliberate different resolution budgets.\nConfidence: confirmed. Need actual Watermark pinch check; ordinary viewport wrapper is bypassed for watermark byWorkflowViews86-88."
+    },
+    {
+      "id": "E16",
+      "title": "E16 P2 \u2014 Phone hides current tool identity for secondary tools",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `WorkflowViews.swift:570-578,642-652`.\nRepro: choose Watermark/Resize/Privacy from Tools menu. Bottom bar still shows unselected Adjust/Filters/Crop/Retouch and generic Tools; no selected label replacing Tools. Draft titles only filename, so Privacy/Annotate identified mainly in contextualpicker/toolmenu.\nRecommendation: selected secondary tool name/icon in Tools slot (still menu) or compact consistent contextual title. Do not add permanent buttons.\nConfidence: confirmed."
+    },
+    {
+      "id": "E17",
+      "title": "E17 P2 \u2014 Full adjustment panel duplicates Filters even though Filters is primary tool",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `Inspectors.swift:185-195`.\nRepro: choose Adjust\u2192all adjustment controls: first disclosure Photo Filters expands another full picker. Filters already independent primary tool. AutoEnhance appears in both; controls technically same state but hierarchy repetitive.\nRecommendation: Adjust contains correction/light/color; one clear link to Filters rather than nested duplicate filter browser. Keep AutoEnhance adjacent accessible because independent correction.\nConfidence: confirmed."
+    },
+    {
+      "id": "E18",
+      "title": "E18 P2 \u2014 Accessibility layout removes quick retouch mode/size rather than adapting them",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: `OverlayEditor.swift:347-357`.\nRepro: largestDynamicType: outer else executes when accessibilitySize; inner if !accessibilitySize can never run. Primary Heal/Clone/size options omitted, only secondary settings button remains. Detailed settings still available, so not total inaccessible tool.\nRecommendation: remove unreachable branch, show labeled Settings summary/currentmode/size, adapt invertical layout or accessible menu. Verify VoiceOver source setting and specific-region targeting; centre-only actions not substitute for accessible arbitrary edits.\nConfidence: confirmed code branch."
+    },
+    {
+      "id": "E19",
+      "title": "E19 P3 \u2014 Text parameter numeric fields look like labels",
+      "area": "Editor",
+      "priority": "P3",
+      "body": "Source: `Inspectors.swift:696-700,717`; intensity `782-783`.\nRepro: value shown bare right-aligned 0/70, unlike rounded-border fields elsewhere. User may not know tap-to-enter exists; keyboard defaults are unspecified iOS, minus/decimal entry unnecessarily cumbersome.\nRecommendation: subtle editable styling or tap affordance, suitable signed-decimal input, Done toolbar, commit one undo per editing session. Ensure negative values remain enterable; don't use unsigned decimal keyboard blindly.\nConfidence: confirmed styling; actual keyboard behavior needs live check."
+    },
+    {
+      "id": "E20",
+      "title": "E20 P2 \u2014 Numeric edits generate granular undo history",
+      "area": "Editor",
+      "priority": "P2",
+      "body": "Source: filter intensity binding `Inspectors.swift:782-785`; `Workspace+OverlayEditing.swift:99-108`; `Workspace.swift:291-313`.\nRepro: type multi-digit intensity or repeat Shift+Arrow. Each accepted value calls commit without begin/endInteraction; sliders are properly grouped but text/keyboard is not. Numericparameter bindings likewise commitperacceptedvalue.\nRecommendation: focus-scoped text transaction and key-down/up coalescing; one committed entry per field edit, preserve live preview and revision safety.\nConfidence: source-confirmed commitpath; exact formatter intermediate acceptance needs UI regression test."
+    },
+    {
+      "id": "W01",
+      "title": "W01 P1 \u2014 Show All Photos does not clear filters",
+      "area": "Workspace / Output",
+      "priority": "P1",
+      "body": "SharedUI/LibraryViews.swift:578; SharedUI/WorkspaceActions.swift:102.\nApply date/orientation/format filter yielding no results, press Show All Photos. It only clears category/query and operationOnly, leaving workspaceFilter. Empty state can remain unchanged. Fix: clear predicates or accurately name narrower action; preserve selection/captured IDs. Test combined predicates and hidden selection."
+    },
+    {
+      "id": "W02",
+      "title": "W02 P1 \u2014 Outcome feedback disappears or is suppressed by old export",
+      "area": "Workspace / Output",
+      "priority": "P1",
+      "body": "Apps/iOS/FramepebbleIOSApp.swift:542; SharedUI/LibraryViews.swift:652; Apps/Shared/Workspace+Sources.swift:26.\nAfter duplicate-only import with no results/issues, isImporting false removes ExportStatus; summary disappears. Restored retained source membership can look unexplained. After successful export, ExportStatus prioritizes latestExport and suppresses any newer status text. Fix: separate transient current-operation outcome from persistent last-export card; report imported/restored/skipped/failed. Native checks: duplicate-only, mixed import, cancellation, post-export edits/removal."
+    },
+    {
+      "id": "W03",
+      "title": "W03 P1 \u2014 Filter action name contradicts actual target",
+      "area": "Workspace / Output",
+      "priority": "P1",
+      "body": "SharedUI/WorkspaceActions.swift:46; SharedUI/LibraryViews.swift:478.\nRight-click an unselected photo while group selected. Scope correctly uses clicked photo, but label says Apply Filter to Selected\u2026 . Fix: Apply Filter to This Photo\u2026 / N Photos\u2026; keep actual scope behavior. Do not report wrong target bug. Test native menu labels plus target IDs."
+    },
+    {
+      "id": "W04",
+      "title": "W04 P1 \u2014 Share review concealed rows lack file identity",
+      "area": "Workspace / Output",
+      "priority": "P1",
+      "body": "SharedUI/ShareReview.swift:73-90.\nRows have preview/Show final image/Include but no filename, profile or ordinal. Many concealed similar results impossible to distinguish. Fix: concise output identity/profile and inclusion state; one file can have large preview; multiple-file review can be denser. Preserve safe current-operation input and review policy. Native: similar filenames/profile variants/GIF/large text/VoiceOver."
+    },
+    {
+      "id": "W05",
+      "title": "W05 P1 \u2014 Photos save permits reentry and cannot recover partial success accurately",
+      "area": "Workspace / Output",
+      "priority": "P1",
+      "body": "SharedUI/ShareReview.swift:106-119.\nSave reviewed images to Photos loops sequentially; no saving flag disables button, no completed IDs/counts. Failure after first save shows only error; repeat saves can duplicate first and rapid taps schedule duplicate loops. Fix: per-file completion state, prevent reentry, accurate count, Retry Failed only. Test mocked second-file failure and double activation; physical Photos behavior remains needed."
+    },
+    {
+      "id": "W06",
+      "title": "W06 P2 \u2014 Gallery overflow menu mixes responsibilities and repeats accessibility entries",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "SharedUI/LibraryViews.swift:252-334; WorkspaceActions.swift:35.\nPhoto actions, View, History, Projects, review, selection, reset all coexist. At accessibility sizes Undo/Redo appear in special block and again later. Resize explicit at Start/Quick Tasks but absent in Photo Actions; Batch Edit defaults resize instead. Censor Photo, Privacy, Privacy Review, Check photo privacy need disciplined naming. Fix: Photo Actions; Selection/View; History groups, remove duplicates, explicit Resize N Photos, privacy tool vs review/filter wording. Reduce permanent chrome, not scope transparency."
+    },
+    {
+      "id": "W07",
+      "title": "W07 P2 \u2014 Active filter predicates hidden in menu",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "SharedUI/WorkspaceActions.swift:65-112.\nFormat/orientation constraints not visible outside Filters menu; label/icon unchanged. Search empty-state claims recognized-label indexing even filename misses can be legitimate. Fix: active filter count/brief removable summary, clear affordance and accurate filename/content wording. Preserve selection hidden-count behavior."
+    },
+    {
+      "id": "W08",
+      "title": "W08 P2 edge \u2014 Action-first batch cap borrowed from collage",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "Apps/Shared/Workspace+GIF.swift:103-110; Packages/FramepebbleCore/Sources/FramepebbleCore/Collages/Collage.swift:30.\nBatch/Resize/Convert use count <= CollageProject.maximumCells (10000). Photo-first beginBatch has no same limit; >10000 action-first primary silently disabled. Normal batches unaffected. Fix task-specific limits with explanation. GIF1000/collage10000 limits should be communicated before disabled action surprise."
+    },
+    {
+      "id": "W09",
+      "title": "W09 P2 \u2014 Project labels conflate storage and everyday work",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "SharedUI/ProjectsView.swift:18-83/102-128; FramepebbleIOSApp.swift:380.\nProjects & Clear Photos combines neutral destination/destructive command. Current Project counts assets.count (includes hidden creation sources) as photos; Sources separately visible/retained. Save copy/export instructions/close relations to autosave and image export unclear despite accurate caveats. Fix Projects entry; separate workspace and retained counts; concise local instructions/not portable photo-package explanation, saved timestamp. Long privacy detail can be disclosure while honest summary stays. Never rename internal modules/storage."
+    },
+    {
+      "id": "W10",
+      "title": "W10 P1 \u2014 Automation Save is mixed immediate/staged transaction",
+      "area": "Workspace / Output",
+      "priority": "P1",
+      "body": "Apps/macOS/Automations.swift:501-557.\nrecipe Binding setter persists every name/toggle/mode change and pauses monitoring. Processing configuration on workspace model only assigned on Save. No Cancel. Dismiss can retain controls/name while lose processing settings; opening alone persists paused state. Fix coherent full local recipe draft, Cancel/Save, explicit paused/resume intent. Do not silently resume unsafe automatic publication. Test edit name+settings+dismiss/reopen and monitoring semantics."
+    },
+    {
+      "id": "W11",
+      "title": "W11 P2 \u2014 Automation job identity and action hierarchy weak",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "Apps/macOS/Automations.swift:438-492/550.\nEach pending group only Pending review/Failed job without filename. Enable/Edit/Run Now/Test plus Duplicate/Delete have equal rows. Fixed form height350 and minimum600x750 constrain laptop windows. Fix named job rows, one primary monitoring action, Test Preview vs Process Eligible Photos clarity; administrative More; scrollable adaptive detail. Preserve explicit approval."
+    },
+    {
+      "id": "W12",
+      "title": "W12 P2 verify \u2014 Native picker cancellation may become issue",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "ProjectsView.swift:105-119; SourceRecoveryView.swift:44-45; FramepebbleIOSApp.swift:652.\nAll failure branches display localizedDescription, no userCancelled distinction. Verify actual importer callbacks; if user cancellation enters failure it creates false orange/error status. Fix ignore recognized cancellation only; keep real errors actionable. Test Files/open/relink/destination Cancel."
+    },
+    {
+      "id": "W13",
+      "title": "W13 P2 \u2014 Selection context can be more task/count-specific",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "WorkspaceActions.swift:72-99; Workspace+GIF.swift:112.\nCancel correctly restores prior selection/filter/workflow. Header is title/count/buttons/filter/search. Generic primary task rawValue lacks selected count; zero hidden count always shown. Fix concise Choose Photos for Convert, Convert N Photos/Use N Photos; ordered creation selection order if useful, task limit reasons. Keep model isolation."
+    },
+    {
+      "id": "W14",
+      "title": "W14 P2 \u2014 Workspace removal has no operation Undo",
+      "area": "Workspace / Output",
+      "priority": "P2",
+      "body": "WorkspaceActions.swift:16-32.\nImmediate hide/removal also strips tabs/favorites/selection/batch inputs, persists, outside EditingHistory. Originals/creation sources safe but accidental removal needs reimport and loses favorite etc. Fix lightweight Undo Remove tombstone rather than confirmation for every removal. Explicitly distinguish remove, delete creation, free copy. Test restore identity/favorite/tab/membership and untouched original."
+    },
+    {
+      "id": "C01",
+      "title": "C01 \u2014 P1: normal GIF layout hides essential frame actions behind long press",
+      "area": "Creations",
+      "priority": "P1",
+      "body": "Evidence: SharedUI/GIFEditor.swift:74\u2013100,277\u2013343. A regular-width layout uses frameStrip, never frameChooser. A normal-height compact layout also uses frameStrip. Frame strip removed per-frame menu buttons (comment line310 says actions live in chooser), but chooser is only rendered in expandedControls fallback (91). Duplicate, Remove, Replace and accessible Move Earlier/Later are therefore discoverable only through context menu in common layouts. Repro: open GIF on landscape iPad or Mac and try removing one frame without knowing right-click/long press.\nRecommendation: one visible selected-frame actions menu beside \u201cFrame N of M\u201d in every layout. Retain long press as shortcut and move commands for accessible reordering. Do not restore an ellipsis under every thumbnail."
+    },
+    {
+      "id": "C02",
+      "title": "C02 \u2014 P2: Original Aspect Ratio does not identify source versus edited-frame scope",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Source-confirmed: GIFEditor.swift:518\u2013521 uses EXIF-oriented source dimensions; captured frame rotation/crop can differ. This is defensible for a command called Original Aspect Ratio and is not established as incorrect rendering.\n\nRecommendation: name it Match Source Aspect, or add Match Edited Frame as a separate explicit action using captured configuration. Preserve existing semantics and add rotated/cropped-frame tests.\n\nConfidence: independent cross-review corrected the initial severity and correctness claim."
+    },
+    {
+      "id": "C03",
+      "title": "C03 \u2014 P1: annotation selected in list may be invisible in current frame, with ambiguous editing feedback",
+      "area": "Creations",
+      "priority": "P1",
+      "body": "Evidence: GIFEditor.swift:414\u2013415 lists every annotation without frame coverage, while canvas handles only show when active frame is in item.frameIDs (247\u2013250). Selecting a Frame1-only caption while viewing Frame2 silently selects invisible object. \u201cEnd Before This Frame\u201d always offered (426), even first frame where this can remove all visibility.\nRecommendation: label list rows \u201cFrame 1\u201d, \u201cFrames 2\u20135\u201d, \u201cAll Frames\u201d; offer jump to first visible frame. Disable nonsensical End Before action and explain zero visibility. Preserve explicit frame IDs."
+    },
+    {
+      "id": "C04",
+      "title": "C04 \u2014 P1: GIF frame multi-selection shows one frame's duration as if shared",
+      "area": "Creations",
+      "priority": "P1",
+      "body": "Evidence: GIFEditor.swift:358\u2013364 and compactProperties206\u2013208. Heading says Selected frames but value is activeFrame.duration even if selected set has mixed values. Applying the active duration to all is defensible; the label should say Apply This Duration to All Frames.\nRepro: select frames with0.2s and1s duration; field shows whichever is active, without Mixed state.\nRecommendation: Mixed placeholder with explicit \u201cSet selected N frames\u201d; accurate scope adjacent to input. Keep the copy-active-duration-to-all action explicit. Disable input when no frames selected in all layouts (compact does, full controls currently only setter guards)."
+    },
+    {
+      "id": "C05",
+      "title": "C05 \u2014 P2: GIF filename/intensity-like numeric edits create eager history/persistence churn",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Evidence: GIFEditor.swift:462\u2013478 every text/numeric binding change calls change\u2192updateGIF\u2192persist; Workspace+GIF.swift:41\u201344 appends undo per change except gifInteractionStart. Sliders have grouped interaction but filename and captions use immediate binding.\nRecommendation: field editing session commits on submit/focus loss, one undo for completed text edit. Preserve interactive preview updates transiently. Verify user can Undo caption entry in one action rather than one character."
+    },
+    {
+      "id": "C06",
+      "title": "C06 \u2014 P1: collage preview failure provides no direct missing-source recovery or retry",
+      "area": "Creations",
+      "priority": "P1",
+      "body": "Evidence: CollageEditor.swift:191\u2013212 appends generic identify issue or previewFailure. Canvas535\u2013542 shows stale output banner when prior image exists;606\u2013607 shows unavailable view when no prior output. Neither path has Locate/Replace/Retry. GIF has affected-frame replacement/relink actions235\u2013236.\nRecommendation: identify affected Photo Cell N / filename and offer Locate Photo, Replace Photo and Retry beside failure; preserve stale-preview labeling and block review confirmation for stale result. Do not require navigating out to workspace and guessing which source failed."
+    },
+    {
+      "id": "C07",
+      "title": "C07 \u2014 P2: collage inspection versus reframing needs clearer context",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Source-confirmed: CollageEditor.swift:365\u2013367 already exposes Move Frames / Reframe Photos for freeform layouts. Pinch deliberately edits selected photo framing (576\u2013592); normal photo-editor pinch magnifies the view. Selected-cell manipulation is legitimate and must not silently change meaning.\n\nRecommendation: improve mode/selection feedback close to the canvas and provide an explicit mobile Fit / viewing zoom route. Test whether users can inspect without inadvertently reframing. Do not mandate universal pinch behavior or remove working collage manipulation.\n\nConfidence: source-confirmed differences; discoverability and actual touch mistakes need hands-on verification. Independent cross-review narrowed the original claim."
+    },
+    {
+      "id": "C08",
+      "title": "C08 \u2014 P2: two Swap actions have different semantics",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Evidence: CollageEditor.swift:751\u2013753 drag label promises swapping photos and framing; drop invokes model.swapCollagePhotos596\u2013597. \u201cSwap with next\u201d777\u2013784 swaps only sourceID, keeping each cell crop.\nRecommendation: unify same operation or label clearly \u201cSwap photos; keep frame crops\u201d vs \u201cSwap photos and framing\u201d. Prefer drag directly from selected cell or dedicated contextual handle, rather than draggable instructional text."
+    },
+    {
+      "id": "C09",
+      "title": "C09 \u2014 P2: reference/replacement selection still has separate constrained photo picker",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Evidence: CollagePhotoPicker.swift:12\u201317,38\u201348 has filename search only, no date/orientation/category filters, no import and instructs import into workspace first. Main Add Photos uses shared contextual Workspace (CollageEditor269). Replacing frame uses separate modal (141 etc), art reference684.\nRecommendation: reuse contextual single-source selection with return context for replacements/reference; same import/filter behavior, stable creation state. Short term add \u201cAdd Photos\u201d action and explicit selected count. No new source registry."
+    },
+    {
+      "id": "C10",
+      "title": "C10 \u2014 P2: saved GIF and collage reopening have unequal information scent",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Evidence: GIF empty state has Saved GIFs menu158\u2013172 and populated More menu192. Collage has named Gallery with Layout/Saved segments and visual previews(CollageGallery31\u201355), but Collage actions calls it \u201cLayout Gallery\u2026\u201d470, obscuring saved work. GIF saved menu has only names, no frame count/date/preview. GIF has no rename except filename in export sheet443\u2013444.\nRecommendation: call collage entry \u201cLayouts & Saved Collages\u201d; consistent lightweight saved creation browser (name, visual preview, frame/photo count). Make GIF project rename available outside export. Preserve sources/frame IDs; no full workspace restore required."
+    },
+    {
+      "id": "C11",
+      "title": "C11 \u2014 P2: export terminology and behavior differ across creations",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Evidence: GIF header Export opens sheet (198\u2013199), then Export GIF (450), then native destination on Mac / local folder on iOS (527\u2013534), then beginSharing (Workspace+GIF161). Collage Export\u2192Export & Share (811) renders into internal Exports even on Mac842\u2013884 and opens Review & Share. Output panel also has Review & Share Current Export814. GIF \u201cOptimisation\u201d actually rescales dimensions445\u2013449 (disclosed correctly).\nRecommendation: one consistent output sheet showing format, dimensions, destination (where supported), filename and primary \u201cExport\u2026\u201d / \u201cExport & Share\u201d appropriate to platform. Rename GIF option \u201cSize Preset\u201d rather than Optimisation. Distinguish saved project instructions from final files. Preserve safe publication and operation-specific share sessions."
+    },
+    {
+      "id": "C12",
+      "title": "C12 \u2014 P2: primary Add Photos duplicated and saved creation actions overlong",
+      "area": "Creations",
+      "priority": "P2",
+      "body": "Evidence: GIF header Add Photos181, More193, strip320 and frameChooser342. Same action reachable four ways but selected-frame menu missing in normal layout. Collage actions duplicates Undo/Redo467\u2013468 already in header279\u2013282; \u201cClose This Collage; Keep Composition\u201d464 is explanatory wording doing permanent UI work.\nRecommendation: one clear primary Add Photos and contextual convenience only where genuinely needed; put explanation in help or confirm-free secondary text; remove duplicated history from More when visible toolbar actions exist. Compact labels should not conceal irreversible behavior\u2014closing keeps saved creation."
+    }
+  ],
+  "screenshots": [
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Landscape Hero Adjust",
+      "path": "/tmp/ameluma-audit-captures-mac/C938CBA4-33B0-476E-9E5C-840A762D77D0.png",
+      "sha256": "2d0740a0e7d61b0253f673bb1dd702301dd84d9e1e068d04e7e462bc059f117c"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Hero Filters",
+      "path": "/tmp/ameluma-audit-captures-mac/F6BFA86C-2B51-4FA8-918B-0BBFA9B81769.png",
+      "sha256": "6d250426080501de08fffbb8f25a120f98a468610c24a4fa2115d94d1ba7e227"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Hero Retouch",
+      "path": "/tmp/ameluma-audit-captures-mac/AC38441C-6A89-4993-9D6D-54727793C937.png",
+      "sha256": "74e818a383dee988ed051aa447b99a4f7832daa37710777fe8fd5aa04bbde187"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Hero Privacy",
+      "path": "/tmp/ameluma-audit-captures-mac/CB7DEC44-661F-40E3-9C92-222C8F56FCF7.png",
+      "sha256": "f9ec4dbc5973756176455329520d456bd6dc0fdbb0f496ca3498ab4b31cbdc63"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Landscape Hero Adjust",
+      "path": "/tmp/ameluma-audit-captures-ipad/383CD0BF-A207-4828-B000-34C296BA9263.png",
+      "sha256": "b5492c3d82a299f303e423b64982f88cdba737c5499669be2286d90afea9a0e5"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Hero Filters",
+      "path": "/tmp/ameluma-audit-captures-ipad/8873E07B-2DC2-43C9-B70B-9AF9FFC329E9.png",
+      "sha256": "8c009ae00fd6c26f4653f862aec82e9dbe4caaa003d3748fb393888f65fd95c7"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Hero Filters portrait",
+      "path": "/tmp/ameluma-audit-captures-ipad/273FC212-4E38-412B-932E-01C8C600463A.png",
+      "sha256": "aa156d272e7f63172681230fed5f88880e5edf8bb6ebe7493d124e0050b6415b"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Hero Retouch",
+      "path": "/tmp/ameluma-audit-captures-ipad/652B0689-8CA1-4E71-BC42-AFEB48E8D8A9.png",
+      "sha256": "bf31fea7e11a6713b03219c79307e96c1498125fabfa6f000ccd7e485b5bab25"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Hero Retouch portrait",
+      "path": "/tmp/ameluma-audit-captures-ipad/1B3DE7AF-9BF2-4A5F-BB64-E696BBA72034.png",
+      "sha256": "e41281d0a22e73ed38a257d06ec57d6f671841e6e4cc71798616c363618b0bd5"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Hero Privacy",
+      "path": "/tmp/ameluma-audit-captures-ipad/0B1E1DFB-63DB-4055-BA82-761916A0416D.png",
+      "sha256": "49f31343a83d2bc99fef3f6eab2b0cecf8a76b2e5848ebefa383c760a8065038"
+    },
+    {
+      "platform": "phone",
+      "name": "Demo \u2014 iPhone Hero Adjust",
+      "path": "/tmp/ameluma-audit-captures-phone/18172C5D-88B9-485F-8307-9AE3FE0FA1F2.png",
+      "sha256": "53925bbb82361cce4e61d3b61451303907e1d5e5bac192ed63e7f644faf04364"
+    },
+    {
+      "platform": "phone",
+      "name": "Demo \u2014 iPhone Hero Filters",
+      "path": "/tmp/ameluma-audit-captures-phone/67586FD8-9BB1-409A-965B-B2C2B77C084E.png",
+      "sha256": "5bee463179aafd6b6e008cb59661c158ee5acd18fbbe1e98e781fa7d2f3de00a"
+    },
+    {
+      "platform": "phone",
+      "name": "Demo \u2014 iPhone Hero Retouch",
+      "path": "/tmp/ameluma-audit-captures-phone/0B3E6042-AF09-455B-A79E-79A6BADA4BCA.png",
+      "sha256": "1366641d4f79999f01ed19bdadc1c68cbc9ac8128bbac7365e92cf89e4439673"
+    },
+    {
+      "platform": "phone",
+      "name": "Filters \u2014 accessible replacement toolbox",
+      "path": "/tmp/ameluma-audit-captures-phone/FFEE176B-0C45-4AC1-BDD1-D7481B3AAFEF.png",
+      "sha256": "99d07d30af6d63e39f062b73edd1eb991399f27349fe4ef007415b2ca7e2746a"
+    },
+    {
+      "platform": "phone",
+      "name": "Pixel inspection \u2014 compact controls",
+      "path": "/tmp/ameluma-audit-captures-phone/6A447C34-58F3-4C68-8360-6B9EFA1ABDA4.png",
+      "sha256": "5aa2ddb0a2f8edd66fa4d66b3bbb393704102072f9b08aa58ebeb8ff07869ddc"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Browse",
+      "path": "/tmp/ameluma-audit-captures-mac/CAA40786-F30D-4F2E-B44C-87ACDDEACD3A.png",
+      "sha256": "7a5339fefaec81d95dafae0afad6bfbdce93bed7fc103b38b1ba11e240112fd9"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Batch Frame portrait",
+      "path": "/tmp/ameluma-audit-captures-ipad/824CD91F-668C-4CE1-95AC-C48D42D38491.png",
+      "sha256": "2e1a1cfecc7d28647c11fd15bdf83063540d2c44e9a3b9002937c6aab31e8a93"
+    },
+    {
+      "platform": "phone",
+      "name": "Demo \u2014 iPhone Batch Frame",
+      "path": "/tmp/ameluma-audit-captures-phone/B8D4881B-8E8E-400E-A0B9-6478DB76A8C2.png",
+      "sha256": "f8f56b097e2e09be149715d266a065b86e3d8d188be0dbbe67c12bbd3e07f32b"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Batch Browse",
+      "path": "/tmp/ameluma-audit-captures-mac/94F45C3E-5774-44A7-9B3B-10BF6D2847F4.png",
+      "sha256": "7cf15923b3927be85ecbe9d50f521becb72edba6b173dc95f949738496c1b260"
+    },
+    {
+      "platform": "phone",
+      "name": "Review \u2014 Convert selection large text",
+      "path": "/tmp/ameluma-audit-captures-phone/C742C5EB-FE0D-418C-BC37-7E3427ADC902.png",
+      "sha256": "19da7e8a61aa7f5c9154b7a7c02884c89d5780de16b789b2f5d5257d0bcf923b"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac GIF",
+      "path": "/tmp/ameluma-audit-captures-mac/F98A9B4E-DEE8-4F72-B3C3-6B3A14F1F3D2.png",
+      "sha256": "a8ca6af8a3b1e5c4ac7ab770512b9e32048bb638f67dc6fbc1acc72ca0f95839"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad GIF",
+      "path": "/tmp/ameluma-audit-captures-ipad/F2B863B6-A099-4DAF-BFBA-873DE05CB8C1.png",
+      "sha256": "8c88fc167685a6cd069d730a4f17b13908dffdd2f0c9cbcfaf07dab263e4e8ad"
+    },
+    {
+      "platform": "phone",
+      "name": "Demo \u2014 iPhone GIF",
+      "path": "/tmp/ameluma-audit-captures-phone/9A6FA81A-B991-448A-AF4F-038005FAD01E.png",
+      "sha256": "266cd832507eb81c5194c5e448574f908af36728881a2e6489766c2924fd6e17"
+    },
+    {
+      "platform": "phone",
+      "name": "Review \u2014 GIF missing-frame recovery",
+      "path": "/tmp/ameluma-audit-captures-phone/3B30F701-837C-442A-B643-EDFA2443E2A9.png",
+      "sha256": "551a9e6f205effd6c1c90850af5403ef17a3c5e04dce36deff4e5daf4290cfa5"
+    },
+    {
+      "platform": "mac",
+      "name": "Demo \u2014 Mac Collage",
+      "path": "/tmp/ameluma-audit-captures-mac/FC3B5051-AD32-42EC-B94F-1B1105461189.png",
+      "sha256": "1a39d5e205b18d5796a66e8d3fc99351caccfff44fa3605501e465755af5875c"
+    },
+    {
+      "platform": "ipad",
+      "name": "Demo \u2014 iPad Collage",
+      "path": "/tmp/ameluma-audit-captures-ipad/8F557FF1-397C-4F18-BFB3-EA7B8550D77B.png",
+      "sha256": "2afccb4537babfc2922c7ec55382feb952c2b2b8ec6a9eea03faa7b4c0832895"
+    },
+    {
+      "platform": "phone",
+      "name": "Demo \u2014 iPhone Collage",
+      "path": "/tmp/ameluma-audit-captures-phone/6FF0C1BF-D225-4B46-9457-F15B2FE061E3.png",
+      "sha256": "8b3344391fe145556260ddbfb3d32a0d9e573801442c4b440dc88c0d02129fcb"
+    },
+    {
+      "platform": "phone",
+      "name": "Everyday \u2014 start",
+      "path": "/tmp/ameluma-audit-captures-phone/FDFD0717-FF26-486A-ABD6-94F0831B5A15.png",
+      "sha256": "a88af9b8bc6efbaa10efb530e26eab4aa83215b7869b333a03c4b66f8441fef3"
+    },
+    {
+      "platform": "phone",
+      "name": "Everyday \u2014 export finish",
+      "path": "/tmp/ameluma-audit-captures-phone/F2DF635D-F8F9-4B54-B4CC-E922F517FCAB.png",
+      "sha256": "a2f93181a84c5fc31177b77cd88a3b90d083457963586279ff5106dc1100a5c2"
+    }
+  ],
+  "controlDeclarationLines": 833,
+  "controlFiles": 23,
+  "nativeRuns": {
+    "mac": "62 tests, 1 failure",
+    "iPhone": "243 tests, 1 skip, 0 failures",
+    "iPad": "243 tests, 1 skip, 0 failures"
+  },
+  "sourceHashes": {
+    "Apps/Shared/AppleSensitiveAnalyzer.swift": "ffa77f3d8aafff8d7fa017f6f79a62ff3023d31cb10df160b3055e06bd00b081",
+    "Apps/Shared/Workspace+Collages.swift": "4c6a4c427f2cfa844d572e635e7d7031c2c28a2710ab896aff65f335bc9587e3",
+    "Apps/Shared/Workspace+Demo.swift": "33d5a20499194e7fd522db8f7d271ab9963aa6fa7610613d6e83df6f06d08efd",
+    "Apps/Shared/Workspace+GIF.swift": "7a47052f4740a4c51e262c8ab3148fd354eff561d1d152d33248ee80481ddbee",
+    "Apps/Shared/Workspace+OverlayEditing.swift": "05c8c024e121457b9f4dc3397195f70c0025cf1654e8a62a548c9808e949b425",
+    "Apps/Shared/Workspace+ProjectCleanup.swift": "2d5ecadda60f5ab697f5943a74d23a9f995aeb919d6992d36597388fbd6160f9",
+    "Apps/Shared/Workspace+SensitiveReview.swift": "9aca909800193a0822727a2eb88a499ee59e783588baedb178f102392fce6a5a",
+    "Apps/Shared/Workspace+Sources.swift": "ecb4d74ca44233ffd6dc435f2a2a70a5b5caa86eb620691bbc64bf89f0dd6e98",
+    "Apps/Shared/Workspace+Workflows.swift": "1ef04007a4edb53c20f5b78ca9c0a1d00f0ae4f39790a70aa276a21baf8d088c",
+    "Apps/Shared/Workspace.swift": "3e29fd9c9372b958549647287e4748827a46b9ee4cfb1f3e65a8981a528fde63",
+    "Apps/iOS/FramepebbleIOSApp.swift": "d9f6c51e57fe1aa3f55815c1fb0c29290f6da82f443b01f8e3221e3e815701e0",
+    "Apps/iOS/PhotoLibraryExporter.swift": "7df06c807cd0f0fd5579ee7ac61e118d3aceae8ca373dfc4f029b4e5bb960749",
+    "Apps/macOS/Automations.swift": "51137c8ab0f0aa7c95c66bb4f53217bbd14045f5140aa351527531ae47dc3255",
+    "Apps/macOS/BrowserDropImporter.swift": "8ac42a57f190672cc6365443ddead37dd2fd6d4ef2cc30f9e34d4c3f4a4f2249",
+    "Apps/macOS/FolderEvents.swift": "a821e890cfe000fcd76152db87dac922ab2763cea6920aa5bd4a96bf4e471d52",
+    "Apps/macOS/FramepebbleMacApp.swift": "bdf178d6861c12bcc6a84dcda8daf8ed90651dd36ab65233bf21900dee4ab98a",
+    "Apps/macOS/MacPhotoSelectionCapture.swift": "df3736989ed43d82c67f038c56a7c8afe39df7ca1a95603d28701473b657fb46",
+    "Apps/macOS/MacZoomCapture.swift": "afe634502bcfe4be60c1e6d591612dd212d2e54d60ac8851f79d052791c45ab9",
+    "Packages/FramepebbleCore/Sources/FramepebbleCore/Retouch.swift": "9e4794c0775fdeda29315820b86d0ff105672a6497c5c35304293300d4a310fc",
+    "SharedUI/CollageEditor.swift": "d24fdb6aadaf684ff552f7a18f90425c0536f8c899c7d8dce79fe3aca309a0b6",
+    "SharedUI/CollageGallery.swift": "52ab4ed96cb1921232c04ac3bd7efa09936a19dd285abdb0c332ef93f5486e07",
+    "SharedUI/CollagePhotoPicker.swift": "0efaf2883b8640b699cdc8864c0f1cf7380611beeeca26ad125c626d8019718e",
+    "SharedUI/DemoWorkspaceViews.swift": "6d7bbfdd320b00b118aeed26db950e0b28cc216041c3ee22727deec7ad98e58d",
+    "SharedUI/EditingHistoryView.swift": "d0ced8a6ca37ab1e39d74341f0c0cc9e4c1c1587e3d813ed7c2dcbd1cf0866bd",
+    "SharedUI/FramingViews.swift": "eb7b4d207c4a26fdbec532505fd686e501f1cc70410d58cb3b71421d84289b25",
+    "SharedUI/GIFEditor.swift": "3a3065cd2428c27c8fd9808e6574bfbaa2265f3424720969c3e183110fc72277",
+    "SharedUI/GIFOutputPreview.swift": "c0d9f973b5a3ca2c154dcc672d10f0a4c16cbbc02835b43a8633566d902b7cc0",
+    "SharedUI/GIFPreviewSession.swift": "2481910cc7e837db4715fac22721df488724921e0ac6c9b860e6bb410fba5bba",
+    "SharedUI/HelpPrivacyView.swift": "83b259c8f3ca38077844bbbd3b0c068d7326cfc0482ee2085f62f672a717c375",
+    "SharedUI/ImportProgressView.swift": "9a7d2c34a580f19a74dff231acd00db9a058cef32552540b3f481c70f4574ff7",
+    "SharedUI/Inspectors.swift": "1643acf140e19230400bc6abfe725887d4573d8f9cb8bb40d9f12a78fc20b709",
+    "SharedUI/LibraryViews.swift": "0dd204796f632e587a0fd64f62663f32f9de87e710553520529a4539ae5ab8c6",
+    "SharedUI/OverlayEditor.swift": "522dc15157c6848da0b352cd934b5c3428614d5d3fa2271170d6b260a5b320f9",
+    "SharedUI/PanelComponents.swift": "0545e356189e2ffbf1b623f5757e927c3c1a8f5715d100a00d1fca73c3f6930b",
+    "SharedUI/ProjectsView.swift": "622f9680777e38ad4e8059d5adba129cd7633ac3e182b74d21eb5047a7fbe702",
+    "SharedUI/SensitiveReviewView.swift": "2f18a5f4bd3dea0cee873025d7da7b25db529e0afb17d37fdeb2732fd76c5d18",
+    "SharedUI/ShareReview.swift": "47ee8f6ff8c6f3f22ad1d900edd69fe5c76f91324689100285a924c5a7ca35c1",
+    "SharedUI/SourceRecoveryView.swift": "4d2bcaa071ceaf6c2272d68ab0017d877f110aa36c1415bbb07b78fb2d8b22c0",
+    "SharedUI/WorkflowViews.swift": "14cc24bcf362440f52582fe3dc6fba0c7a752a71b99ed42b23b4d4fb367c3e3d",
+    "SharedUI/WorkspaceActions.swift": "ade55f402915b45861143b7a172ac54827c7e47fa39b1f4029999c7a8fa1b79d"
+  },
+  "reportQA": {
+    "imagesDecoded": 41,
+    "brokenImages": 0,
+    "findingCount": 47,
+    "searchVerified": true,
+    "priorityFilterVerified": true,
+    "noBodyOverflowAtWidths": [
+      390,
+      1280,
+      1440
+    ]
+  }
+}

@@ -1,0 +1,4232 @@
+[
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 52,
+    "declaration": "Button { model.showLibrary() } label: {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 71,
+    "declaration": ".toolbar { Button(\"Done\") { navigationSheet = false } }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 126,
+    "declaration": "Button(\"Reveal workspace\", systemImage: \"eye\") { model.concealed = false }.buttonStyle("
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 154,
+    "declaration": "Button(\"Done\") { settingsSheet = false }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 173,
+    "declaration": "Button(\"Done\") { exportSheet = false }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 189,
+    "declaration": "Button(\"Done\") { model.precision = false }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 256,
+    "declaration": "Button { showInspector = false; if model.inspectorTask == .filters { model.photoToolOptionsVisible = false } } label: { Image(systemName: \"sidebar.right\") }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 285,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 297,
+    "declaration": "Menu { importActions } label: { Label(\"Import\", systemImage: \"plus\") }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 298,
+    "declaration": "Button(\"Projects\", systemImage: \"folder\") { model.projectsView = true }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 302,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 311,
+    "declaration": "Button(\"Export\") { exportSheet = true }.disabled("
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 327,
+    "declaration": "else if !home { Button(\"Home\", systemImage: \"house\") { home = true } }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 331,
+    "declaration": "Button(\"Help & Privacy\", systemImage: \"questionmark.circle\") {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 337,
+    "declaration": "Menu { importActions } label: { Image(systemName: \"plus\") }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 340,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 362,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 380,
+    "declaration": "Button(\"Projects & Clear Photos\", systemImage: \"folder\") { model.projectsView = true }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 383,
+    "declaration": "Button("
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 396,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 519,
+    "declaration": "PhotosPicker(selection: $photos, matching: .images, preferredItemEncoding: .compatible) {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 522,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 529,
+    "declaration": "Button(\"Back to Start\", systemImage: \"house\") { pendingTaskImport = false; home = true }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 536,
+    "declaration": "Button(model.conversionInputIDs != nil ? \"Format & Export\" : \"Batch Settings\", systemImage: \"slider.horizontal.3\") {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 560,
+    "declaration": "PhotosPicker("
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 563,
+    "declaration": "Button(\"Import Files\") { importFiles = true }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 564,
+    "declaration": "Button(\"Privacy Review\u2026\") { model.sensitiveReviewPresented = true }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 565,
+    "declaration": "Button(\"Import Folder\") { importFolder = true }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 621,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 627,
+    "declaration": "Toggle(\"Review before saving to Photos\", isOn: $model.requirePrivacyReview)"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 628,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 635,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 642,
+    "declaration": "Button(\"Retry unfinished exports to Files\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 384,
+    "declaration": "Picker(\"Automation view\", selection: $dashboardSection) {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 390,
+    "declaration": "Button(\"New Automation\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 398,
+    "declaration": "Button { selectedRecipe = recipe.id; preview = nil } label: {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 418,
+    "declaration": "if !embedded { Button(\"Done\") { dismiss() } }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 425,
+    "declaration": "Button(\"Delete\", role: .destructive) {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 431,
+    "declaration": "Button(\"Cancel\", role: .cancel) { deleting = nil }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 453,
+    "declaration": "Button(recipe.enabled ? \"Pause\" : \"Enable\") { automations.toggle(recipe.id) }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 454,
+    "declaration": "Button(\"Edit\") { editing = recipe.id }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 455,
+    "declaration": "Button(\"Run Now\") { Task { await automations.reconcile(force: recipe.id) } }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 456,
+    "declaration": "Button(\"Test\") { Task { preview = await automations.test(recipe.id) } }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 459,
+    "declaration": "Button(\"Duplicate\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 471,
+    "declaration": "Button(\"Delete\", role: .destructive) { deleting = recipe.id }.disabled("
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 475,
+    "declaration": "DisclosureGroup(job.error == nil ? \"Pending review\" : \"Failed job\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 477,
+    "declaration": "Button(job.error == nil ? \"Approve export\" : \"Retry export\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 480,
+    "declaration": "Button(\"Exclude from workflow\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 518,
+    "declaration": "TextField(\"Name\", text: recipe.name)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 519,
+    "declaration": "Button(\"Input: \\(recipe.inputLabel.wrappedValue)\") { automations.choose(id, input: true) }"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 520,
+    "declaration": "Button(\"Output: \\(recipe.outputLabel.wrappedValue)\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 523,
+    "declaration": "Toggle(\"Include subfolders\", isOn: recipe.recursive)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 524,
+    "declaration": "Toggle(\"Process existing images\", isOn: recipe.processExisting)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 525,
+    "declaration": "Picker(\"Mode\", selection: recipe.mode) {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 528,
+    "declaration": "Toggle(\"Require manual privacy review\", isOn: recipe.privacyReview)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 529,
+    "declaration": "Toggle(\"Resize / Canvas\", isOn: recipe.resizeEnabled)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 530,
+    "declaration": "Toggle(\"Convert format\", isOn: recipe.convertEnabled)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 531,
+    "declaration": "Toggle(\"Compression\", isOn: recipe.compressionEnabled)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 532,
+    "declaration": "Toggle(\"Watermark\", isOn: recipe.watermarkEnabled)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 533,
+    "declaration": "Toggle(\"Metadata action\", isOn: recipe.metadataEnabled)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 534,
+    "declaration": "Picker("
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 544,
+    "declaration": "TextField(\"Naming template\", text: recipe.profile.namingTemplate)"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 551,
+    "declaration": "Button(\"Save\") {"
+  },
+  {
+    "file": "Apps/macOS/Automations.swift",
+    "line": 576,
+    "declaration": "Button(revealed ? \"Conceal preview\" : \"Show processed preview\") { revealed.toggle() }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 44,
+    "declaration": "Button(model.undoActionTitle) {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 49,
+    "declaration": "Button(model.redoActionTitle) {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 56,
+    "declaration": "Button(\"Undo History\u2026\") { model.historyPresented = true }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 60,
+    "declaration": "Button(\"New Project\") { Task { await model.newProject() } }.keyboardShortcut(\"n\")"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 61,
+    "declaration": "Button(\"Close Project\") { Task { await model.closeProject() } }.keyboardShortcut("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 63,
+    "declaration": "Button(\"Projects & Clear Photos\u2026\") { model.projectsView = true }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 64,
+    "declaration": "Button(\"Import Images\u2026\") { MacWorkspace(model: model).importImages() }.keyboardShortcut("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 66,
+    "declaration": "Button(\"Export \" + model.actionLabel + \"\u2026\") { MacWorkspace(model: model).exportImages() }.keyboardShortcut("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 72,
+    "declaration": "Button(\"Close Photo Tab\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 76,
+    "declaration": "Button(\"Close Collage Tab\") {if let id=model.activeCollageID {model.closeCollageTab(id)}}"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 81,
+    "declaration": "Button(\"Ameluma Photo Help & Privacy\") { model.helpPresented = true }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 84,
+    "declaration": "Button(\"Rotate Clockwise\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 91,
+    "declaration": "Button(\"Conceal Workspace\") { model.concealed = true }.keyboardShortcut("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 93,
+    "declaration": "Button(\"Privacy Review\") { model.showLibrary(.privacyReview, clearSearch: true) }.disabled(model.workspaceAssets.isEmpty)"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 94,
+    "declaration": "Button(\"Make a Collage\u2026\") { model.switchWorkflow(.collages) }.disabled("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 170,
+    "declaration": "Button(\"Retry unfinished exports\u2026\") { exportImages(retry: true) }.disabled("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 188,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 193,
+    "declaration": "Button(action: importImages) { Label(\"Import\", systemImage: \"plus\") }.keyboardShortcut(\"o\")"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 194,
+    "declaration": "Button(\"Projects\", systemImage: \"folder\") { model.projectsView = true }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 197,
+    "declaration": "Button(action: importImages) { Label(\"Import\", systemImage: \"plus\") }.keyboardShortcut("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 199,
+    "declaration": "Button(\"Share \" + model.actionLabel, systemImage: \"square.and.arrow.up\") { prepareShare() }.disabled("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 201,
+    "declaration": "Button { exportPresented = true } label: { Label(\"Export \" + model.actionLabel, systemImage: \"square.and.arrow.down\") }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 203,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 204,
+    "declaration": "Button(\"Rotate \" + model.actionLabel, systemImage: \"rotate.right\") { model.rotateTargets() }.disabled(model.targets.isEmpty)"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 205,
+    "declaration": "Button(\"Auto-frame \" + model.actionLabel, systemImage: \"sparkles\") { model.autoFrame(.smart) }.disabled(model.analysing || model.targets.isEmpty)"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 207,
+    "declaration": "Button(\"Automations\", systemImage: \"folder.badge.gearshape\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 210,
+    "declaration": "Button(\"Privacy Review\", systemImage: \"checkmark.shield\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 213,
+    "declaration": "Button(\"Projects\", systemImage: \"folder\") { model.projectsView = true }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 214,
+    "declaration": "Button(\"Conceal workspace\", systemImage: \"eye.slash\") { model.concealed = true }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 218,
+    "declaration": "Button {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 235,
+    "declaration": "Button(\"Cancel export\") { model.task?.cancel() }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 243,
+    "declaration": "Button(\"Cancel\") { exportPresented = false }.keyboardShortcut(.cancelAction)"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 245,
+    "declaration": "Button(\"Save \" + model.actionLabel + \"\u2026\") { exportImages() }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 248,
+    "declaration": "}.navigationTitle(\"Export\").toolbar { Button(\"Done\") { exportPresented = false } }"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 285,
+    "declaration": "Button(\"Reveal workspace\", systemImage: \"eye\") { model.concealed = false }.buttonStyle("
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 331,
+    "declaration": "Button(\"Open Ameluma Photo\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 339,
+    "declaration": "Button(\"\\(recipe.enabled ? \"Pause\" : \"Resume\") \\(recipe.name)\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 344,
+    "declaration": "Button(\"Help & Privacy\") {"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 349,
+    "declaration": "Button(\"Quit Ameluma Photo\") { NSApplication.shared.terminate(nil) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 88,
+    "declaration": "Button(tool.rawValue) { inspector = tool; expandedControls = true }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 93,
+    "declaration": "Menu(\"Collage Tools\", systemImage: \"slider.horizontal.3\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 94,
+    "declaration": "ForEach(Inspector.allCases, id: \\.self) { tool in Button(tool.rawValue) { inspector = tool; expandedControls = true } }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 104,
+    "declaration": "Button(\"Saved Collages & Layouts\u2026\") { gallery = true }.buttonStyle(.borderedProminent)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 115,
+    "declaration": "Button(\"Export\") { exportingOptions = true }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 122,
+    "declaration": ".toolbar { Button(\"Done\") { expandedControls = false } } }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 128,
+    "declaration": ".toolbar { Button(\"Done\") { exportingOptions = false } }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 135,
+    "declaration": ".toolbar { Button(\"Done\") { artPresented = false } }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 158,
+    "declaration": ".toolbar { Button(\"Done\") { inspectingComposition = false; detailImage = nil } }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 178,
+    "declaration": "TextField(\"Name\",text:$collageName)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 179,
+    "declaration": "Button(\"Save\") { model.renameCollage(collageName) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 180,
+    "declaration": "Button(\"Cancel\",role:.cancel) {}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 235,
+    "declaration": "Button(\"I\u2019ve Reviewed This Composition\u2019s Framing\") { var value = model.collage; value.requiresFramingReview = false; model.changeCollage(value) }.disabled(renderedIdentity != renderIdentity)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 241,
+    "declaration": "Button(\"I\u2019ve Checked This Composition\u2019s Mask Coverage\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 269,
+    "declaration": "Button { model.selectPhotos(for: .collageAdd) } label: {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 272,
+    "declaration": "Menu { collageActions } label: { Image(systemName: \"ellipsis.circle\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 279,
+    "declaration": "Button { model.undoCollage() } label: { Image(systemName: \"arrow.uturn.backward\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 281,
+    "declaration": "Button { model.redoCollage() } label: { Image(systemName: \"arrow.uturn.forward\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 285,
+    "declaration": "Button(\"Export\u2026\") { exportingOptions = true }.buttonStyle(.borderedProminent)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 310,
+    "declaration": "Button { canvasScale = max(0.5, canvasScale - 0.25) } label: { Image(systemName: \"minus.magnifyingglass\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 312,
+    "declaration": "Button(canvasScale == 1 ? \"Fit\" : canvasScale.formatted(.number.precision(.fractionLength(2))) + \"\u00d7 Fit\") { canvasScale = 1 }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 314,
+    "declaration": "Button { canvasScale = min(3, canvasScale + 0.25) } label: { Image(systemName: \"plus.magnifyingglass\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 338,
+    "declaration": "Slider(value: value, in: range, onEditingChanged: sliderInteraction).accessibilityLabel(title)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 348,
+    "declaration": "Picker(\"Layout\", selection: Binding(get: { model.collage.layout }, set: { layout in"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 354,
+    "declaration": "TextField(\"Width\", value: project.width, format: .number).accessibilityLabel(\"Canvas width in pixels\")"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 356,
+    "declaration": "TextField(\"Height\", value: project.height, format: .number).accessibilityLabel(\"Canvas height in pixels\")"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 361,
+    "declaration": "Picker(\"Background\", selection: project.background) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 366,
+    "declaration": "propertyRow(\"Interaction\") { Picker(\"Canvas interaction\", selection: $moveFrames) { Text(\"Move Frames\").tag(true); Text(\"Reframe Photos\").tag(false) }.labelsHidden() }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 367,
+    "declaration": "Toggle(\"Snap frames to canvas\", isOn: $snapFrames)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 374,
+    "declaration": "propertyRow(\"Shadow\") { Toggle(\"Shadow\", isOn: project.shadow).labelsHidden().toggleStyle(.switch) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 376,
+    "declaration": "DisclosureGroup(\"Title\", isExpanded: $titleExpanded) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 378,
+    "declaration": "TextField(\"Add a title\", text: project.title).textFieldStyle(.roundedBorder).accessibilityLabel(\"Collage title\")"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 380,
+    "declaration": "Picker(\"Title colour\", selection: project.titleColour) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 392,
+    "declaration": "Picker(\"Collage tool\", selection: $inspector) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 410,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 450,
+    "declaration": "Button(\"Cancel\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 460,
+    "declaration": "Menu(\"Open Collages\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 462,
+    "declaration": "Button(model.collageDocuments.first { $0.id == id }?.name ?? \"Collage\") { model.activateCollage(id) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 464,
+    "declaration": "if let id = model.activeCollageID { Button(\"Close This Collage; Keep Composition\") { model.closeCollageTab(id) } }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 467,
+    "declaration": "Button(\"Undo Collage Edit\", systemImage: \"arrow.uturn.backward\") { model.undoCollage() }.disabled(model.collageUndo.isEmpty)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 468,
+    "declaration": "Button(\"Redo Collage Edit\", systemImage: \"arrow.uturn.forward\") { model.redoCollage() }.disabled(model.collageRedo.isEmpty)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 470,
+    "declaration": "Button(\"Layout Gallery\u2026\",systemImage:\"square.grid.3x3\") {gallery=true}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 471,
+    "declaration": "Button(\"New Collage\",systemImage:\"plus\") {model.newCollage()}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 472,
+    "declaration": "Button(\"Rename\u2026\") {collageName=model.activeCollageName;rename=true}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 473,
+    "declaration": "Menu(\"Create\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 474,
+    "declaration": "Button(\"Shape Collage\") { activateCreation(\"Shape\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 475,
+    "declaration": "Button(\"Text Collage\") { activateCreation(\"Text\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 476,
+    "declaration": "Button(\"Photo Mosaic\") { activateCreation(\"Photomosaic\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 478,
+    "declaration": "Button(\"Inspect Pixels\") { proofComposition = false; inspectingComposition = true }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 480,
+    "declaration": "Button(\"Preview Encoded Output\") { proofComposition = true; inspectingComposition = true }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 486,
+    "declaration": "Menu(\"Open Collages (\\(model.openCollageIDs.count))\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 487,
+    "declaration": "ForEach(model.savedCollages.filter { model.openCollageIDs.contains($0.id) }) {item in Button(item.name) {model.activateCollage(item.id)}}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 488,
+    "declaration": "Button(\"Saved Collages & Layouts\u2026\") { gallery = true }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 489,
+    "declaration": "Button(\"New Collage\") {model.newCollage()}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 493,
+    "declaration": "Button {model.closeCollageTab(id)} label:{Image(systemName:\"xmark\")}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 502,
+    "declaration": "Button(model.collageDocuments.first { $0.id == id }?.name ?? \"Collage\") { model.activateCollage(id) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 504,
+    "declaration": "Button { model.closeCollageTab(id) } label: { Image(systemName:\"xmark\") }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 514,
+    "declaration": "Button(\"Close Collage\") { model.closeCollageTab(id) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 515,
+    "declaration": "Button(\"Close Other Collages\") { model.closeOtherCollageTabs(keeping: id) }"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 519,
+    "declaration": "Button { model.newCollage() } label: { Image(systemName:\"plus\") }.comfortableHitTarget().accessibilityLabel(\"New collage\")"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 531,
+    "declaration": "Button(\"Select Photos\") { model.selectPhotos(for: .collageAdd) }.buttonStyle(.borderedProminent)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 664,
+    "declaration": "Picker(\"Create\",selection:$artMode) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 668,
+    "declaration": "Picker(\"Composition shape\",selection:$artShape) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 672,
+    "declaration": "TextField(\"Text silhouette, e.g. HELLO\", text: $artText, axis: .vertical).lineLimit(1...4)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 673,
+    "declaration": "Picker(\"Outline font\", selection: $artFont) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 682,
+    "declaration": "Button(\"Choose Reference Image\u2026\",systemImage:\"photo\") {referenceSelection=referenceID.map {[$0]} ?? [];choosingReference=true}"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 692,
+    "declaration": "Toggle(\"Allow photo reuse\",isOn:$reuse)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 696,
+    "declaration": "Toggle(\"Use entire workspace\",isOn:$useAllSources)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 699,
+    "declaration": "TextField(\"Number of photo tiles (1\u201310,000)\",value:$tileCount,format:.number)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 701,
+    "declaration": "Button(\"Generate \\(artMode)\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 708,
+    "declaration": "Picker(\"Photo frame shape \u00b7 all tiles\",selection:Binding(get:{ model.collage.cells.first?.shape ?? .rectangle },set:{ shape in"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 715,
+    "declaration": "TextField(\"Tile number\",value:$selectedTileNumber,format:.number)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 716,
+    "declaration": "Button(\"Select Tile\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 721,
+    "declaration": "Picker(\"Selected photo\",selection:$selected) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 736,
+    "declaration": "propertyRow(\"Shape\") { Picker(\"Photo frame shape\",selection:Binding(get:{ cell.shape ?? .rectangle },set:{ value in var p=model.collage; if let i=p.cells.firstIndex(where:{$0.id==id}) {p.cells[i].shape=value};model.changeCollage(p) })) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 739,
+    "declaration": "TextField("
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 748,
+    "declaration": "Button(\"Replace Photograph\u2026\", systemImage: \"photo.on.rectangle\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 755,
+    "declaration": "Button(\"Bring to Front\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 758,
+    "declaration": "Button(\"Send to Back\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 767,
+    "declaration": "Slider(value: b.x, in: 0...0.9, onEditingChanged: sliderInteraction)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 769,
+    "declaration": "Slider(value: b.y, in: 0...0.9, onEditingChanged: sliderInteraction)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 771,
+    "declaration": "Slider(value: b.width, in: 0.1...1, onEditingChanged: sliderInteraction)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 773,
+    "declaration": "Slider(value: b.height, in: 0.1...1, onEditingChanged: sliderInteraction)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 775,
+    "declaration": "Slider(value: b.rotation, in: -180...180, onEditingChanged: sliderInteraction)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 777,
+    "declaration": "Button(\"Swap with next\") {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 787,
+    "declaration": "Button(\"Remove photograph\", role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 801,
+    "declaration": "propertyRow(\"Format\") { Picker(\"Output format\", selection: project.outputFormat) {"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 806,
+    "declaration": "Slider(value: project.outputQuality, in: 0.1...1, onEditingChanged: sliderInteraction)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 811,
+    "declaration": "Button(\"Export & Share\") { export() }.buttonStyle(.borderedProminent).disabled(exporting || model.collage.cells.isEmpty)"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 814,
+    "declaration": "Button(\"Review & Share Current Export\") { exportingOptions = false; reviewSession = ShareOutputSession(outputs: [output.url], summary: \"Current composition \u00b7 1 \" + model.collage.outputFormat.rawValue.uppercased() + \" file\") }"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 32,
+    "declaration": "Picker(\"Browse collages\", selection: $showingSaved) {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 35,
+    "declaration": "} else { Picker(\"Browse collages\", selection: $showingSaved) {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 45,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 61,
+    "declaration": "Picker(\"Layout action\", selection: $createNew) {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 66,
+    "declaration": "Toggle(\"Recommended layouts\", isOn: $recommendedOnly)"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 67,
+    "declaration": "Picker(\"Orientation\", selection: $orientation) {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 71,
+    "declaration": "Picker(\"Layout category\",selection:$category) {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 76,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 87,
+    "declaration": "Button(\"New Collage with This Layout\") { model.newCollage(template:template); dismiss() }"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 88,
+    "declaration": "Button(\"Apply to Current Collage\") {"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 97,
+    "declaration": ".toolbar { Button(\"Done\") { dismiss() } }"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 21,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 41,
+    "declaration": "Menu(\"Select\") {"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 42,
+    "declaration": "Button(\"Select Visible\") {selection.formUnion(photos.map(\\.id))}"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 43,
+    "declaration": "Button(\"Clear Selection\") {selection=[]}"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 46,
+    "declaration": "Button(\"Cancel\") {dismiss()}"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 47,
+    "declaration": "Button(single ? (title == \"Mosaic Reference\" ? \"Use Reference\" : \"Use Photo\") : \"Use Photos\") {apply()}"
+  },
+  {
+    "file": "SharedUI/DemoWorkspaceViews.swift",
+    "line": 7,
+    "declaration": "Button(model.switchingDemo ? \"Opening Demo Workspace\u2026\" : \"Open Demo Workspace\", systemImage: \"photo.on.rectangle\") {"
+  },
+  {
+    "file": "SharedUI/DemoWorkspaceViews.swift",
+    "line": 20,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/DemoWorkspaceViews.swift",
+    "line": 24,
+    "declaration": "Button(\"Return to Your Workspace\", systemImage: \"arrow.uturn.backward\") {"
+  },
+  {
+    "file": "SharedUI/EditingHistoryView.swift",
+    "line": 16,
+    "declaration": "Button(model.undoActionTitle, systemImage: \"arrow.uturn.backward\") { model.undo() }"
+  },
+  {
+    "file": "SharedUI/EditingHistoryView.swift",
+    "line": 18,
+    "declaration": "Button(model.redoActionTitle, systemImage: \"arrow.uturn.forward\") { model.redo() }"
+  },
+  {
+    "file": "SharedUI/EditingHistoryView.swift",
+    "line": 23,
+    "declaration": "Button { model.moveEditingHistory(to: step.id) } label: {"
+  },
+  {
+    "file": "SharedUI/EditingHistoryView.swift",
+    "line": 41,
+    "declaration": "Button(\"Done\") { dismiss() }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 267,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 277,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 285,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 295,
+    "declaration": "Toggle(\"Show original\", isOn: $showOriginal).tint(.blue)"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 297,
+    "declaration": "DisclosureGroup(\"Crop Help\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 302,
+    "declaration": "Toggle(\"Guides\", isOn: $model.showGuides).tint(.blue)"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 303,
+    "declaration": "Toggle(\"Subjects\", isOn: $model.showSubjects).tint(.blue)"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 306,
+    "declaration": "Button(\"Centre\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 314,
+    "declaration": "Menu(\"Auto-frame\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 315,
+    "declaration": "Button(\"Smart \u00b7 Replace This Photo\u2019s Framing\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 318,
+    "declaration": "Button(\"Keep Subjects \u00b7 Replace This Photo\u2019s Framing\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 323,
+    "declaration": "Button(\"Reset Crop \u00b7 Full Image\", systemImage: \"arrow.up.left.and.arrow.down.right\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 327,
+    "declaration": "Menu(\"Output aspect ratio\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 328,
+    "declaration": "Button(\"Original \u00b7 Full Image\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 331,
+    "declaration": "Button(\"Square\") { aspect(1) }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 332,
+    "declaration": "Button(\"4:3\") { aspect(4.0 / 3) }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 333,
+    "declaration": "Button(\"3:2\") { aspect(1.5) }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 334,
+    "declaration": "Button(\"16:9\") { aspect(16.0 / 9) }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 336,
+    "declaration": "DisclosureGroup(\"Precision\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 338,
+    "declaration": "TextField(\"Image scale percent\", value: percent(crop.zoom), format: .number.precision(.fractionLength(0)))"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 341,
+    "declaration": "Slider("
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 348,
+    "declaration": "TextField(\"Horizontal position\", value: percent(crop.centerX), format: .number.precision(.fractionLength(1))).textFieldStyle("
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 353,
+    "declaration": "TextField(\"Vertical position\", value: percent(crop.centerY), format: .number.precision(.fractionLength(1))).textFieldStyle("
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 361,
+    "declaration": "Slider("
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 366,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 371,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 376,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 381,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 387,
+    "declaration": "Button(\"Use Batch Framing\") { if let id = model.selected { model.reset([id]) } }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 395,
+    "declaration": "Button(\"Accept framing\") { model.acceptReview(asset.id) }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 431,
+    "declaration": "Menu(\"Crop Options\", systemImage: \"crop\") { cropOptions }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 433,
+    "declaration": "Button(\"Done\") { model.precision = false }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 498,
+    "declaration": "Button(\"Done Cropping\") { model.precision = false }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 499,
+    "declaration": "Toggle(\"Preview Edited Output\", isOn: $showFinal)"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 500,
+    "declaration": "Toggle(\"Lock aspect ratio\", isOn: Binding(get: { locked }, set: { model.cropAspectLocks[asset.id] = $0 }))"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 502,
+    "declaration": "Toggle(\"Keep export dimensions\", isOn: Binding(get: { model.cropKeepsOutputSize[asset.id] == true }, set: { value in"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 591,
+    "declaration": "Button(\"Fit\") { zoom = nil }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 592,
+    "declaration": "Button { zoom = max(0.01, factor / 1.25) } label: { Image(systemName: \"minus.magnifyingglass\") }.accessibilityLabel(\"Zoom out\")"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 593,
+    "declaration": "Menu(\"\\(Int(factor * 100))%\") {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 594,
+    "declaration": "Button(\"Actual Pixels \u00b7 100%\") { zoom = 1 }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 595,
+    "declaration": "Button(\"Fit to View\") { zoom = nil }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 598,
+    "declaration": "Button { zoom = min(8, factor * 1.25) } label: { Image(systemName: \"plus.magnifyingglass\") }.accessibilityLabel(\"Zoom in\")"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 628,
+    "declaration": "Button(\"Done Inspecting\", systemImage: \"chevron.left\") { detail = false }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 641,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 642,
+    "declaration": "Button(\"Inspect Full-resolution Pixels\") { detail = true }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 688,
+    "declaration": "Button(\"Locate or Replace Photo\u2026\") { model.relinkSourceID = asset.id }"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 700,
+    "declaration": "Button(role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 93,
+    "declaration": "Menu(\"Tools\", systemImage: \"slider.horizontal.3\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 94,
+    "declaration": "ForEach(Inspector.allCases, id: \\.self) { tool in Button(tool.rawValue) { inspector = tool; expandedControls = true } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 110,
+    "declaration": ".toolbar { Button(\"Done\") { exportingOptions = false } } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 120,
+    "declaration": "Toggle(\"Frame \\(index + 1)\", isOn: Binding(get: { selectedFrames.contains(frame.id) }, set: { included in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 124,
+    "declaration": "}.navigationTitle(\"Select Frames\").toolbar { Button(\"Done\") { frameSelectionPresented = false } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 129,
+    "declaration": ".toolbar { Button(\"Done\") { expandedControls = false } } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 137,
+    "declaration": "Button(\"Cancel Export\") { model.gifExportTask?.cancel() }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 153,
+    "declaration": "Button(\"Save Project Instructions & Start New\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 164,
+    "declaration": "Button(\"Select Photos\") { model.selectGIFPhotos() }.buttonStyle(.borderedProminent).controlSize(.large)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 165,
+    "declaration": "if model.workspaceAssets.isEmpty { Button(\"Add Photos\", action: importAction) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 170,
+    "declaration": "Menu(\"Saved GIFs\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 171,
+    "declaration": "ForEach(model.archivedGIFs.filter { $0.id != model.gifProject?.id || project.frames.isEmpty }) { saved in Button(saved.name) { model.openGIF(saved) } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 179,
+    "declaration": "Button(\"I\u2019ve Reviewed These Frames\") { change { $0.reviewFrameIDs = nil; $0.privacyReviewFrameIDs = nil } }.disabled(preparing || preview == nil || previewError != nil)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 181,
+    "declaration": "HStack { historyButtons; Spacer(); Button(\"Add Photos\", systemImage: \"plus\") { model.selectGIFPhotos(adding: true) }; gifExportButton; moreMenu }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 186,
+    "declaration": "Button(\"Undo\", systemImage: \"arrow.uturn.backward\") { model.undoActiveWorkspace() }.labelStyle(.iconOnly).disabled(!model.canUndoActiveWorkspace)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 187,
+    "declaration": "Button(\"Redo\", systemImage: \"arrow.uturn.forward\") { model.redoActiveWorkspace() }.labelStyle(.iconOnly).disabled(!model.canRedoActiveWorkspace)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 191,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 192,
+    "declaration": "if !model.archivedGIFs.isEmpty { Menu(\"Saved GIFs\") { ForEach(model.archivedGIFs.filter { $0.id != model.gifProject?.id || project.frames.isEmpty }) { saved in Button(saved.name) { model.openGIF(saved) } } } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 193,
+    "declaration": "Button(\"Add Photos\") { model.selectGIFPhotos(adding: true) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 194,
+    "declaration": "Button(\"New GIF\u2026\") { showNew = true }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 195,
+    "declaration": "Button(\"Save Project Instructions\") { Task { do { _ = try await model.saveProjectCopy(); model.status = \"Workspace and GIF saved.\" } catch { model.issues.append(error.localizedDescription) } } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 199,
+    "declaration": "Button(\"Export\") { exportingOptions = true }.disabled(project.frames.isEmpty || previewError != nil || preparing)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 206,
+    "declaration": "TextField(\"Frame duration\", value: Binding(get: { frame.duration }, set: { value in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 216,
+    "declaration": "Menu(\"Options\", systemImage: \"slider.horizontal.3\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 218,
+    "declaration": "Button(tool.rawValue) { inspector = tool; expandedControls = true }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 225,
+    "declaration": "Picker(\"GIF tool\", selection: $inspector) {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 235,
+    "declaration": "Button(\"Replace Frame \\(recoveryFrameNumber)\u2019s Photo\") { if let frame = recoveryFrame { model.selectGIFPhotos(replacing: frame.id) } }.comfortableHitTarget()"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 236,
+    "declaration": "Button(\"Locate Frame \\(recoveryFrameNumber)\u2019s Photo\u2026\") { if let frame = recoveryFrame { model.relinkSourceID = frame.sourceID } }.comfortableHitTarget()"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 270,
+    "declaration": "Button(playing ? \"Pause\" : \"Play\", systemImage: playing ? \"pause.fill\" : \"play.fill\") { playing.toggle() }.disabled(preparing || preview == nil)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 271,
+    "declaration": "Button(\"Restart\", systemImage: \"backward.end.fill\") { frameIndex = 0; playing = true; playbackGeneration += 1 }.disabled(preparing || preview == nil)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 281,
+    "declaration": "Button(selectingFrames ? \"Done\" : \"Select\") { selectingFrames.toggle(); if !selectingFrames { selectedFrames = [] } }.font(.caption)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 283,
+    "declaration": "Menu(\"Order\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 285,
+    "declaration": "Button(\"By Filename\") { change { p in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 292,
+    "declaration": "Button(\"By Capture Date\") { orderByDate() }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 299,
+    "declaration": "Button { playing = false; frameIndex = index; if selectingFrames { if !selectedFrames.insert(frame.id).inserted { selectedFrames.remove(frame.id) } } } label: {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 320,
+    "declaration": "Button(\"Add Photos\", systemImage: \"plus\") { model.selectGIFPhotos(adding: true) }.frame(minWidth: 90)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 329,
+    "declaration": "Button(\"Duplicate\") { change { $0.duplicate(frame.id) } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 330,
+    "declaration": "Button(\"Move Earlier\") { if index > 0 { change { $0.move(frame.id, before: $0.frames[index - 1].id) } } }.disabled(index == 0)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 331,
+    "declaration": "Button(\"Move Later\") { if index + 1 < project.frames.count { change { $0.move($0.frames[index + 1].id, before: frame.id) } } }.disabled(index + 1 == project.frames.count)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 332,
+    "declaration": "Button(\"Replace Photo\") { model.selectGIFPhotos(replacing: frame.id) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 333,
+    "declaration": "Button(\"Remove\", role: .destructive) { change { $0.remove([frame.id]) }; selectedFrames.remove(frame.id) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 336,
+    "declaration": "Menu(selectingFrames ? \"\\(selectedFrames.count) Selected\" : \"Frame \\(frameIndex + 1) of \\(project.frames.count)\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 338,
+    "declaration": "Button(\"Frame \\(index + 1)\") { playing = false; frameIndex = index }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 342,
+    "declaration": "Button(\"Add Photos\") { model.selectGIFPhotos(adding: true) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 343,
+    "declaration": "Button(\"Select Frames\u2026\") { selectingFrames = true; frameSelectionPresented = true }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 344,
+    "declaration": "if selectingFrames { Button(\"Finish Frame Selection\") { selectingFrames = false; selectedFrames = [] } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 360,
+    "declaration": "TextField(\"Duration\", value: Binding(get: { activeFrame?.duration ?? 0.5 }, set: { value in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 366,
+    "declaration": "Button(\"Apply Duration to All Frames\") { change { $0.setDuration(activeFrame?.duration ?? duration) } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 368,
+    "declaration": "Picker(\"Speed\", selection: binding(\\.speed)) { Text(\"\u00bd\u00d7\").tag(0.5); Text(\"1\u00d7\").tag(1.0); Text(\"2\u00d7\").tag(2.0) }.labelsHidden()"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 370,
+    "declaration": "InspectorMenuRow(title: \"Playback\") { Picker(\"Playback\", selection: binding(\\.plays)) { Text(\"Loop Forever\").tag(0); Text(\"Play Once\").tag(1); Text(\"3 Plays\").tag(3); Text(\"5 Plays\").tag(5); if ![0,1,3,5].contains(project.plays) { Text(\"\\(project.plays) Plays\").tag(project.plays) } }.labelsHidden() }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 371,
+    "declaration": "if project.plays > 0 { Stepper(\"Total plays: \\(project.plays)\", value: binding(\\.plays), in: 1...65535) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 378,
+    "declaration": "Menu(\"Canvas Size\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 379,
+    "declaration": "Button(\"Square \u00b7 800 \u00d7 800\") { change { $0.width = 800; $0.height = 800 } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 380,
+    "declaration": "Button(\"Landscape \u00b7 960 \u00d7 540\") { change { $0.width = 960; $0.height = 540 } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 381,
+    "declaration": "Button(\"Portrait \u00b7 540 \u00d7 960\") { change { $0.width = 540; $0.height = 960 } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 382,
+    "declaration": "Button(\"Original Aspect Ratio\") { originalAspect() }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 384,
+    "declaration": "LabeledContent(\"Width (px)\") { TextField(\"Width\", value: binding(\\.width), format: .number).multilineTextAlignment(.trailing).frame(maxWidth: 100) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 385,
+    "declaration": "LabeledContent(\"Height (px)\") { TextField(\"Height\", value: binding(\\.height), format: .number).multilineTextAlignment(.trailing).frame(maxWidth: 100) }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 387,
+    "declaration": "Picker(\"Photo fitting\", selection: binding(\\.fit)) { ForEach(GIFFit.allCases, id: \\.self) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 389,
+    "declaration": "DisclosureGroup(\"Crop This Frame\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 393,
+    "declaration": "Button(\"Reset Frame Crop\") { change { p in if let i = p.frames.firstIndex(where: { $0.id == frame.id }) { p.frames[i].crop = CropConfiguration() } } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 396,
+    "declaration": "ColorPicker(\"Background\", selection: Binding(get: { Color(cgColor: project.background.cgColor) }, set: { color in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 404,
+    "declaration": "Menu(\"Add Annotation\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 406,
+    "declaration": "Button(kind.rawValue == \"speechBubble\" ? \"Speech Bubble\" : kind.rawValue.capitalized) {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 415,
+    "declaration": "Button { annotationID = item.id } label: { Label(item.annotation.kind.rawValue.capitalized + (item.annotation.kind == .text ? \": \" + item.annotation.text : \"\"), systemImage: annotationID == item.id ? \"checkmark.circle.fill\" : \"circle\") }.lineLimit(1)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 419,
+    "declaration": "TextField(\"Caption\", text: annotationBinding(id, \\.text), axis: .vertical).textFieldStyle(.roundedBorder)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 421,
+    "declaration": "Picker(\"Show\", selection: Binding(get: { item.frameIDs == nil ? \"All Frames\" : item.extendsToNewFrames || (item.frameIDs?.count ?? 0) > 1 ? \"Until Removed\" : \"This Frame\" }, set: { value in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 426,
+    "declaration": "Button(\"End Before This Frame\") {"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 433,
+    "declaration": "ColorPicker(\"Colour\", selection: Binding(get: { Color(cgColor: item.annotation.colour.cgColor) }, set: { color in"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 437,
+    "declaration": "Button(\"Remove Annotation\", role: .destructive) { change { $0.annotations.removeAll { $0.id == id } }; annotationID = nil }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 444,
+    "declaration": "TextField(\"Filename\", text: binding(\\.name)).textFieldStyle(.roundedBorder)"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 445,
+    "declaration": "Picker(\"Optimisation\", selection: binding(\\.preset)) { ForEach(GIFPreset.allCases, id: \\.self) { Text($0.rawValue).tag($0) } }"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 450,
+    "declaration": "Button(\"Export GIF\u2026\", systemImage: \"square.and.arrow.up\") { export() }.buttonStyle(.borderedProminent)"
+  },
+  {
+    "file": "SharedUI/GIFOutputPreview.swift",
+    "line": 16,
+    "declaration": "Button(playing ? \"Pause\" : \"Play\") { playing.toggle() }"
+  },
+  {
+    "file": "SharedUI/GIFOutputPreview.swift",
+    "line": 17,
+    "declaration": "Stepper(\"Frame \\(index + 1) of \\(count)\", value: $index, in: 0...max(0, count - 1)).disabled(playing)"
+  },
+  {
+    "file": "SharedUI/HelpPrivacyView.swift",
+    "line": 20,
+    "declaration": "Picker(\"Read\", selection: $document) {"
+  },
+  {
+    "file": "SharedUI/HelpPrivacyView.swift",
+    "line": 42,
+    "declaration": "Button(\"Show local storage in Finder\", systemImage: \"folder\") {"
+  },
+  {
+    "file": "SharedUI/HelpPrivacyView.swift",
+    "line": 48,
+    "declaration": "Button(\"Done\") { dismiss() }"
+  },
+  {
+    "file": "SharedUI/ImportProgressView.swift",
+    "line": 12,
+    "declaration": "Button(\"Show arriving images\") {"
+  },
+  {
+    "file": "SharedUI/ImportProgressView.swift",
+    "line": 17,
+    "declaration": "Button(\"Cancel import\") { model.cancelImport() }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 104,
+    "declaration": "DisclosureGroup(\"Mixed values\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 134,
+    "declaration": "TextField(\"Preset name\", text: $presetName)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 135,
+    "declaration": "Button(\"Save\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 139,
+    "declaration": "Button(\"Cancel\", role: .cancel) {}"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 143,
+    "declaration": "Menu(\"Auto Corrections\", systemImage: \"chevron.down\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 144,
+    "declaration": "ForEach([QuickFix.lighting, .colour, .straighten], id: \\.self) { fix in Button(fix.rawValue) { model.quickFix(fix) } }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 150,
+    "declaration": "Button(\"Cancel Corrections\") { model.quickFixTask?.cancel() }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 165,
+    "declaration": "Toggle(isOn: Binding(get: { model.controlConfiguration.autoEnhance?.enabled == true }, set: { model.setAutoEnhance($0) })) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 173,
+    "declaration": "Button(action: adjustmentDetails) { Image(systemName: \"slider.horizontal.3\") }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 177,
+    "declaration": "Button(action: dismissAdjustment) { Image(systemName: \"xmark\") }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 186,
+    "declaration": "DisclosureGroup(\"Photo Filters\") { PhotoLooksPicker(model: model).padding(.vertical, 6) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 187,
+    "declaration": "Toggle(\"Auto Enhance\", isOn: Binding(get: { model.controlConfiguration.autoEnhance?.enabled == true }, set: { model.setAutoEnhance($0) })).disabled(model.quickFixRunning)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 190,
+    "declaration": "DisclosureGroup(\"Light\", isExpanded: $lightExpanded) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 193,
+    "declaration": "DisclosureGroup(\"Colour\", isExpanded: $colourExpanded) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 196,
+    "declaration": "Button(\"Reset adjustments\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 208,
+    "declaration": "DisclosureGroup(\"Mixed values\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 219,
+    "declaration": "Toggle(\"Also Resize\", isOn: $model.conversionResizingEnabled)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 238,
+    "declaration": "Button(\"Make a Collage\u2026\") { open(.collage) }.disabled(model.workspaceAssets.isEmpty)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 239,
+    "declaration": "Button(\"Annotations & Privacy\u2026\") { open(.overlays) }.disabled(model.current == nil)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 240,
+    "declaration": "Button(\"Projects & Settings\u2026\") { open(.projects) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 246,
+    "declaration": "Section { DisclosureGroup(\"Resize & Canvas\") { resizeControls } }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 254,
+    "declaration": "Picker(model.mixedFields.contains(.format) ? \"Output format \u00b7 Mixed\" : \"Output format\", selection: field(\\.format, [.format])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 259,
+    "declaration": "Button(\"Advanced export settings\") { model.inspectorTask = .output }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 274,
+    "declaration": "Picker(\"Format\", selection: field(\\.format, [.format])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 280,
+    "declaration": "Menu(\"Quality preset\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 281,
+    "declaration": "Button(\"Maximum Quality\") { field(\\.quality, [.quality]).wrappedValue = 0.98 }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 282,
+    "declaration": "Button(\"Balanced\") { field(\\.quality, [.quality]).wrappedValue = 0.85 }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 283,
+    "declaration": "Button(\"Smallest Practical\") { field(\\.quality, [.quality]).wrappedValue = 0.55 }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 286,
+    "declaration": "Slider(value: field(\\.quality, [.quality]), in: 0.1...1, onEditingChanged: editGesture)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 288,
+    "declaration": "Toggle("
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 295,
+    "declaration": "TextField("
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 310,
+    "declaration": "Slider("
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 321,
+    "declaration": "Picker(\"Colour\", selection: field(\\.colourPolicy, [.colourPolicy])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 330,
+    "declaration": "Picker(\"Metadata\", selection: field(\\.metadata, [.metadata])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 339,
+    "declaration": "DisclosureGroup(model.workflow == .batch ? \"Naming & multiple export profiles\" : \"Output naming\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 340,
+    "declaration": "TextField(\"Naming template\", text: $model.namingTemplate)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 344,
+    "declaration": "Button(\"Save export settings as preset\u2026\") { savePreset = true }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 347,
+    "declaration": "Toggle("
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 378,
+    "declaration": "DisclosureGroup(\"Borders, corners & shadow\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 379,
+    "declaration": "Toggle(\"Photo shadow\", isOn: field(\\.canvasStyle, [.canvasStyle]).shadow)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 381,
+    "declaration": "ColorPicker(\"Border colour\", selection: colour(field(\\.canvasStyle, [.canvasStyle]).borderColour))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 387,
+    "declaration": "Button(\"Add Watermark\", systemImage: \"plus\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 394,
+    "declaration": "Button(role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 400,
+    "declaration": "Picker(\"Content\", selection: field(\\.watermark.kind, [.watermark_kind])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 404,
+    "declaration": "TextField(\"Watermark text\", text: field(\\.watermark.text, [.watermark_text]))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 407,
+    "declaration": "Picker(\"Font\", selection: field(\\.watermark.fontName, [.watermark_fontName])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 414,
+    "declaration": "ColorPicker(\"Colour\", selection: colour(field(\\.watermark.colour, [.watermark_colour])), supportsOpacity: true)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 416,
+    "declaration": "Button(\"Import watermark image\u2026\") { watermarkImport = true }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 421,
+    "declaration": "DisclosureGroup(\"Placement & pattern\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 427,
+    "declaration": "TextField(\"Horizontal offset\", value: field(\\.watermark.offsetX, [.watermark_offsetX]), format: .percent)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 428,
+    "declaration": "TextField(\"Vertical offset\", value: field(\\.watermark.offsetY, [.watermark_offsetY]), format: .percent)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 429,
+    "declaration": "Toggle(\"Tile watermark\", isOn: field(\\.watermark.tiled, [.watermark_tiled]))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 432,
+    "declaration": "DisclosureGroup(\"Presets\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 433,
+    "declaration": "Button(\"Save watermark preset\") { model.saveWatermarkPreset() }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 435,
+    "declaration": "Button(w.kind == .text ? w.text : \"Image watermark \\(index + 1)\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 444,
+    "declaration": "Menu(\"Aspect ratio\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 445,
+    "declaration": "Button(\"Square\") { applyAspect(1) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 446,
+    "declaration": "Button(\"4:3\") { applyAspect(4.0 / 3) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 447,
+    "declaration": "Button(\"3:2\") { applyAspect(1.5) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 448,
+    "declaration": "Button(\"16:9\") { applyAspect(16.0 / 9) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 449,
+    "declaration": "Button(\"4:5\") { applyAspect(0.8) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 453,
+    "declaration": "Button(\"Smart Auto-frame\") { model.autoFrame(.smart) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 454,
+    "declaration": "Button(\"Keep Subjects\") { model.autoFrame(.keepSubjects) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 458,
+    "declaration": "Button(\"Refine selected image\", systemImage: \"crop\") { open(.framing) }.disabled("
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 464,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 469,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 474,
+    "declaration": "Button(\"180\u00b0\") { field(\\.quarterTurns, [.quarterTurns]).wrappedValue += 2 }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 476,
+    "declaration": "Toggle(\"Flip horizontally\", isOn: field(\\.flipHorizontal, [.flipHorizontal]))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 477,
+    "declaration": "Toggle(\"Flip vertically\", isOn: field(\\.flipVertical, [.flipVertical]))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 481,
+    "declaration": "Slider(value: field(\\.straighten, [.straighten]), in: -20...20, onEditingChanged: editGesture)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 487,
+    "declaration": "Toggle(\"Also Resize\", isOn: $model.conversionResizingEnabled)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 494,
+    "declaration": "Button(\"Fit for Sharing\") { model.quickFix(.sharing) }.disabled(model.quickFixRunning)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 496,
+    "declaration": "DisclosureGroup(\"Framing\") { framingControls.padding(.top, 8) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 497,
+    "declaration": "DisclosureGroup(\"Rotate & Flip\") { rotationControls.padding(.top, 8) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 501,
+    "declaration": "Picker(\"Format\", selection: field(\\.format, [.format])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 504,
+    "declaration": "Button(\"Export settings\u2026\") { model.inspectorTask = .output }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 509,
+    "declaration": "Menu(\"Choose a size preset\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 511,
+    "declaration": "Button(\"\\(edge) \u00d7 \\(edge)\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 518,
+    "declaration": "Button(\"1080 \u00d7 1350\") { setSize(1080, 1350) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 519,
+    "declaration": "Button(\"1920 \u00d7 1080\") { setSize(1920, 1080) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 520,
+    "declaration": "Button(\"3840 \u00d7 2160\") { setSize(3840, 2160) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 522,
+    "declaration": "Picker(model.mixedFields.contains(.crop_mode) ? \"Fit mode \u00b7 Mixed\" : \"Sizing\", selection: field(\\.crop.mode, [.crop_mode])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 526,
+    "declaration": "Picker(\"Resize by\", selection: field(\\.resizeBasis, [.resizeBasis])) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 531,
+    "declaration": "TextField(\"Percentage\", value: field(\\.percentage, [.percentage]), format: .number)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 540,
+    "declaration": "TextField(\"Height\", value: field(\\.height, [.height]), format: .number).labelsHidden().multilineTextAlignment(.trailing).frame(maxWidth: 90)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 542,
+    "declaration": "TextField(\"Width\", value: field(\\.width, [.width]), format: .number).labelsHidden().multilineTextAlignment(.trailing).frame(maxWidth: 90)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 548,
+    "declaration": "TextField(\"Width\", value: field(\\.width, [.width]), format: .number).labelsHidden().multilineTextAlignment(.trailing).frame(maxWidth: 90)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 551,
+    "declaration": "TextField(\"Height\", value: field(\\.height, [.height]), format: .number).labelsHidden().multilineTextAlignment(.trailing).frame(maxWidth: 90)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 554,
+    "declaration": "Toggle(\"Prevent upscaling\", isOn: field(\\.preventUpscaling, [.preventUpscaling]))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 556,
+    "declaration": "ColorPicker(\"Background\", selection: colour(field(\\.background, [.background])), supportsOpacity: true)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 569,
+    "declaration": "DisclosureGroup(fields.isEmpty ? \"Uses batch settings\" : \"\\(fields.count) photo-specific \\(fields.count == 1 ? \"edit\" : \"edits\")\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 573,
+    "declaration": "Menu(\"Reset Active Photo\u2019s Overrides\") {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 575,
+    "declaration": "Button(category.rawValue + \" \u2192 Inherit Batch\") { model.resetCategories([category], ids: [asset.id]) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 640,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 678,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 679,
+    "declaration": "Picker(\"Adjustment\", selection: parameterSelection) {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 697,
+    "declaration": "TextField(title, value: boundedValue, format: .number.precision(.fractionLength(0...2)))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 703,
+    "declaration": "Button { boundedValue.wrappedValue = neutral } label: {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 719,
+    "declaration": "Slider(value: boundedValue, in: range, onEditingChanged: interaction)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 768,
+    "declaration": "Button(\"Back to Tools\", systemImage: \"chevron.left\") { model.choosePhotoInspector(.adjust) }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 780,
+    "declaration": "Slider(value:Binding(get:{current?.intensity ?? 0.7},set:{model.setFilterIntensity($0)}),in:0...1,onEditingChanged:{$0 ? model.beginInteraction() : model.endInteraction()})"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 782,
+    "declaration": "TextField(\"Intensity percent\",value:Binding(get:{(current?.intensity ?? 0.7)*100},set:{model.setFilterIntensity($0/100)}),format:.number.precision(.fractionLength(0)))"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 790,
+    "declaration": "Toggle(\"Auto Enhance\",isOn:Binding(get:{model.controlConfiguration.autoEnhance?.enabled == true},set:{model.setAutoEnhance($0)})).font(.caption).disabled(model.quickFixRunning)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 792,
+    "declaration": "Button(\"Reset Filter\") { model.selectCreativeFilter(nil) }.font(.caption)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 794,
+    "declaration": "} else { Button(\"Reset Filter\") { model.selectCreativeFilter(nil) } }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 795,
+    "declaration": "if model.quickFixRunning { ProgressView(\"Analysing\u2026\"); Button(\"Cancel\") { model.quickFixTask?.cancel() } }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 798,
+    "declaration": "HStack { Button(\"Retry\") { generation+=1 }; if let sample { Button(\"Locate Source\u2026\") { model.relinkSourceID=sample.id } } }"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 836,
+    "declaration": "Toggle(\"Auto Enhance\",isOn:Binding(get:{model.controlConfiguration.autoEnhance?.enabled == true},set:{model.setAutoEnhance($0)})).disabled(model.quickFixRunning)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 837,
+    "declaration": "Button(\"Recalculate Enhance\") { model.setAutoEnhance(true,recalculate:true) }.font(.caption).disabled(model.quickFixRunning)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 842,
+    "declaration": "Picker(\"Collection\",selection:$collection) { ForEach(FilterCollection.allCases,id:\\.self) { Text($0.rawValue).tag($0) } }.labelsHidden()"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 849,
+    "declaration": "Button { model.choosePhotoInspector(.adjust) } label: {"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 864,
+    "declaration": "Button(model.filterComparisonActive ? \"Showing Before\" : \"Hold to Compare\") {}.font(.caption)"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 878,
+    "declaration": "return Button { model.selectCreativeFilter(preset?.id) } label: {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 11,
+    "declaration": "Button { model.projectsView = true } label: {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 16,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 42,
+    "declaration": "Button { model.selectPhotos(for: .convert) } label: {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 45,
+    "declaration": "Button { model.selectPhotos(for: .resize) } label: {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 50,
+    "declaration": "DisclosureGroup(\"Categories\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 52,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 69,
+    "declaration": "DisclosureGroup(\"Help & Review\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 70,
+    "declaration": "Button(\"Help & Privacy\", systemImage: \"questionmark.circle\") { model.helpPresented = true }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 71,
+    "declaration": "Button(\"Check photo privacy\u2026\", systemImage: \"checkmark.shield\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 75,
+    "declaration": "DisclosureGroup(\"Presets\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 77,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 91,
+    "declaration": "Button { model.switchWorkflow(workflow) } label: {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 177,
+    "declaration": "Button(\"Review\") { model.sensitiveReviewPresented = true }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 183,
+    "declaration": "Button(resetPurpose, role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 190,
+    "declaration": "Button(\"Cancel\", role: .cancel) {}"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 199,
+    "declaration": "Button(\"Reset Edits\", role: .destructive) { model.resetAllImageEdits(model.selection) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 200,
+    "declaration": "Button(\"Cancel\", role: .cancel) {}"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 208,
+    "declaration": "Menu(\"Reset Changes\u2026\", systemImage: \"arrow.counterclockwise\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 210,
+    "declaration": "Button(purpose + \"\u2026\", role: .destructive) { resetPurpose = purpose; confirmResetAll = true }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 221,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 232,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 237,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 246,
+    "declaration": "Picker(\"View\", selection: $model.mode) {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 250,
+    "declaration": "Picker(\"Workspace view\", selection: $model.mode) {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 258,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 259,
+    "declaration": "Picker(\"Gallery photos\", selection: operationOnly) {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 267,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 271,
+    "declaration": "Button(model.selecting ? \"Done\" : \"Select\") { model.toggleSelectionMode() }.disabled("
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 273,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 280,
+    "declaration": "Button(\"Open in Editor\") { if let asset = model.current { model.openPhoto(asset) } }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 282,
+    "declaration": "Button(\"Privacy\") { if let asset = model.current { model.openOverlayEditor(for: asset) } }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 284,
+    "declaration": "Button(\"Batch Edit Selected (\\(model.selection.count))\") { model.editSelectedBatch() }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 287,
+    "declaration": "Menu(\"Preview size\") { PreviewSizeMenu(model: model) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 288,
+    "declaration": "Button(\"Undo edit\") { model.undo() }.disabled(!model.canUndo)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 289,
+    "declaration": "Button(\"Redo edit\") { model.redo() }.disabled(!model.canRedo)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 294,
+    "declaration": "Menu(\"Focused Photo: \" + photo.name) {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 295,
+    "declaration": "Button(\"Rotate This Photo\", systemImage: \"rotate.right\") { model.rotatePhoto(photo.id) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 296,
+    "declaration": "Button(\"Refine This Photo\", systemImage: \"crop\") { model.openPhoto(photo, refine: true) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 301,
+    "declaration": "Menu(\"View\", systemImage: \"eye\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 303,
+    "declaration": "Picker(\"Preview\", selection: $model.mode) {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 307,
+    "declaration": "if let operationOnly { Toggle(\"Show operation photos only\", isOn: operationOnly) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 308,
+    "declaration": "Menu(\"Thumbnail size\") { PreviewSizeMenu(model: model) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 309,
+    "declaration": "Toggle(\"Show filenames\", isOn: $showFilenames)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 310,
+    "declaration": "Toggle(\"Show favourite buttons\", isOn: $showFavouriteButtons)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 312,
+    "declaration": "if model.mode == .frame { Toggle(\"Reframe thumbnails\", isOn: $model.thumbnailEditing) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 316,
+    "declaration": "Button(\"Undo edit\") { model.undo() }.disabled(!model.canUndo)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 317,
+    "declaration": "Button(\"Redo edit\") { model.redo() }.disabled(!model.canRedo)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 318,
+    "declaration": "Button(\"Undo History\u2026\", systemImage: \"clock.arrow.circlepath\") { model.historyPresented = true }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 319,
+    "declaration": "Button(\"Projects\u2026\") { model.projectsView = true }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 320,
+    "declaration": "Button(\"Privacy Review\u2026\") { model.sensitiveReviewPresented = true }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 321,
+    "declaration": "Button(\"Select visible photos\") { model.selectVisiblePhotos() }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 322,
+    "declaration": "Button(\"Clear selection\") { model.selection = [] }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 324,
+    "declaration": "Button(\"Reset selected edits\u2026\", role: .destructive) { confirmReset = true }.disabled("
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 326,
+    "declaration": "Button(\"Reset selected framing\") { model.reset(model.selection) }.disabled("
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 328,
+    "declaration": "Button(\"Reset all manual framing\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 350,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 363,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 368,
+    "declaration": "Slider(value: $model.tileSize, in: 80...480) { Text(\"Gallery preview size\") }.labelsHidden()"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 370,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 438,
+    "declaration": "if showFavouriteButtons || model.favourites.contains(asset.id) { Button {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 480,
+    "declaration": "Button(\"Open in Editor\", systemImage: \"slider.horizontal.3\") { model.openPhoto(asset) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 483,
+    "declaration": "Button(\"Export This Photo\u2026\", systemImage: \"square.and.arrow.down\") { MacWorkspace(model: model).exportImages(retry: false, targetIDs: [asset.id]) }.disabled(model.running)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 485,
+    "declaration": "Button(\"Export & Share This Photo\u2026\", systemImage: \"square.and.arrow.up\") { model.exportThisPhoto(asset.id) }.disabled(model.running)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 486,
+    "declaration": "Button(\"Rotate This Photo Clockwise\", systemImage: \"rotate.right\") { model.rotatePhoto(asset.id) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 487,
+    "declaration": "Button(\"Copy Chosen Edits from This Photo\u2026\") { model.copySourceID = asset.id }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 488,
+    "declaration": "Button(\"Paste Chosen Edits to This Photo\") { model.pasteEdits(to: [asset.id]) }.disabled(model.copiedEdits == nil)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 490,
+    "declaration": "Button(\"Paste Chosen Edits to \\(model.selection.count) Selected Photos\") { model.pasteEdits(to: model.selection) }.disabled(model.copiedEdits == nil)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 493,
+    "declaration": "Button("
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 497,
+    "declaration": "Button(\"Refine Framing\", systemImage: \"crop\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 500,
+    "declaration": "Button(\"Smart \u00b7 Replace This Photo\u2019s Framing\", systemImage: \"sparkles\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 504,
+    "declaration": "Button(\"Flag for privacy review\") { model.sensitivity.mark(asset.id, forReview: true) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 505,
+    "declaration": "Button(\"Privacy Review\u2026\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 509,
+    "declaration": "Button(\"Reset This Photo\u2019s Framing to Batch\") { model.reset([asset.id]) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 510,
+    "declaration": "Menu(\"Reset This Photo\u2019s Overrides\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 512,
+    "declaration": "Button(category.rawValue + \" \u2192 Inherit Batch\") { model.resetCategories([category], ids: [asset.id]) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 515,
+    "declaration": "Button(model.favourites.contains(asset.id) ? \"Remove Favourite\" : \"Favourite\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 562,
+    "declaration": "Button(\"Add Photos\", action: importAction).buttonStyle(.borderedProminent)"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 578,
+    "declaration": "Button(\"Show All Photos\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 637,
+    "declaration": "Slider(value: $reveal, in: 0...1) { Text(\"Comparison position\") }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 639,
+    "declaration": "Button(\"Previous\") { model.navigate(-1) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 643,
+    "declaration": "Button(\"Next\") { model.navigate(1) }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 659,
+    "declaration": "Button(\"Cancel export\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 669,
+    "declaration": "Button(\"Cancel\") { model.analysisTask?.cancel() }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 673,
+    "declaration": "DisclosureGroup(\"Issues (\\(model.issues.count))\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 677,
+    "declaration": "Button(\"Clear issues\") { model.issues = [] }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 681,
+    "declaration": "Button(\"Review collage exports (\\(model.collageOutputs.count))\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 686,
+    "declaration": "DisclosureGroup(\"Export results (\\(model.results.count))\") {"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 689,
+    "declaration": "Button(\"Review & share \\(result.source.name)\") { if let url = result.output { model.beginSharing([url]) } }"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 717,
+    "declaration": "Button(\"Reveal workspace\", systemImage: \"eye\") { model.concealed = false }.buttonStyle("
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 133,
+    "declaration": "HStack { Text(retouch ? \"Retouch\" : (masking ? \"Privacy\" : \"Annotate\")).font(.headline); Spacer(); Button { showInspector = false } label: { Image(systemName: \"sidebar.right\") }.accessibilityLabel(\"Hide tool settings\") }.padding(12)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 176,
+    "declaration": "Button(\"Cancel\") { cancel() }.fixedSize(horizontal: true, vertical: false).keyboardShortcut(.cancelAction)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 186,
+    "declaration": "Button(\"Apply\") { apply() }.fixedSize(horizontal: true, vertical: false).buttonStyle(.borderedProminent).keyboardShortcut("
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 195,
+    "declaration": "ToolbarItem(placement: .cancellationAction) { Button(\"Cancel\") { cancel() } }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 197,
+    "declaration": "Button { session?.undo(); reconcileSelection() } label: { Image(systemName: \"arrow.uturn.backward\") }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 199,
+    "declaration": "Button { session?.redo(); reconcileSelection() } label: { Image(systemName: \"arrow.uturn.forward\") }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 201,
+    "declaration": "Button(\"Apply\") { apply() }.fontWeight(.semibold).disabled(!canApply)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 273,
+    "declaration": ".toolbar { ToolbarItem(placement: .confirmationAction) { Button(\"Done\") { compactOptions = false } } }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 281,
+    "declaration": "Button(\"Apply & Switch to \" + pendingTool.rawValue) { finishToolSwitch(pendingTool, resolution: .apply) }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 283,
+    "declaration": "Button(\"Discard Tool Edits & Switch\", role: .destructive) { finishToolSwitch(pendingTool, resolution: .discard) }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 285,
+    "declaration": "Button(\"Keep Editing\", role: .cancel) { pendingTool = nil }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 291,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 299,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 307,
+    "declaration": "if !retouch { Button(role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 338,
+    "declaration": "Button(\"Done\") { compactOptions = false }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 374,
+    "declaration": "Picker(\"Retouch mode\", selection: $retouchMode) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 379,
+    "declaration": "Slider(value: $brushDiameter, in: 0.005...0.25).accessibilityLabel(\"Brush size\")"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 382,
+    "declaration": "Picker(\"Interaction\", selection: $addingArea) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 387,
+    "declaration": "Picker(\"Effect\", selection: effectChoice) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 390,
+    "declaration": "Picker(\"Shape\", selection: shapeChoice) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 394,
+    "declaration": "Picker(\"Annotation\", selection: $kind) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 404,
+    "declaration": "Button { samplingSource.toggle() } label: {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 409,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 420,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 421,
+    "declaration": "Button(\"Zoom In\") { canvasZoom = min(4, canvasZoom * 1.25) }.disabled(canvasZoom >= 4)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 422,
+    "declaration": "Button(\"Zoom Out\") { canvasZoom = max(1, canvasZoom / 1.25) }.disabled(canvasZoom <= 1)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 423,
+    "declaration": "Button(\"Fit Photo\") { canvasZoom = 1 }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 428,
+    "declaration": "Menu { historyControls } label: { Image(systemName: \"clock.arrow.circlepath\") }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 432,
+    "declaration": "Button { apply(crop: true) } label: { Image(systemName: \"crop\") }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 436,
+    "declaration": "Button { model.photoToolOptionsVisible = false } label: { Image(systemName: \"xmark\") }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 463,
+    "declaration": "Picker(\"Retouch mode\", selection: $retouchMode) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 467,
+    "declaration": "Button(samplingSource ? \"Tap a source on the photo\" : \"Set Source\", systemImage: \"scope\") { samplingSource.toggle() }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 468,
+    "declaration": "if retouchMode == .heal && retouchSource != nil { Button(\"Auto\") { retouchSource = nil; destinationAnchor = nil } }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 473,
+    "declaration": "Slider(value: $brushDiameter, in: 0.005...0.25).accessibilityLabel(\"Brush diameter as percentage of shorter image edge\")"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 475,
+    "declaration": "Slider(value: $brushHardness, in: 0...1).accessibilityLabel(\"Brush hardness\")"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 477,
+    "declaration": "Slider(value: $brushOpacity, in: 0.05...1).accessibilityLabel(\"Brush opacity\")"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 478,
+    "declaration": "Toggle(\"Aligned source\", isOn: $alignedSource).disabled(retouchSource == nil).onChange(of: alignedSource) { _, _ in destinationAnchor = nil }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 481,
+    "declaration": "DisclosureGroup(\"Source Position\") {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 484,
+    "declaration": "TextField(\"X\", value: sourceCoordinate(\\.x), format: .percent.precision(.fractionLength(1)))"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 487,
+    "declaration": "TextField(\"Y\", value: sourceCoordinate(\\.y), format: .percent.precision(.fractionLength(1)))"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 506,
+    "declaration": "Button(role: .destructive) { var next = config.wrappedValue; next.retouchStrokes.removeAll { $0.id == stroke.id }; config.wrappedValue = next } label: { Image(systemName: \"trash\") }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 558,
+    "declaration": "Picker(\"Interaction\", selection: $addingArea) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 610,
+    "declaration": "Button(action: action) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 614,
+    "declaration": "Button(\"Delete\", role: .destructive) { session?.removeArea(id); reconcileSelection() }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 622,
+    "declaration": "Picker(addingArea ? \"New area effect\" : \"Selected area effect\", selection: effectChoice) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 625,
+    "declaration": "Picker(\"Shape\", selection: shapeChoice) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 629,
+    "declaration": "Picker(\"Annotation\", selection: $kind) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 747,
+    "declaration": "Toggle(\"Keep proportions\", isOn: $keepProportions)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 753,
+    "declaration": "DisclosureGroup("
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 763,
+    "declaration": "Button(\"Select & move\") { selected = mask.id; addingArea = false }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 768,
+    "declaration": "Slider(value: b.strength, in: 0...1, onEditingChanged: draftInteraction)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 771,
+    "declaration": "DisclosureGroup(\"Precise Transform\") { geometry(b.x, b.y, b.width, b.height, b.rotation) }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 772,
+    "declaration": "Button(\"Remove mask\", role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 782,
+    "declaration": "DisclosureGroup("
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 792,
+    "declaration": "Button(\"Select & move\") { selected = annotation.id; addingArea = false }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 796,
+    "declaration": "TextField(\"Text\", text: b.text)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 797,
+    "declaration": "Picker(\"Font\", selection: b.fontName) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 803,
+    "declaration": "Picker(\"Alignment\", selection: b.alignment) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 809,
+    "declaration": "DisclosureGroup(\"Precise Transform\") { geometry(b.x, b.y, b.width, b.height, b.rotation) }"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 811,
+    "declaration": "Slider(value: b.opacity, in: 0...1, onEditingChanged: draftInteraction)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 815,
+    "declaration": "Slider(value: b.lineWidth, in: 0.001...0.05, onEditingChanged: draftInteraction)"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 818,
+    "declaration": "Picker(\"Colour\", selection: b.colour) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 824,
+    "declaration": "Button(\"Remove annotation\", role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 832,
+    "declaration": "DisclosureGroup(\"Privacy guidance\") {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 1019,
+    "declaration": "Button(\"Delete Area\", role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 1057,
+    "declaration": "TextField(\"Rotation degrees\", value: r, format: .number.precision(.fractionLength(1)))"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 1066,
+    "declaration": "TextField("
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 136,
+    "declaration": "Button { model.choosePhotoInspector(task) } label: {"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 143,
+    "declaration": "Menu(\"Tools\", systemImage: \"slider.horizontal.3\") {"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 144,
+    "declaration": "ForEach(tools, id: \\.self) { task in Button(task.rawValue, systemImage: task.symbol) { model.choosePhotoInspector(task) } }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 169,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 176,
+    "declaration": "Button(\"Change Photos\u2026\") { model.selectPhotos(for: model.conversionInputIDs == nil ? .batch : .convert) }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 178,
+    "declaration": "Button(\"Keep Current Inputs\") { model.batchInputIDs = Set(model.targets.map(\\.id)); model.scope = .selected; model.persist() }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 180,
+    "declaration": "Button(\"Use Live Selection\") { model.batchInputIDs = nil; model.scope = .selected; model.persist() }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 181,
+    "declaration": "Button(\"Use Entire Workspace\") { model.batchInputIDs = nil; model.scope = .all; model.persist() }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 182,
+    "declaration": "Button(\"Use Filter Results\") { model.batchInputIDs = nil; model.scope = .results; model.persist() }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 184,
+    "declaration": "if !model.edits.overrides.isEmpty { Button(\"Review Individual Changes\") { model.showLibrary(.exceptions, clearSearch: true) } }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 226,
+    "declaration": "Button { model.undoActiveWorkspace() } label: { Image(systemName: \"arrow.uturn.backward\") }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 228,
+    "declaration": "Button { model.redoActiveWorkspace() } label: { Image(systemName: \"arrow.uturn.forward\") }"
+  },
+  {
+    "file": "SharedUI/PanelComponents.swift",
+    "line": 281,
+    "declaration": "Slider(value: $value, in: range, onEditingChanged: interaction).accessibilityLabel(title)"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 19,
+    "declaration": "Picker(\"Manage\", selection: $section) {"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 30,
+    "declaration": "TextField(\"Project name\", text: $model.projectName)"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 34,
+    "declaration": "Button(\"Save project copy\") {"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 43,
+    "declaration": "ShareLink(item: saved) {"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 47,
+    "declaration": "Button(\"New project\") {"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 53,
+    "declaration": "Button(\"Close Project\") { Task { await model.closeProject(); reload() } }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 55,
+    "declaration": "Button(\"Open project instructions\u2026\") { open = true }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 57,
+    "declaration": "Button(\"Relink \" + (model.assets.first { $0.id == (model.relinkSourceID ?? model.selected) }?.name ?? \"selected source\") + \"\u2026\") { relink = true }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 66,
+    "declaration": "Button(\"Free Unused Working Copies\") { Task { do { let count = try await model.freeUnusedWorkingCopies(); model.status = \"Freed \\(count) unused working copies.\"; await refreshStorage() } catch { storageError = error.localizedDescription } } }.disabled(model.clearingWorkspace || model.isImporting || model.sourceAcquisitions > 0 || model.running || model.gifExporting || model.collageGenerating)"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 67,
+    "declaration": "Button(\"Clear Workspace & Creations\u2026\", role: .destructive) { confirmClear = true }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 80,
+    "declaration": "Toggle(\"Private Editing Mode\", isOn: $model.privateEditing)"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 81,
+    "declaration": "Toggle(\"Skip duplicate imports\", isOn: $model.skipDuplicates)"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 83,
+    "declaration": "Button(\"Conceal Workspace\", systemImage: \"eye.slash\") { model.concealed = true }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 89,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 102,
+    "declaration": "Button(\"Done\") { dismiss() }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 123,
+    "declaration": "Button(\"Clear Workspace & Creations\", role: .destructive) { Task { await model.clearImportedPhotos(); reload(); await refreshStorage() } }"
+  },
+  {
+    "file": "SharedUI/ProjectsView.swift",
+    "line": 124,
+    "declaration": "Button(\"Cancel\", role: .cancel) {}"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 18,
+    "declaration": "Button(\"Check all photos\") {"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 22,
+    "declaration": "Button(\"Check selected\") {"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 33,
+    "declaration": "Button(\"Cancel check\") { model.sensitivityTask?.cancel() }"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 36,
+    "declaration": "Button(\"Show flagged photos (\\(model.sensitivity.flagged.count))\") {"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 41,
+    "declaration": "Button(\"Clear temporary review flags\") { model.clearSensitivityReview() }"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 58,
+    "declaration": "Toggle("
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 66,
+    "declaration": "Button(\"Reveal & Edit with Privacy Tool\", systemImage: \"eye.slash\") {"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 69,
+    "declaration": "Button(\"Reveal & Crop\", systemImage: \"crop\") {"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 77,
+    "declaration": "Button(\"Done\") { dismiss() }"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 94,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/SensitiveReviewView.swift",
+    "line": 109,
+    "declaration": "Button(\"Show photo\") { model.sensitivity.revealed.formUnion(ids) }.buttonStyle("
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 45,
+    "declaration": "DisclosureGroup(checkBeforeSharing ? \"On-device check enabled\" : \"Optional sensitive-content check\", isExpanded: $showsCheck) {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 50,
+    "declaration": "Toggle(\"Check before sharing\", isOn: $checkBeforeSharing).disabled("
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 53,
+    "declaration": "Button(\"Check final images\") { scanOutputs() }.disabled(checking)"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 56,
+    "declaration": "Button(\"Cancel check\") { checkTask?.cancel() }"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 59,
+    "declaration": "Button(\"Continue with manual review\") {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 82,
+    "declaration": "Button(session.revealed.contains(url) ? \"Conceal preview\" : \"Show final image\") {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 85,
+    "declaration": "Toggle("
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 93,
+    "declaration": "Button(\"Approve \\(session.included.count) \\(session.included.count == 1 ? \"File\" : \"Files\")\") { session.approve() }.disabled("
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 97,
+    "declaration": "Button(\"Export Reviewed Files\u2026\", systemImage: \"folder\") { choosingFolder = true }.disabled(copying)"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 100,
+    "declaration": "Button(\"Cancel File Export\") { copyTask?.cancel() }"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 102,
+    "declaration": "ShareLink(items: chosen) {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 106,
+    "declaration": "Button(\"Save reviewed images to Photos\") {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 122,
+    "declaration": "if first.pathExtension.lowercased() != \"gif\" { Button(\"Copy processed image\") { copy(first) } }"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 124,
+    "declaration": "Button(\"Reveal in Finder\") {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 132,
+    "declaration": "Button(\"Done\") { dismiss() }"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 262,
+    "declaration": "Button { model.latestExport = nil } label: { Image(systemName: \"xmark\") }"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 274,
+    "declaration": "Button(\"Review & Share\", systemImage: \"square.and.arrow.up\") {"
+  },
+  {
+    "file": "SharedUI/ShareReview.swift",
+    "line": 278,
+    "declaration": "Button(\"Show in Finder\", systemImage: \"folder\") {"
+  },
+  {
+    "file": "SharedUI/SourceRecoveryView.swift",
+    "line": 17,
+    "declaration": "Button(\"Choose Photo\u2026\", systemImage: \"folder\") { choosingFile = true }.disabled(working || model.running || model.gifExporting || model.collageGenerating)"
+  },
+  {
+    "file": "SharedUI/SourceRecoveryView.swift",
+    "line": 29,
+    "declaration": ".toolbar { Button(\"Cancel\") { dismiss() }.disabled(working) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 13,
+    "declaration": "Toggle("
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 26,
+    "declaration": "Button(\"Cancel\") { dismiss() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 27,
+    "declaration": "Button(\"Copy\") {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 77,
+    "declaration": "Button(\"I\u2019ve Checked the Mask Coverage\") { model.confirmPrivacyCoverage(asset.id) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 127,
+    "declaration": "Button { openSettings?() } label: { Image(systemName: \"arrow.up.left.and.arrow.down.right\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 130,
+    "declaration": "Button { inlineControls = false; if model.precision { model.precision = false } } label: { Image(systemName: \"xmark\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 148,
+    "declaration": "Button(\"Open Workspace\", systemImage: \"square.grid.2x2\") { model.showLibrary() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 162,
+    "declaration": "Button { model.undo() } label: { Image(systemName: \"arrow.uturn.backward\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 164,
+    "declaration": "if sizeClass != .compact { Button { model.redo() } label: { Image(systemName: \"arrow.uturn.forward\") }.comfortableHitTarget().disabled(!model.canRedo).accessibilityLabel(model.redoActionTitle) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 167,
+    "declaration": "Toggle(isOn: $original) { Image(systemName: \"square.on.square\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 172,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 173,
+    "declaration": "if typeSize.isAccessibilitySize { Toggle(\"Show Original\", isOn: $original) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 186,
+    "declaration": "Button { model.choosePhotoInspector(.adjust) } label: { Image(systemName: \"chevron.left\") }.comfortableHitTarget().accessibilityLabel(\"Back to editing tools\")"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 187,
+    "declaration": "Button(\"Filter settings\u2026\") { filterSettings = true }.frame(maxWidth: .infinity)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 215,
+    "declaration": ".toolbar { Button(\"Done\") { filterSettings = false } }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 222,
+    "declaration": ".toolbar { Button(\"Done\") { expandedCrop = false } }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 228,
+    "declaration": "Button(\"Restore Original\", role: .destructive) {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 233,
+    "declaration": "Button(\"Cancel\", role: .cancel) { restorePhotoID = nil }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 245,
+    "declaration": "Button { model.showLibrary() } label: { Image(systemName: \"square.grid.2x2\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 250,
+    "declaration": "Toggle(\"Original\", isOn: $original).toggleStyle(.button).comfortableHitTarget()"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 263,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 264,
+    "declaration": "Button(\"Back to Workspace\", systemImage: \"square.grid.2x2\") { model.showLibrary() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 265,
+    "declaration": "ForEach(model.openEditorPhotos) { photo in Button(photo.name) { model.activateEditorTab(photo.id) } }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 268,
+    "declaration": "Button(\"Open Another Photo\u2026\") { model.showLibrary() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 269,
+    "declaration": "Button(\"Close This Photo; Keep Edits\") { model.closeEditorTab(asset.id) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 270,
+    "declaration": "if typeSize.isAccessibilitySize { Toggle(\"Show Original\", isOn: $original) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 279,
+    "declaration": "Toggle(isOn: $original) { Image(systemName: \"square.on.square\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 287,
+    "declaration": "Button(\"Workspace\", systemImage: \"square.grid.2x2\") { model.showLibrary() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 294,
+    "declaration": "Toggle(\"Original\", isOn: $original).toggleStyle(.button)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 299,
+    "declaration": "Button { model.navigate(-1) } label: { Image(systemName: \"chevron.left\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 303,
+    "declaration": "Button { model.navigate(1) } label: { Image(systemName: \"chevron.right\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 311,
+    "declaration": "Menu(\"Edits\", systemImage: \"ellipsis.circle\") { editMenuActions(asset) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 314,
+    "declaration": "Button(\"Copy Chosen Edits\u2026\") { model.copySourceID = asset.id }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 315,
+    "declaration": "Button(\"Paste Chosen Edits\") { model.pasteEdits(to: [asset.id]) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 318,
+    "declaration": "Button(\"Undo History\u2026\", systemImage: \"clock.arrow.circlepath\") { model.historyPresented = true }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 319,
+    "declaration": "Button(model.undoActionTitle) { model.undo() }.disabled(!model.canUndo)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 320,
+    "declaration": "Button(model.redoActionTitle) { model.redo() }.disabled(!model.canRedo)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 325,
+    "declaration": "Button(\"Restore Original\u2026\", systemImage: \"arrow.uturn.backward\") { restorePhotoID = asset.id }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 338,
+    "declaration": "Button(\"Use Current Edits Only\") { model.exportProfiles = []; model.persist() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 356,
+    "declaration": "Button(\"Preview \" + profile.name) {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 396,
+    "declaration": "Picker(\"Output profile\", selection: $model.previewProfileID) {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 400,
+    "declaration": "Button(\"Previous\") { sampleIndex = max(0, sampleIndex - 1) }.disabled(sampleIndex == 0)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 402,
+    "declaration": "Button(\"Next\") { sampleIndex = min(max(0, model.targets.count - 1), sampleIndex + 1) }.disabled(sampleIndex + 1 >= model.targets.count)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 417,
+    "declaration": "}.padding().navigationTitle(\"Output Preview\").toolbar { Button(\"Done\") { dismiss() } }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 450,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 452,
+    "declaration": "Button { model.activateEditorTab(photo.id) } label: {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 457,
+    "declaration": "Button(\"Find Open Photo\u2026\", systemImage: \"magnifyingglass\") { findingPhotos = true }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 458,
+    "declaration": "Button(\"Open Another Photo\u2026\", systemImage: \"plus\") { model.showLibrary() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 464,
+    "declaration": "Button { model.closeEditorTab(id) } label: { Image(systemName: \"xmark\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 474,
+    "declaration": "Button { model.activateEditorTab(photo.id) } label: {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 479,
+    "declaration": "Button { model.closeEditorTab(photo.id) } label: {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 494,
+    "declaration": "Button(\"Close Photo\") { model.closeEditorTab(photo.id) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 495,
+    "declaration": "Button(\"Close Other Photos\") { model.closeOtherEditorTabs(keeping: photo.id) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 498,
+    "declaration": "Button { findingPhotos = true } label: { Image(systemName: \"list.bullet\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 500,
+    "declaration": "Button { model.showLibrary() } label: { Image(systemName: \"plus\") }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 523,
+    "declaration": "Button {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 533,
+    "declaration": "Button(\"Close Photo\") { model.closeEditorTab(asset.id) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 534,
+    "declaration": "Button(\"Close Other Photos\") { model.closeOtherEditorTabs(keeping: asset.id); dismiss() }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 538,
+    "declaration": ".toolbar { Button(\"Done\") { dismiss() } }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 565,
+    "declaration": "Menu(\"Tools\", systemImage: \"slider.horizontal.3\") { toolActions(asset) }"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 571,
+    "declaration": "Menu {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 585,
+    "declaration": "Menu(\"More\", systemImage: \"ellipsis\") {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 599,
+    "declaration": "Button(tool == .crop && sizeClass == .compact ? \"Crop\" : tool.rawValue, systemImage: tool.symbol) {"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 607,
+    "declaration": "HStack { Text(tool.rawValue).font(.headline); Spacer(); Button(\"Done\") { optionsTool = nil } }.padding(12)"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 616,
+    "declaration": "Button { activateTool(tool, asset) } label: {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 42,
+    "declaration": "Button(\"Edit Photo\") { model.openPhoto(asset) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 43,
+    "declaration": "Button(\"Retouch Photo\") { model.performTask(.retouch, ids: [id]) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 44,
+    "declaration": "Button(\"Censor Photo\") { model.openOverlayEditor(for: asset) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 46,
+    "declaration": "Button(\"Apply Filter to Selected\u2026\") { model.presentFilterBatch(ids) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 47,
+    "declaration": "Button(\"Auto Enhance \\(photoCount)\") { model.setAutoEnhance(true, targetIDs: Set(ids)) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 48,
+    "declaration": "Button(\"Batch Edit \\(photoCount)\") { model.beginBatch(ids: ids) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 49,
+    "declaration": "Button(\"Convert \\(photoCount)\") { model.beginConversion(ids: ids) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 50,
+    "declaration": "Button(\"Create GIF from \\(photoCount)\") { model.startGIF(ids: ids) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 51,
+    "declaration": "Button(\"Create Collage from \\(photoCount)\") {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 54,
+    "declaration": "Button(\"Export & Share \\(photoCount)\") {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 61,
+    "declaration": "Button(\"Remove \\(photoCount) from Workspace\", role: .destructive) { model.removeFromWorkspace(ids) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 84,
+    "declaration": "DatePicker(\"From\", selection: $model.workspaceFilter.start, displayedComponents: .date)"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 85,
+    "declaration": "DatePicker(\"Through\", selection: $model.workspaceFilter.end, in: model.workspaceFilter.start..., displayedComponents: .date)"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 96,
+    "declaration": "Button(\"Cancel\") { model.finishGIFSelection(cancel: true) }.fixedSize(horizontal: false, vertical: true)"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 97,
+    "declaration": "Button(context.task != .gif ? context.task.rawValue : context.adding ? \"Add Photos\" : context.replacingFrame != nil ? \"Replace Photo\" : \"Create GIF\") { model.finishGIFSelection(cancel: false) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 100,
+    "declaration": "var searchField: some View { TextField(\"Search photos\", text: $model.query).accessibilityHint(\"Search filenames and locally recognised content\").textFieldStyle(.roundedBorder) }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 102,
+    "declaration": "Menu(\"Filters\", systemImage: \"line.3.horizontal.decrease.circle\") {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 103,
+    "declaration": "Picker(\"Workspace filter\", selection: $model.library) { ForEach(LibraryScope.allCases, id: \\.self) { Text($0.rawValue).tag($0) } }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 104,
+    "declaration": "Picker(\"Date\", selection: $model.workspaceFilter.period) { ForEach(WorkspaceFilter.Period.allCases, id: \\.self) { Text($0.rawValue).tag($0) } }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 105,
+    "declaration": "Picker(\"Orientation\", selection: $model.workspaceFilter.orientation) { ForEach(WorkspaceFilter.Orientation.allCases, id: \\.self) { Text($0.rawValue).tag($0) } }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 106,
+    "declaration": "Picker(\"Format\", selection: $model.workspaceFilter.format) {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 110,
+    "declaration": "Picker(\"Sort\", selection: $model.workspaceFilter.sort) { ForEach(WorkspaceFilter.Sort.allCases, id: \\.self) { Text($0.rawValue).tag($0) } }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 111,
+    "declaration": "Button(\"Clear filters\") { model.workspaceFilter = WorkspaceFilter(); model.library = .all; model.query = \"\" }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 192,
+    "declaration": "Picker(\"Collection\",selection:$collection) { ForEach(FilterCollection.allCases,id:\\.self){Text($0.rawValue).tag($0)} }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 193,
+    "declaration": "Picker(\"Filter\",selection:$presetID) {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 201,
+    "declaration": "Button(\"Cancel Remaining\") { task?.cancel() }"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 206,
+    "declaration": "Button(\"Retry Failed or Skipped\u2026\") {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 212,
+    "declaration": "Button(\"Apply Filter\") {"
+  },
+  {
+    "file": "SharedUI/WorkspaceActions.swift",
+    "line": 223,
+    "declaration": ".toolbar { Button(running ? \"Cancel\" : \"Done\") { if running { task?.cancel() } else { dismiss() } } }"
+  },
+  {
+    "file": "Apps/iOS/FramepebbleIOSApp.swift",
+    "line": 547,
+    "declaration": "}.dropDestination(for: URL.self) { urls, _ in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 150,
+    "declaration": ".gesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "Apps/macOS/FramepebbleMacApp.swift",
+    "line": 251,
+    "declaration": ".onDrop(of: BrowserDropImporter.acceptedTypes, isTargeted: nil) { providers in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 508,
+    "declaration": ".draggable(\"ameluma-collage:\" + id.uuidString)",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 509,
+    "declaration": ".dropDestination(for: String.self) { values, _ in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 513,
+    "declaration": ".contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 553,
+    "declaration": ".onTapGesture { point in selected=hit(point,in:proxy.size)?.id }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 554,
+    "declaration": ".gesture(DragGesture(minimumDistance:4).onChanged { gesture in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 576,
+    "declaration": ".simultaneousGesture(MagnifyGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 594,
+    "declaration": ".dropDestination(for: String.self) { values, point in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 618,
+    "declaration": ".highPriorityGesture(DragGesture(minimumDistance: 1, coordinateSpace: .named(\"CollageCanvas\")).onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 629,
+    "declaration": ".highPriorityGesture(DragGesture(minimumDistance: 1, coordinateSpace: .named(\"CollageCanvas\")).onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageEditor.swift",
+    "line": 752,
+    "declaration": ".draggable(\"ameluma-cell:\" + cell.id.uuidString)",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollageGallery.swift",
+    "line": 86,
+    "declaration": "}.buttonStyle(.plain).contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/CollagePhotoPicker.swift",
+    "line": 34,
+    "declaration": "}.buttonStyle(.plain).draggable(asset.id.uuidString).accessibilityLabel(asset.name).accessibilityValue(selection.contains(asset.id) ? \"Selected\" : \"Not selected\")",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 121,
+    "declaration": ".gesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 125,
+    "declaration": ".simultaneousGesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 457,
+    "declaration": ".gesture(cropGesture(scale: scale, handle: nil))",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 472,
+    "declaration": ".gesture(cropGesture(scale: scale, handle: CGPoint(x: x, y: y)))",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 558,
+    "declaration": ".simultaneousGesture(MagnifyGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 562,
+    "declaration": ".onTapGesture(count: 2) { zoom = zoom > 1 ? 1 : 2 }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 586,
+    "declaration": "}.simultaneousGesture(MagnifyGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 699,
+    "declaration": ".contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 708,
+    "declaration": ".gesture(DragGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 719,
+    "declaration": ".highPriorityGesture(DragGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/FramingViews.swift",
+    "line": 735,
+    "declaration": ".highPriorityGesture(DragGesture(coordinateSpace: .named(\"WatermarkCanvas\")).onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 313,
+    "declaration": ".contextMenu { frameActions(frame, index: index) }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 314,
+    "declaration": ".draggable(frame.id.uuidString)",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 315,
+    "declaration": ".dropDestination(for: String.self) { ids, _ in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 561,
+    "declaration": ".gesture(DragGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/GIFEditor.swift",
+    "line": 570,
+    "declaration": ".gesture(DragGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 784,
+    "declaration": ".onKeyPress(.upArrow, phases: [.down, .repeat]) { press in model.setFilterIntensity((current?.intensity ?? 0.7)+(press.modifiers.contains(.shift) ? 0.10 : 0.01)); return .handled }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 785,
+    "declaration": ".onKeyPress(.downArrow, phases: [.down, .repeat]) { press in model.setFilterIntensity((current?.intensity ?? 0.7)-(press.modifiers.contains(.shift) ? 0.10 : 0.01)); return .handled }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 866,
+    "declaration": ".onKeyPress(.space) { model.filterComparisonActive.toggle(); return .handled }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 867,
+    "declaration": ".onKeyPress(.return) { model.filterComparisonActive.toggle(); return .handled }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/Inspectors.swift",
+    "line": 893,
+    "declaration": ".onKeyPress(keys:[.leftArrow,.rightArrow,.upArrow,.downArrow,.return,.space],phases:.down) { press in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 454,
+    "declaration": ".onTapGesture { if model.mode != .browse && !model.selecting { model.select(asset, extending: false, range: false) } }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 455,
+    "declaration": ".onTapGesture(count: 2) { if model.gifSelectionContext == nil { model.openPhoto(asset, refine: !model.browsingLibrary) } else { model.select(asset) } }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 457,
+    "declaration": ".onTapGesture(count: 2) { if model.gifSelectionContext == nil { model.openPhoto(asset, refine: !model.browsingLibrary) } else { model.select(asset) } }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 458,
+    "declaration": ".onTapGesture {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 475,
+    "declaration": ".contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 602,
+    "declaration": ".simultaneousGesture(TapGesture().onEnded { galleryFocused = true })",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 603,
+    "declaration": ".onKeyPress(.leftArrow) { model.navigate(-1); return .handled }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 604,
+    "declaration": ".onKeyPress(.rightArrow) { model.navigate(1); return .handled }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/LibraryViews.swift",
+    "line": 605,
+    "declaration": ".onKeyPress(characters: CharacterSet(charactersIn: \"a\")) { key in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 262,
+    "declaration": ".onExitCommand { cancel() }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 263,
+    "declaration": ".onDeleteCommand { if canvasFocused && !addingArea && !retouch { deleteSelected() } }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 583,
+    "declaration": "}.highPriorityGesture(MagnifyGesture().onChanged { value in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 613,
+    "declaration": "}.buttonStyle(.plain).contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 643,
+    "declaration": ".onTapGesture { resumeDrawingOnEmptyCanvas() }",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 675,
+    "declaration": "}.coordinateSpace(name: \"overlayCanvas\").contentShape(Rectangle()).gesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 720,
+    "declaration": ".onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow], phases: [.down, .repeat, .up]) { key in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 910,
+    "declaration": ".contentShape(Rectangle()).onTapGesture {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 914,
+    "declaration": ".gesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 946,
+    "declaration": ".gesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 981,
+    "declaration": ".gesture(",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/OverlayEditor.swift",
+    "line": 1018,
+    "declaration": ".contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 104,
+    "declaration": ".simultaneousGesture(TapGesture().onEnded { previewFocused = true })",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 105,
+    "declaration": ".onKeyPress(\"m\", phases: [.down, .up]) { press in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 111,
+    "declaration": ".onKeyPress(.leftArrow) {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 115,
+    "declaration": ".onKeyPress(.rightArrow) {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 488,
+    "declaration": ".draggable(\"ameluma-tab:\" + photo.id.uuidString)",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 489,
+    "declaration": ".dropDestination(for: String.self) { values, _ in",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 493,
+    "declaration": ".contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  },
+  {
+    "file": "SharedUI/WorkflowViews.swift",
+    "line": 532,
+    "declaration": "}.buttonStyle(.plain).contextMenu {",
+    "kind": "Gesture / shortcut / context entry"
+  }
+]

@@ -1,0 +1,84 @@
+{
+  "reviewDate": "2026-10-17",
+  "macCaptureDate": "2026-10-17",
+  "mobileCaptureDate": "2026-10-16",
+  "mobileRecapture": "Unavailable destinations; no fresh mobile captures claimed",
+  "appImages": [
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-Hero-Filters.png"
+    },
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-Hero-Adjust.png"
+    },
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-Hero-Retouch.png"
+    },
+    {
+      "platform": "ipad",
+      "filename": "Demo-iPad-Hero-Filters.png"
+    },
+    {
+      "platform": "ipad",
+      "filename": "Demo-iPad-Hero-Filters-portrait.png"
+    },
+    {
+      "platform": "ipad",
+      "filename": "Demo-iPad-Hero-Retouch.png"
+    },
+    {
+      "platform": "ipad",
+      "filename": "Demo-iPad-Hero-Adjust-portrait.png"
+    },
+    {
+      "platform": "ipad",
+      "filename": "Demo-iPad-Hero-Retouch-portrait.png"
+    },
+    {
+      "platform": "phone",
+      "filename": "Demo-iPhone-Hero-Filters.png"
+    },
+    {
+      "platform": "phone",
+      "filename": "Demo-iPhone-Hero-Adjust.png"
+    },
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-Browse.png"
+    },
+    {
+      "platform": "phone",
+      "filename": "Demo-iPhone-Browse.png"
+    },
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-Batch-Frame.png"
+    },
+    {
+      "platform": "ipad",
+      "filename": "Demo-iPad-Batch-Frame-portrait.png"
+    },
+    {
+      "platform": "phone",
+      "filename": "Demo-iPhone-Batch-Frame.png"
+    },
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-GIF.png"
+    },
+    {
+      "platform": "phone",
+      "filename": "Demo-iPhone-GIF.png"
+    },
+    {
+      "platform": "mac",
+      "filename": "Demo-Mac-Collage.png"
+    },
+    {
+      "platform": "phone",
+      "filename": "Demo-iPhone-Collage.png"
+    }
+  ]
+}

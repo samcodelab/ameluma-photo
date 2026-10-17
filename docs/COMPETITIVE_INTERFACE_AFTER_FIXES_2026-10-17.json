@@ -1,0 +1,560 @@
+{
+  "date": "2026-10-17",
+  "originalReview": "COMPETITIVE_INTERFACE_REVIEW_2026-10-17.html",
+  "uncommittedWorkingTree": true,
+  "scope": "implementation-follow-up, no parity claim",
+  "findings": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "platforms": [
+        "mac",
+        "ipad"
+      ],
+      "title": "Floating controls still lack a placement contract",
+      "evidence": "The iPad landscape-photo capture shows the Adjust card covering the upper-right photograph. Retouch uses the same top-right location even though its rail button is farther down. The card has no visible drag handle. WorkflowViews.swift and OverlayEditor.swift use fixed topTrailing overlays.",
+      "impact": "The controls can obscure the area being inspected or retouched; hiding them trades visibility of the photo for access to settings. The surface looks floating but behaves as a fixed overlay.",
+      "recommendation": "Use one small panel-placement policy: default adjacent to the active tool, provide a visible grip and a few safe edge positions, and offer an explicit pinned inspector. Preserve position per orientation. Keep the photo geometry unchanged.",
+      "acceptance": "Open Adjust, Retouch and Privacy on landscape and portrait photos; reveal every covered corner without closing the active tool. Rotation, keyboard appearance and tool changes must not lose edits or put the card off-screen.",
+      "source": "SharedUI/WorkflowViews.swift; SharedUI/OverlayEditor.swift",
+      "confidence": "Confirmed layout/source; reachability impact is a usability inference.",
+      "status": "Implemented; placement gestures need live signoff",
+      "implementedChange": "Floating panels now have a visible grip, safe corner choices and a Pin Settings action. The default follows the tool rail; orientation-specific placement is retained. Dragging or choosing a corner changes presentation only.",
+      "remainingAcceptance": "A default capture proves the grip/header and initial location, not reachability after every rotation, keyboard change or drag."
+    },
+    {
+      "id": "R2",
+      "priority": "P1",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "The editor still has two visibly different commit models",
+      "evidence": "Adjust and Filters update saved edit state directly. Retouch, Privacy and annotations present Cancel/Apply and prompt when switching out of a modified draft. The fresh phone Retouch capture shows the transaction toolbar; ordinary Adjust shows Back and Share.",
+      "impact": "A unified toolbox does not yet imply a unified interaction contract. Users must learn when Back preserves edits, when Apply is needed and what switching tools will do.",
+      "recommendation": "Keep the safe draft contract. Make \u201cRetouch \u00b7 Unapplied\u201d or an equally concise state explicit beside Apply and explain the pending-change choice consistently. Do not silently auto-commit masks to avoid a dialog. Assess a unified edit session only as a separately specified change.",
+      "acceptance": "A first-time tester can predict Back, Cancel, Apply and tool switching after a stroke, a caption and an exposure change. Undo groups remain intact and no protected overlay disappears.",
+      "source": "SharedUI/OverlayEditor.swift; SharedUI/WorkflowViews.swift",
+      "confidence": "Confirmed source and captures; novice confusion requires user testing.",
+      "status": "Implemented without removing draft safety",
+      "implementedChange": "Retouch, Privacy and Annotate show their tool-specific Draft/Unapplied state in the document header or a compact canvas badge. Apply, Cancel and draft history remain explicit. Exposure/filter edits keep their established immediate-save model.",
+      "remainingAcceptance": "This makes the two transaction models visible; it does not unify them. Predicting Apply/Cancel/switch behavior still needs first-time-user testing."
+    },
+    {
+      "id": "R3",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "The filter browser gives inactive controls too much space",
+      "evidence": "With Original selected, the phone and portrait-iPad captures still devote rows to a disabled 70% intensity and Remove Filter. On Mac the intensity block sits at the bottom, far below the six preset tiles.",
+      "impact": "A simple \u201ctry a look\u201d task carries more control chrome than the reference preset strip, and the selected look and its amount feel separated on large panels.",
+      "recommendation": "Keep the photographic strip and fixed Back-to-Tools item. Use a compact Original state; reveal or emphasize amount only for a creative preset. Keep Auto Enhance independent and easy to reach. Bound the desktop browser to its content so the amount block follows the grid rather than a large flexible gap. Avoid moving the tile grid during selection.",
+      "acceptance": "Original, an available preset, an unavailable saved preset and mixed batch filters are all understandable. Switching at 320/390-point widths must not clip labels, jump keyboard focus or create a second preset browser.",
+      "source": "SharedUI/Inspectors.swift: PhotoLooksPicker",
+      "confidence": "Confirmed captures and layout; proposed hierarchy needs prototype validation.",
+      "status": "Implemented; representative states captured",
+      "implementedChange": "Original no longer displays an irrelevant disabled 70% amount or Remove Filter row. Auto Enhance remains independent. Amount appears for creative presets, legacy and unavailable filters remain removable, and the desktop browser is bounded and top-aligned so controls follow the grid.",
+      "remainingAcceptance": "The tile grid keeps its identity. Available-preset, unknown-recipe and mixed-state logic has regression coverage; not every state is illustrated."
+    },
+    {
+      "id": "R4",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "Icon economy has outpaced sighted discoverability",
+      "evidence": "The overlapping-squares comparison button can read as Copy; a magnifying glass opens viewing options; the sliders symbol both selects Adjust and opens all adjustment controls. Portrait iPad presents nine tools as icon-only controls.",
+      "impact": "The accessibility names are valuable, but a touch user who does not know the symbols still has to experiment. Smaller controls alone do not create polish.",
+      "recommendation": "Keep familiar icons, add a touch-and-hold tool-name helper and pointer tooltips, and give the compact details button a distinct label such as \u201cAll Adjustments.\u201d Show a brief \u201cBefore Retouch\u201d or \u201cOriginal preview\u201d state when comparison is active. Preserve full VoiceOver names.",
+      "acceptance": "Without instructions, testers can identify Compare, tool details, output settings and viewing zoom. Enabled tools remain distinguishable in light/dark and Increase Contrast.",
+      "source": "SharedUI/WorkflowViews.swift; SharedUI/FramingViews.swift; SharedUI/OverlayEditor.swift",
+      "confidence": "Confirmed symbol reuse; comprehension is a testable design judgment.",
+      "status": "Implemented; comprehension remains testable",
+      "implementedChange": "Tool-name helpers supplement existing pointer help and accessibility names. All Adjustments uses a distinct list icon and a label where space permits. Comparison states say Before Filter, Before Retouch or Original preview rather than silently changing the document.",
+      "remainingAcceptance": "The compact phone details control remains icon-sized to preserve slider length. Touch-and-hold discovery and VoiceOver traversal need hands-on review."
+    },
+    {
+      "id": "R5",
+      "priority": "P2",
+      "platforms": [
+        "ipad",
+        "phone"
+      ],
+      "title": "Primary actions, selections and utilities compete in blue",
+      "evidence": "Mobile Adjust shows blue parameter selection, Auto, details, viewing options and several navigation commands around the photo. GIF adds another row of blue Add Photos, Export, frame actions and order controls.",
+      "impact": "The interface has an identifiable accent but a weak action hierarchy. The eye meets many similarly emphasized controls before the next useful action.",
+      "recommendation": "Use native primary/secondary styling deliberately: accent for the selected tool and final action, neutral high-contrast treatment for routine utilities, and consistent emphasis for destructive operations. Keep conventional Back/Share behavior; do not recolor indiscriminately or reduce touch targets.",
+      "acceptance": "In both appearances the selected tool and final action are obvious without relying only on color; secondary controls remain readable and accessible.",
+      "source": "SharedUI/PanelComponents.swift; SharedUI/GIFEditor.swift; SharedUI/WorkflowViews.swift",
+      "confidence": "Visual hierarchy judgment, not a measured contrast failure.",
+      "status": "Implemented as a hierarchy pass",
+      "implementedChange": "Routine view, sampling and details utilities use neutral readable styling. Selected tools and final Apply/Export retain stronger emphasis; conventional Back and Share remain native. Destructive actions retain their explicit role.",
+      "remainingAcceptance": "This is a visual hierarchy change, not evidence of measured contrast compliance. Increase Contrast and different appearances still require device checks."
+    },
+    {
+      "id": "R6",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "Creation workspaces still feel like a separate UI family",
+      "evidence": "Single-photo editing uses a rail/dock; GIF uses a second command row, transport, frame actions and Options; collage uses Canvas/Photo/Output navigation. On landscape iPad, collage repeats its title in a separate composition-tab band above another action row, consuming considerably more vertical chrome than the photo editor. Phone GIF exposes a global + as well as local Add Photos. Their responsibilities can differ, but that distinction is not visible in the screenshot.",
+      "impact": "Users relearn where to add photos, find details, export and return when moving from editing to creation.",
+      "recommendation": "Share visual conventions for document title/Back, Add Photos, history and Export while retaining task-specific frame and canvas controls. Use a labeled local Add Photos action and move generic import/new commands into a contextual menu when appropriate. Reuse existing sources and captured inputs, not a new coordinator.",
+      "acceptance": "Edit \u2192 GIF \u2192 Collage uses predictable command locations. Global import and adding frames are distinguishable; Cancel never destroys an unfinished creation.",
+      "source": "SharedUI/GIFEditor.swift; SharedUI/CollageEditor.swift; Apps/iOS/FramepebbleIOSApp.swift",
+      "confidence": "Confirmed layout differences; global/local + ambiguity needs task testing.",
+      "status": "Implemented while preserving task-specific controls",
+      "implementedChange": "Creation workspaces align document, history, Add Photos and output conventions. Landscape iPad no longer spends a separate repeated band on a single collage tab; multiple compositions and Mac tabs are preserved. Generic import/new commands are separated from adding creation photos.",
+      "remainingAcceptance": "GIF frames and collage cells appropriately retain different editing controls. They are not flattened into a generic coordinator."
+    },
+    {
+      "id": "R7",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "Batch scope is safe, but its presentation is repetitive",
+      "evidence": "The populated batch view can show \u201c8 inputs,\u201d \u201cInputs (8)\u201d and \u201c8 selected\u201d simultaneously. Every captured input carries a strong blue border and check, while the focused photo has an additional surface and framing marks.",
+      "impact": "Selection, focus and operation membership are correctly separate internally, but the visual vocabulary requires interpretation and creates repeated chrome.",
+      "recommendation": "Lead with \u201cEditing 8 photos\u201d and a single Change Inputs command. Show selection and hidden-selection details when relevant or different. Keep checks for selection, use a distinct subdued focus treatment, and reserve prominent framing/coverage warnings for actual review needs.",
+      "acceptance": "Select another photo, filter it out and refine one input: users can state exactly what the next export will affect. The captured IDs must remain unchanged until explicitly edited.",
+      "source": "SharedUI/LibraryViews.swift; SharedUI/WorkspaceActions.swift",
+      "confidence": "Confirmed captures; hierarchy recommendation preserves existing safety model.",
+      "status": "Implemented; operation scope unchanged",
+      "implementedChange": "The batch heading leads with Editing N photos and a clear Change Inputs action. Repeated membership/selection counts are reduced when they describe the same set; selection, focus and captured inputs remain distinct.",
+      "remainingAcceptance": "No reduction in labels permits a live selection change to alter captured operation inputs. Native unfamiliar-user comprehension remains a validation task."
+    },
+    {
+      "id": "R8",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "Routine restoration feedback becomes permanent furniture",
+      "evidence": "\u201cRestored 27 images\u201d persists in the browse and batch captures and at the bottom of some Mac inspector layouts. It is accurate but unrelated to the current editing decision.",
+      "impact": "Status text consumes a separate band and can look like a stale operation. Recent success and current task identity are not clearly separated.",
+      "recommendation": "Give routine success feedback a dismissible, nonblocking treatment. Keep failures, active progress, cancellation outcomes and recoverable partial failures persistent until acknowledged. Do not restore the earlier bug where new outcomes disappeared behind an old export.",
+      "acceptance": "Import, duplicate-only import, cancel and partial export outcomes remain discoverable; a completed restoration no longer occupies every workspace indefinitely.",
+      "source": "SharedUI/LibraryViews.swift: ExportStatus; Apps/macOS/FramepebbleMacApp.swift",
+      "confidence": "Confirmed captures/source.",
+      "status": "Implemented as dismissible feedback",
+      "implementedChange": "Routine restoration/success messages have a dismiss action. Ongoing progress, issues and recoverable failure information remain available rather than disappearing behind an old export card.",
+      "remainingAcceptance": "Captures can still show Restored 27 images before it is dismissed; the new close affordance is the relevant change, not automatic removal of every status."
+    },
+    {
+      "id": "R9",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad"
+      ],
+      "title": "The workspace sidebar still carries library-like weight",
+      "evidence": "The Mac browse capture has several always-visible zero-count filters, separate review destinations and tool/quick-task/preset groups. The grid itself is much clearer than earlier versions.",
+      "impact": "A short \u201cbring photos, do a task\u201d session still starts with more navigation taxonomy than it needs.",
+      "recommendation": "Keep Workspace and existing task entries prominent. Group review filters with useful counts and collapse secondary zero-state navigation where sensible. Preserve favorites and saved presets; do not add albums, cataloguing or more categories.",
+      "acceptance": "A new user finds Edit, Resize, Convert and creations quickly; real review warnings remain visible and active filters never silently change selection.",
+      "source": "SharedUI/LibraryViews.swift; Apps/macOS/FramepebbleMacApp.swift",
+      "confidence": "Confirmed browse capture; grouping is a product-design recommendation.",
+      "status": "Implemented; task-first sidebar retained",
+      "implementedChange": "Secondary zero-count navigation is grouped/collapsible. Workspace, common tasks and real review warnings remain prominent; favorites and saved presets are preserved.",
+      "remainingAcceptance": "No albums, cataloguing or additional organizational features were added."
+    },
+    {
+      "id": "R10",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "Viewing zoom needs a single recognizable vocabulary",
+      "evidence": "Ordinary editing shows a magnifying-glass menu, detail inspection has a separate Done route, and collage has explicit View Zoom while pinch can intentionally reframe a selected photo. Precision detail is improved; the visual entry points still differ.",
+      "impact": "Users can confuse a display change with an output change, especially when moving between retouching and collage.",
+      "recommendation": "Expose a compact Fit / view-scale readout wherever practical, consistently label \u201cView Zoom,\u201d and keep crop scale in its own controls. Preserve the working collage manipulation semantics and explicit Pan escape. Do not make pinch unexpectedly change exported framing.",
+      "acceptance": "Pinch, pan, Fit and inspection exit are predictable in every tool. Viewing never changes export geometry; original and masked comparisons remain safe.",
+      "source": "SharedUI/FramingViews.swift; SharedUI/OverlayEditor.swift; SharedUI/CollageEditor.swift",
+      "confidence": "Confirmed different entry points; real multi-touch performance remains unverified.",
+      "status": "Implemented without changing saved geometry",
+      "implementedChange": "Ordinary editing and retouch expose View Zoom with Fit or a relative-to-Fit readout. Full-resolution inspection keeps its honest actual-pixel percentage and explicit exit. Crop scale remains separate; zoomed retouch has an explicit Pan escape.",
+      "remainingAcceptance": "Pinch/Pencil/pan arbitration still needs physical hardware. Display zoom never writes a crop or export size."
+    },
+    {
+      "id": "R11",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "Output settings and final export need a clearer relationship",
+      "evidence": "The photo tool rail includes an output/export-style icon while the shell also offers Export or Share. GIF and collage expose output settings through different places. These can be valid separate commands, but the naming/icon hierarchy is uneven.",
+      "impact": "A user may not know whether a control configures output, starts export or shares an existing successful file.",
+      "recommendation": "Use \u201cOutput Settings\u201d consistently for configuration and one stable Export/Share command for the final operation. Make the final surface summarize affected-photo count, format, dimensions and destination. Retain validated publication and successful-output-only sharing.",
+      "acceptance": "A tester can predict which control opens settings versus publishes output. Export collisions, cancellation and partial successes retain their existing safety guarantees.",
+      "source": "SharedUI/WorkflowViews.swift; SharedUI/GIFEditor.swift; SharedUI/CollageEditor.swift",
+      "confidence": "Confirmed UI routes; no incorrect export scope established.",
+      "status": "Implemented; publication safeguards retained",
+      "implementedChange": "Output Settings is a consistent destination distinct from the final Export action. Creation output panels keep dimensions, filename and publication controls explicit. Labels differentiate instructions/projects from final output files.",
+      "remainingAcceptance": "Native destination, permission, collision, cancellation and sharing checks remain important; uniform wording does not replace safe publication."
+    },
+    {
+      "id": "R12",
+      "priority": "P2",
+      "platforms": [
+        "mac",
+        "ipad",
+        "phone"
+      ],
+      "title": "The last polish gap is consistency of small components",
+      "evidence": "The Mac collage inspector has restrained aligned rows and compact paired dimensions, but the landscape-iPad collage inspector splits Background into Back-ground even at normal text size. GIF fields, full photo settings and floating options use different spacing and label/control relationships; tool-name prefixes also vary.",
+      "impact": "Each individual view is usable, but the application does not yet feel as intentionally composed as one coherent product.",
+      "recommendation": "Use the Mac collage inspector as a baseline for row height, labels, numeric alignment, section separation and units. Give iPad property labels enough intrinsic width or stack a row before breaking a simple word. Apply a small shared token/component pass to the existing views. Keep platform-appropriate density; do not make iPhone mimic a desktop form.",
+      "acceptance": "Audit the same five controls\u2014size, amount, mode, reset and details\u2014across all workspaces at normal and large text. No misaligned values, split words, unformatted percentages or duplicated headings.",
+      "source": "SharedUI/PanelComponents.swift; SharedUI/Inspectors.swift; SharedUI/GIFEditor.swift; SharedUI/CollageEditor.swift",
+      "confidence": "Background word wrapping is visible in the fresh iPad capture; the broader consistency assessment is a design judgment.",
+      "status": "Implemented as focused component corrections",
+      "implementedChange": "Property rows give simple labels enough intrinsic width or stack at large text sizes; numeric values and units align and use restrained precision. Collage Background no longer breaks into Back-ground, and contextual options avoid repeated headings and split Before labels.",
+      "remainingAcceptance": "A finite capture matrix cannot prove every localization and Dynamic Type size. Continue testing the same shared controls instead of adding decorative variants."
+    }
+  ],
+  "illustrationsUsed": [
+    {
+      "title": "Before \u00b7 Mac Landscape Hero Adjust",
+      "kind": "before",
+      "path": "/tmp/ameluma-competitor-review-captures-mac/7B47952A-200D-46A6-BD68-EBA5C7CDD185.png",
+      "sha256": "45ca5eb6fcbdba795ab0dfa2246989e984e906d5618d52c72ac0c49a1349cc1b"
+    },
+    {
+      "title": "After \u00b7 Mac Landscape Hero Adjust",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-Landscape-Hero-Adjust.png",
+      "sha256": "2dd6c2e7877d7561c9f4197d667c7d067f856fc035098d087e2e9bff13a01039"
+    },
+    {
+      "title": "After \u00b7 Mac Hero Filters",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-Hero-Filters.png",
+      "sha256": "8d19e6b377632b1779da91864fde9e0fd379e4721d95a0c588adb24ce7f362e5"
+    },
+    {
+      "title": "Photomator \u00b7 Mac",
+      "kind": "competitor",
+      "path": "/tmp/ameluma-current-reference-review/photomator-mac.png",
+      "sha256": "ecf29b1f5aa4a01180c2abefdb1a72354022439f2b0e25fbd803ade7d6fe71b1"
+    },
+    {
+      "title": "After \u00b7 Mac Hero Retouch",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-Hero-Retouch.png",
+      "sha256": "ad328515e5392f3257f863767487b059927b085243e917e41046f6f37a1ed5da"
+    },
+    {
+      "title": "Affinity Photo 2 \u00b7 Mac",
+      "kind": "competitor",
+      "path": "/tmp/ameluma-current-reference-review/affinity-mac.jpg",
+      "sha256": "3baf0c2423972f868bde26f33f17265c8ddf141cde1b37a4fe2c61060d564a17"
+    },
+    {
+      "title": "Before \u00b7 iPad Hero Retouch",
+      "kind": "before",
+      "path": "/tmp/ameluma-competitor-review-captures-ipad/90C77C7A-CFC3-43B1-B3B3-C0ECADB09220.png",
+      "sha256": "4d1208e2756c98add961fc4dbe561ec8b6296097dc7acec33dda5fee643723d1"
+    },
+    {
+      "title": "After \u00b7 iPad Hero Retouch",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-ipad/Demo-iPad-Hero-Retouch.png",
+      "sha256": "78f53f77d0088c41b174ad5f13f966fa3d57d224b1f0c4b326b9fd755ac38f7b"
+    },
+    {
+      "title": "After \u00b7 iPad Landscape Hero Adjust",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-ipad/Demo-iPad-Landscape-Hero-Adjust.png",
+      "sha256": "d3952404d38fec973ddbe86f022356697d8226dabc3ac1834bf5c82ec3f4baa9"
+    },
+    {
+      "title": "Pixelmator Pro 4.3 \u00b7 iPad",
+      "kind": "competitor",
+      "path": "/tmp/ameluma-current-reference-review/pixelmator-ipad.png",
+      "sha256": "050160c2f30abb511fa8875af32813f2da8eed4556bb509346bfe5e48ff84633"
+    },
+    {
+      "title": "After \u00b7 iPad Hero Filters portrait",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-ipad/Demo-iPad-Hero-Filters-portrait.png",
+      "sha256": "a940314a97fea7b71fbedd3c96d9bf8d3ca9542349fe84acbdd4868171cbeaae"
+    },
+    {
+      "title": "Photomator \u00b7 iPad",
+      "kind": "competitor",
+      "path": "/tmp/ameluma-current-reference-review/photomator-ipad.png",
+      "sha256": "03282872777bf8d37e176b8d99d9be33163bd32947daf47dff957128233e6a16"
+    },
+    {
+      "title": "Before \u00b7 iPhone Hero Filters",
+      "kind": "before",
+      "path": "/tmp/ameluma-competitor-review-captures-phone/AA139A35-B554-4AA0-8EAB-A60C58CEA73A.png",
+      "sha256": "343d6bdc18207258cba4378b569f177632b44e1aa86d5f212735554c31c636af"
+    },
+    {
+      "title": "After \u00b7 iPhone Hero Filters",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-phone/Demo-iPhone-Hero-Filters.png",
+      "sha256": "19a828e1c5c7b5ebb2b4b81055628301609e320806bd9bb716b84be77ab93fb1"
+    },
+    {
+      "title": "After \u00b7 iPhone Hero Adjust",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-phone/Demo-iPhone-Hero-Adjust.png",
+      "sha256": "be0809225d379085d3be974e4be4d11afb40e074d4ceee9c76dbca9559755de0"
+    },
+    {
+      "title": "Photoshop \u00b7 iPhone reference",
+      "kind": "competitor",
+      "path": "/tmp/ameluma-current-reference-review/photoshop-phone.jpg",
+      "sha256": "474778a9b90559c5088fd77a7be1c00758157a4f816906bc0fdb9710f3b51d0a"
+    },
+    {
+      "title": "After \u00b7 iPhone Hero Retouch",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-phone/Demo-iPhone-Hero-Retouch.png",
+      "sha256": "0e91e86f718f3c08b56eb7817071401812e9b7501f2b659a9f1bcc9a64b72122"
+    },
+    {
+      "title": "After \u00b7 iPhone Hero Privacy",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-phone/Demo-iPhone-Hero-Privacy.png",
+      "sha256": "dbe42c6bf2e7f6d97662f034c0d017bdb87ad7b2cd4a789655b72cee670a9668"
+    },
+    {
+      "title": "Before \u00b7 Mac Batch Frame",
+      "kind": "before",
+      "path": "/tmp/ameluma-competitor-review-captures-mac/683CA73C-5F3E-47A4-9A3D-054DB49B9400.png",
+      "sha256": "d944a1b06a05648846d3ca3b3ecce50e1d58621b681427c019ac47a62306022a"
+    },
+    {
+      "title": "After \u00b7 Mac Batch Frame",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-Batch-Frame.png",
+      "sha256": "4aed2a3521e13845d4ff9c1067875e43d1955bc36d6faea85b6ab1a8897452dd"
+    },
+    {
+      "title": "After \u00b7 Mac Browse",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-Browse.png",
+      "sha256": "649948dc14b8db8130295a17c7c0422ecfe782776f7e7801e94f43b4c3658cdc"
+    },
+    {
+      "title": "Photomator \u00b7 Mac browser",
+      "kind": "competitor",
+      "path": "/tmp/ameluma-current-reference-review/photomator-browser.jpg",
+      "sha256": "c4705d255750a3d727eae776ecf8a435e5647b6f8a96adf2a11ac727f612c88c"
+    },
+    {
+      "title": "After \u00b7 iPhone Batch Browse",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-phone/Demo-iPhone-Batch-Browse.png",
+      "sha256": "6c4e695d73e8126d465b6519f0774600cede81ae1e404cf0fc432af2ac7a4218"
+    },
+    {
+      "title": "After \u00b7 iPad Browse",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-ipad/Demo-iPad-Browse.png",
+      "sha256": "f343aeecff0eb2274188226ebbaadd70f8428fec27816a4374696991de7de03d"
+    },
+    {
+      "title": "Before \u00b7 iPad Collage",
+      "kind": "before",
+      "path": "/tmp/ameluma-competitor-review-captures-ipad/A1A60E4B-5005-42F5-B73E-EDF47B0A3D87.png",
+      "sha256": "2afccb4537babfc2922c7ec55382feb952c2b2b8ec6a9eea03faa7b4c0832895"
+    },
+    {
+      "title": "After \u00b7 iPad Collage",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-ipad/Demo-iPad-Collage.png",
+      "sha256": "fe12664c8d4390a08477b7a975a4041bd888b3cbeb8883e9b2d3e61ca0692cb4"
+    },
+    {
+      "title": "Before \u00b7 iPhone GIF",
+      "kind": "before",
+      "path": "/tmp/ameluma-competitor-review-captures-phone/6A994E06-FEE6-4D3A-90D0-BE940EFFA844.png",
+      "sha256": "71ec52d7c41383ad700d2d27903f2daec487ce8d3c8727b9117de5e05f645ae0"
+    },
+    {
+      "title": "After \u00b7 iPhone GIF",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-phone/Demo-iPhone-GIF.png",
+      "sha256": "3328858f04d1342565c0d04a9de84461069c1cf27243ac92139555e20f45831f"
+    },
+    {
+      "title": "After \u00b7 Mac GIF",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-GIF.png",
+      "sha256": "c091d54c2b461f99e4b5ae66ce10dfc6d40e5f88e4a2b74cea631cebe0ece0d4"
+    },
+    {
+      "title": "After \u00b7 Mac Collage",
+      "kind": "after",
+      "path": "/tmp/ameluma-after-review-fixes-mac/Demo-Mac-Collage.png",
+      "sha256": "e3431139c9860cc2a9eeb9dfac6daa17945ada1004777d8f6374d8efc60215a9"
+    }
+  ],
+  "sources": {
+    "pm": [
+      "Photomator: interface overview",
+      "https://support.pixelmator.com/photomator-user-guide/get-started/interface-overview"
+    ],
+    "pmproduct": [
+      "Photomator: official product illustrations",
+      "https://www.pixelmator.com/photomator/"
+    ],
+    "pmzoom": [
+      "Photomator: zoom and pan",
+      "https://support.pixelmator.com/photomator-user-guide/get-started/zoom-and-pan-a-photo"
+    ],
+    "affmac": [
+      "Affinity Photo 2: Mac interface",
+      "https://affinity.help/photo2/en-US.lproj/pages/Workspace/interface.html"
+    ],
+    "affpad": [
+      "Affinity Photo 2: iPad interface",
+      "https://affinity.help/photo2ipad/en-US.lproj/pages/Workspace/interface.html"
+    ],
+    "affcurrent": [
+      "Current Affinity help portal",
+      "https://www.affinity.studio/help/workspace-interface/"
+    ],
+    "psmac": [
+      "Photoshop: desktop workspace",
+      "https://helpx.adobe.com/photoshop/desktop/get-started/learn-the-basics/workspace-overview.html"
+    ],
+    "pspad": [
+      "Photoshop: iPad workspace",
+      "https://helpx.adobe.com/photoshop/ipad/get-started/overview-and-setup/workspace-ipad.html"
+    ],
+    "psgestures": [
+      "Photoshop: iPad tools and gestures",
+      "https://helpx.adobe.com/lt/photoshop/how-to/learn-photoshop-ipad.html"
+    ],
+    "psphone": [
+      "Photoshop: iPhone workspace",
+      "https://helpx.adobe.com/photoshop/mobile/get-set-up/learn-the-basics/workspace-overview.html"
+    ],
+    "pxpad": [
+      "Pixelmator Pro 4.3: iPad interface",
+      "https://support.apple.com/guide/pixelmator-pro-ipad/pixelmator-pro-interface-pix96e754af4/4.3/ipados/26"
+    ],
+    "pxtoolbar": [
+      "Pixelmator Pro 4.3: iPad toolbar",
+      "https://support.apple.com/guide/pixelmator-pro-ipad/use-the-pixelmator-pro-toolbar-pixbb01478cd/4.3/ipados/26"
+    ]
+  },
+  "additionalChecks": {
+    "core": {
+      "executed": 130,
+      "skipped": 1,
+      "failures": 0
+    },
+    "releaseToolTests": {
+      "passed": 2
+    },
+    "staticPreflight": {
+      "sourceChecksPassed": 2,
+      "failures": 0,
+      "submissionBlockers": [
+        "Privacy URL verification",
+        "Support URL verification",
+        "Mac distribution artifact",
+        "iOS distribution artifact"
+      ]
+    }
+  },
+  "nativeSuiteRuns": {
+    "mac": {
+      "log": "/tmp/ameluma-final-polish-mac.log",
+      "summary": "Executed 89 tests, with 0 failures (0 unexpected) in 62.875 (62.897) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-mac/Logs/Test/Test-FramepebbleMacTests-2026.10.17_13-38-22-+1100.xcresult"
+    },
+    "phone": {
+      "log": "/tmp/ameluma-final-polish-phone.log",
+      "summary": "Executed 277 tests, with 2 tests skipped and 0 failures (0 unexpected) in 82.489 (82.548) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-ios/Logs/Test/Test-FramepebbleCoreiOSTests-2026.10.17_13-38-22-+1100.xcresult"
+    },
+    "ipad": {
+      "log": "/tmp/ameluma-final-polish-ipad.log",
+      "summary": "Executed 277 tests, with 2 tests skipped and 0 failures (0 unexpected) in 99.788 (99.847) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-ipad/Logs/Test/Test-FramepebbleCoreiOSTests-2026.10.17_13-38-22-+1100.xcresult"
+    }
+  },
+  "finalTargetedRuns": {
+    "mac": {
+      "log": "/tmp/ameluma-final-capture-mac.log",
+      "summary": "Executed 34 tests, with 0 failures (0 unexpected) in 23.441 (23.448) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-mac/Logs/Test/Test-FramepebbleMacTests-2026.10.17_13-48-11-+1100.xcresult"
+    },
+    "phone": {
+      "log": "/tmp/ameluma-final-capture-phone.log",
+      "summary": "Executed 35 tests, with 0 failures (0 unexpected) in 65.720 (65.729) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-ios/Logs/Test/Test-FramepebbleCoreiOSTests-2026.10.17_13-48-13-+1100.xcresult"
+    },
+    "ipad": {
+      "log": "/tmp/ameluma-final-capture-ipad.log",
+      "summary": "Executed 35 tests, with 0 failures (0 unexpected) in 83.204 (83.213) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-ipad/Logs/Test/Test-FramepebbleCoreiOSTests-2026.10.17_13-48-14-+1100.xcresult"
+    }
+  },
+  "finalPanelPositionRuns": {
+    "mac": {
+      "log": "/tmp/ameluma-panel-position-mac.log",
+      "summary": "Executed 3 tests, with 0 failures (0 unexpected) in 22.624 (22.626) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-mac/Logs/Test/Test-FramepebbleMacTests-2026.10.17_13-54-43-+1100.xcresult"
+    },
+    "phone": {
+      "log": "/tmp/ameluma-panel-position-phone.log",
+      "summary": "Executed 3 tests, with 0 failures (0 unexpected) in 29.932 (29.934) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-ios/Logs/Test/Test-FramepebbleCoreiOSTests-2026.10.17_13-54-43-+1100.xcresult"
+    },
+    "ipad": {
+      "log": "/tmp/ameluma-panel-position-ipad.log",
+      "summary": "Executed 3 tests, with 0 failures (0 unexpected) in 39.621 (39.624) seconds",
+      "passed": true,
+      "result": "/tmp/ameluma-panel-ipad/Logs/Test/Test-FramepebbleCoreiOSTests-2026.10.17_13-54-43-+1100.xcresult"
+    }
+  },
+  "capturePrefix": "/tmp/ameluma-after-review-fixes",
+  "artifactQA": {
+    "embeddedFigureImages": 30,
+    "brokenImages": 0,
+    "viewports": [
+      1440,
+      390
+    ],
+    "horizontalOverflow": false,
+    "platformFilter": "passed",
+    "lightboxAndEscape": "passed",
+    "sourcePathsAndHashes": "verified",
+    "finalNativePositionLabel": "visually verified",
+    "compactPhoneDraftBadge": "visually verified"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-17",
+  "changes": [
+    [
+      "Editor and precision",
+      "Bounded higher-detail zoom; explicit Pan mode; fractional brush size entry; visible Auto Sample/Sampled state; safe Retouch Before/After; current-input preview guards; Retry and source recovery; adaptive large-text controls; one Undo per numeric edit; clearer tool/reset/compare labels."
+    ],
+    [
+      "Filters and sizing",
+      "Candidate tiles retained across intensity changes; one filter browser; Original disables irrelevant removal; percentage entry; Fit preset labels and sizing consequences; common portrait crop ratios."
+    ],
+    [
+      "Workspace and scope",
+      "All visibility predicates clear together without clearing selection; active filter count; explicit photo counts; contextual task and capacity labels; Resize in Actions; workspace framing reset excludes hidden retained creation sources."
+    ],
+    [
+      "Removal and projects",
+      "Session-local Undo Remove restores membership, tabs, favourites and selection without replacing edits or expanding a newly captured batch. Cleanup protects Undo sources; saved instructions omit Undo-only ownership. Project switches expire that ownership before saving the previous project."
+    ],
+    [
+      "Output and import",
+      "New outcome feedback survives old export cards; reviewed files have identities; Photos saving is single-flight and tracks partial success for retry; recognized picker cancellation remains quiet; original files remain protected."
+    ],
+    [
+      "GIFs",
+      "Explicit active-frame and selected-group actions; mixed timing; annotation visibility descriptions; grouped field Undo including pending edits; saved creation access and empty submenu fix; filenames and unrelated imports no longer rebuild previews."
+    ],
+    [
+      "Collages",
+      "Saved-name search; useful empty states; local selection filters and Files import; bounded source recovery with specific reference recovery; visible movement mode and separate nondestructive View Zoom; no changed crop gesture semantics."
+    ],
+    [
+      "Mac Automations",
+      "A coherent local draft with Cancel or Cancel & Resume and Save & Keep Paused; atomic persistence before commit; live job state retained; editing suspends monitoring; jobs show filenames and actions explain their scope."
+    ],
+    [
+      "Native test harness",
+      "The Mac InvalidTransition failure was traced to a forbidden fixed screenshot dump, not assumed to be a renderer defect. Removing that redundant dump preserves XCTAttachments and allows the full long native test to pass."
+    ]
+  ],
+  "remaining": [
+    [
+      "Hands-on gestures and assistive technology",
+      "Native hosted layout tests cover compact, landscape and accessibility sizes. They do not prove Pencil/finger arbitration, true multi-touch, VoiceOver traversal, Switch Control or external-keyboard feel. The Device Hub UI exposed no usable window in this session, so direct interactive verification is limited."
+    ],
+    [
+      "Performance and visual quality",
+      "No M1 8GB release performance certification or physical-device memory-pressure measurement was completed. Detail renders are bounded at3200px, not a full-resolution region-of-interest brush engine. Heal texture choice still needs real photographic stroke comparisons; it cannot be promised flawless."
+    ],
+    [
+      "Further design refinement",
+      "Floating panels remain edge-docked rather than vertically anchored to every tool icon. Saved GIF selection remains a named menu rather than a visual browser. Draft tools intentionally retain Apply/Cancel safety while ordinary adjustments commit immediately. These remain reviewable usability tradeoffs, not declared solved."
+    ],
+    [
+      "Release and system integration",
+      "Photos add-only permission integration and opt-in release performance tests are skipped. Public support/privacy URLs and signed distribution artifacts remain submission blockers. Simulator success is not physical-device verification."
+    ]
+  ],
+  "noZeroIssueClaim": true
+}

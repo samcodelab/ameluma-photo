@@ -1,0 +1,551 @@
+{
+  "recipeVersion": 1,
+  "workingSpace": "sRGB SDR",
+  "intermediate": "RGBAh",
+  "nodeOrder": [
+    "Exposure",
+    "Monochrome",
+    "Color Controls",
+    "Tone Curve",
+    "Tint",
+    "Split Tone",
+    "Bloom",
+    "Vignette",
+    "Grain",
+    "Premultiplied intensity blend"
+  ],
+  "presets": [
+    {
+      "exposure": 0,
+      "saturation": 1.03,
+      "contrast": 1.03,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "essentials.clean",
+      "name": "Clean",
+      "description": "Subtle everyday polish",
+      "collection": "essentials"
+    },
+    {
+      "exposure": 0,
+      "saturation": 1.18,
+      "contrast": 1.08,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "essentials.vivid",
+      "name": "Vivid",
+      "description": "Richer color and separation",
+      "collection": "essentials",
+      "curve": "Gentle"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.94,
+      "contrast": 0.96,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0.08,
+      "id": "essentials.soft",
+      "name": "Soft",
+      "description": "Gentle contrast and glow",
+      "collection": "essentials",
+      "curve": "Lift"
+    },
+    {
+      "exposure": 0,
+      "saturation": 1.02,
+      "contrast": 1,
+      "tint": [
+        0.022,
+        0.007,
+        -0.018
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "essentials.warm",
+      "name": "Warm",
+      "description": "Warm daylight",
+      "collection": "essentials"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.98,
+      "contrast": 1,
+      "tint": [
+        -0.016,
+        0.003,
+        0.022
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "essentials.cool",
+      "name": "Cool",
+      "description": "Clean, cool light",
+      "collection": "essentials"
+    },
+    {
+      "exposure": 0,
+      "saturation": 1.04,
+      "contrast": 1.14,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "essentials.crisp",
+      "name": "Crisp",
+      "description": "Stronger tonal definition",
+      "collection": "essentials",
+      "curve": "Gentle"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.86,
+      "contrast": 0.97,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0.012,
+      "bloom": 0,
+      "id": "film.faded",
+      "name": "Faded",
+      "description": "Lifted blacks and subdued color",
+      "collection": "film",
+      "curve": "Fade"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.94,
+      "contrast": 1,
+      "tint": [
+        0.035,
+        0.012,
+        -0.025
+      ],
+      "vignette": 0,
+      "grain": 0.01,
+      "bloom": 0,
+      "id": "film.amber",
+      "name": "Amber",
+      "description": "Warm nostalgic color",
+      "collection": "film",
+      "curve": "Gentle"
+    },
+    {
+      "exposure": 0,
+      "saturation": 1.08,
+      "contrast": 1,
+      "tint": [
+        0.01,
+        0.004,
+        -0.008
+      ],
+      "vignette": 0,
+      "grain": 0.008,
+      "bloom": 0,
+      "id": "film.daylight",
+      "name": "Daylight",
+      "description": "Bright everyday film character",
+      "collection": "film",
+      "curve": "Gentle"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.78,
+      "contrast": 1,
+      "tint": [
+        0.018,
+        0.008,
+        -0.012
+      ],
+      "vignette": 0,
+      "grain": 0.016,
+      "bloom": 0,
+      "id": "film.dusty",
+      "name": "Dusty",
+      "description": "Muted earth tones",
+      "collection": "film",
+      "curve": "Fade"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.9,
+      "contrast": 1,
+      "tint": [
+        -0.012,
+        0.004,
+        0.02
+      ],
+      "vignette": 0,
+      "grain": 0.012,
+      "bloom": 0,
+      "id": "film.cool_print",
+      "name": "Cool Print",
+      "description": "Cool shadows and soft contrast",
+      "collection": "film",
+      "curve": "Lift"
+    },
+    {
+      "exposure": -0.1,
+      "saturation": 0.92,
+      "contrast": 1,
+      "tint": [
+        0.025,
+        0.002,
+        -0.016
+      ],
+      "vignette": 0.18,
+      "grain": 0.01,
+      "bloom": 0,
+      "id": "film.evening",
+      "name": "Evening",
+      "description": "Warm, quieter evenings",
+      "collection": "film",
+      "curve": "Gentle"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.94,
+      "contrast": 1,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0.12,
+      "grain": 0,
+      "bloom": 0,
+      "id": "cinema.warm_frame",
+      "name": "Warm Frame",
+      "description": "Warm highlights, cool shadows",
+      "collection": "cinema",
+      "curve": "Cinema",
+      "split": "Warm"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.88,
+      "contrast": 1,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0.12,
+      "grain": 0,
+      "bloom": 0,
+      "id": "cinema.cool_frame",
+      "name": "Cool Frame",
+      "description": "Cool atmosphere",
+      "collection": "cinema",
+      "curve": "Cinema",
+      "split": "Cool"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.94,
+      "contrast": 1,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "cinema.teal_amber",
+      "name": "Teal & Amber",
+      "description": "Stylized color separation",
+      "collection": "cinema",
+      "curve": "Cinema",
+      "split": "TealAmber"
+    },
+    {
+      "exposure": -0.15,
+      "saturation": 0.78,
+      "contrast": 1.06,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0.22,
+      "grain": 0,
+      "bloom": 0,
+      "id": "cinema.moody",
+      "name": "Moody",
+      "description": "Darker, subdued color",
+      "collection": "cinema",
+      "curve": "Cinema",
+      "split": "Cool"
+    },
+    {
+      "exposure": -0.2,
+      "saturation": 0.82,
+      "contrast": 1,
+      "tint": [
+        -0.012,
+        -0.002,
+        0.02
+      ],
+      "vignette": 0.2,
+      "grain": 0,
+      "bloom": 0,
+      "id": "cinema.nightfall",
+      "name": "Nightfall",
+      "description": "Cool evening mood",
+      "collection": "cinema",
+      "curve": "Gentle"
+    },
+    {
+      "exposure": 0,
+      "saturation": 0.9,
+      "contrast": 1.16,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0.24,
+      "grain": 0,
+      "bloom": 0,
+      "id": "cinema.dramatic",
+      "name": "Dramatic",
+      "description": "Strong contrast and edge falloff",
+      "collection": "cinema",
+      "curve": "Cinema"
+    },
+    {
+      "exposure": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "mono.classic",
+      "name": "Classic",
+      "description": "Balanced neutral monochrome",
+      "collection": "monochrome",
+      "curve": "Gentle",
+      "monochrome": [
+        0.2126,
+        0.7152,
+        0.0722
+      ]
+    },
+    {
+      "exposure": 0,
+      "saturation": 1,
+      "contrast": 1.18,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "mono.bold",
+      "name": "Bold",
+      "description": "Bold monochrome separation",
+      "collection": "monochrome",
+      "curve": "Cinema",
+      "monochrome": [
+        0.25,
+        0.65,
+        0.1
+      ]
+    },
+    {
+      "exposure": 0,
+      "saturation": 1,
+      "contrast": 0.95,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0,
+      "bloom": 0,
+      "id": "mono.soft",
+      "name": "Soft Mono",
+      "description": "Soft, lifted monochrome",
+      "collection": "monochrome",
+      "curve": "Lift",
+      "monochrome": [
+        0.25,
+        0.65,
+        0.1
+      ]
+    },
+    {
+      "exposure": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0,
+      "grain": 0.012,
+      "bloom": 0,
+      "id": "mono.silver",
+      "name": "Silver",
+      "description": "Neutral silver tones and fine grain",
+      "collection": "monochrome",
+      "curve": "Gentle",
+      "monochrome": [
+        0.3,
+        0.6,
+        0.1
+      ]
+    },
+    {
+      "exposure": -0.1,
+      "saturation": 1,
+      "contrast": 1.2,
+      "tint": [
+        0,
+        0,
+        0
+      ],
+      "vignette": 0.25,
+      "grain": 0.01,
+      "bloom": 0,
+      "id": "mono.noir",
+      "name": "Noir",
+      "description": "Deep monochrome with edge falloff",
+      "collection": "monochrome",
+      "curve": "Cinema",
+      "monochrome": [
+        0.2,
+        0.65,
+        0.15
+      ]
+    },
+    {
+      "exposure": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "tint": [
+        0.018,
+        0.009,
+        -0.012
+      ],
+      "vignette": 0,
+      "grain": 0.01,
+      "bloom": 0,
+      "id": "mono.warm_paper",
+      "name": "Warm Paper",
+      "description": "Warm tinted paper and lifted blacks",
+      "collection": "monochrome",
+      "curve": "Fade",
+      "monochrome": [
+        0.3,
+        0.59,
+        0.11
+      ]
+    }
+  ],
+  "curves": {
+    "Gentle": [
+      0,
+      0.23,
+      0.51,
+      0.79,
+      1
+    ],
+    "Lift": [
+      0.025,
+      0.27,
+      0.52,
+      0.77,
+      0.985
+    ],
+    "Fade": [
+      0.055,
+      0.28,
+      0.51,
+      0.75,
+      0.965
+    ],
+    "Cinema": [
+      0.008,
+      0.2,
+      0.49,
+      0.79,
+      0.985
+    ]
+  },
+  "splits": {
+    "Warm": {
+      "shadow": [
+        -0.012,
+        0.003,
+        0.018
+      ],
+      "highlight": [
+        0.024,
+        0.01,
+        -0.014
+      ]
+    },
+    "Cool": {
+      "shadow": [
+        -0.018,
+        0.004,
+        0.025
+      ],
+      "highlight": [
+        0.006,
+        0.003,
+        0.01
+      ]
+    },
+    "TealAmber": {
+      "shadow": [
+        -0.025,
+        0.018,
+        0.022
+      ],
+      "highlight": [
+        0.03,
+        0.01,
+        -0.022
+      ]
+    }
+  },
+  "grainHash": "x ^= x >> 16; x *= 0x7feb352d; x ^= x >> 15; x *= 0x846ca68b; x ^= x >> 16 (UInt32 wrapping); hash(x ^ hash(y ^ seed)). Preview: 4x4 stratified full-grid samples, variance-normalized for render scale."
+}

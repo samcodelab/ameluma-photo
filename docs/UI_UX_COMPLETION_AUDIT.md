@@ -1,5 +1,7 @@
 # UI/UX completion audit — 16 October 2026
 
+> Historical assessment. The subsequent [interface review and action plan](UI_PANEL_REVIEW.md) supersedes this document's visual usability conclusion. Its earlier 9/10 self-assessment was not a usability-study result; the current review identifies unresolved panel hierarchy, density, clipping and navigation problems. Historical test counts and screenshots below remain records of that earlier implementation only.
+
 ## Assessment
 
 Current self-assessment: **9/10** for the everyday photo-toolbox experience requested in the goal. This is a design and implementation judgment based on the evidence below, not a claim of professional-editor feature parity, a usability-study score, or App Store certification.
