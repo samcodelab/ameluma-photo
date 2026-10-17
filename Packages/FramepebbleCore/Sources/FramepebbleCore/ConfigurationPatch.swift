@@ -2,6 +2,7 @@ import Foundation
 
 /// Serializable, explicitly scoped fields. Unlisted properties continue to inherit batch settings.
 public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterable {
+  case nativeOutputSizing = "nativeOutputSizing"
   case width = "width"
   case height = "height"
   case quarterTurns = "quarterTurns"
@@ -22,6 +23,7 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
   case privacyExport = "privacyExport"
   case retouchStrokes = "retouchStrokes"
   case masks = "masks"
+  case colourReplacements = "colourReplacements"
   case annotations = "annotations"
   case canvasStyle = "canvasStyle"
   case crop_mode = "crop.mode"
@@ -38,6 +40,32 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
   case autoEnhance = "autoEnhance"
   case look = "look"
   case lookStrength = "lookStrength"
+  case adjustments_vibrance = "adjustments.vibrance"
+  case adjustments_tint = "adjustments.tint"
+  case adjustments_redHue = "adjustments.redHue"
+  case adjustments_redSaturation = "adjustments.redSaturation"
+  case adjustments_redLightness = "adjustments.redLightness"
+  case adjustments_orangeHue = "adjustments.orangeHue"
+  case adjustments_orangeSaturation = "adjustments.orangeSaturation"
+  case adjustments_orangeLightness = "adjustments.orangeLightness"
+  case adjustments_yellowHue = "adjustments.yellowHue"
+  case adjustments_yellowSaturation = "adjustments.yellowSaturation"
+  case adjustments_yellowLightness = "adjustments.yellowLightness"
+  case adjustments_greenHue = "adjustments.greenHue"
+  case adjustments_greenSaturation = "adjustments.greenSaturation"
+  case adjustments_greenLightness = "adjustments.greenLightness"
+  case adjustments_aquaHue = "adjustments.aquaHue"
+  case adjustments_aquaSaturation = "adjustments.aquaSaturation"
+  case adjustments_aquaLightness = "adjustments.aquaLightness"
+  case adjustments_blueHue = "adjustments.blueHue"
+  case adjustments_blueSaturation = "adjustments.blueSaturation"
+  case adjustments_blueLightness = "adjustments.blueLightness"
+  case adjustments_purpleHue = "adjustments.purpleHue"
+  case adjustments_purpleSaturation = "adjustments.purpleSaturation"
+  case adjustments_purpleLightness = "adjustments.purpleLightness"
+  case adjustments_magentaHue = "adjustments.magentaHue"
+  case adjustments_magentaSaturation = "adjustments.magentaSaturation"
+  case adjustments_magentaLightness = "adjustments.magentaLightness"
   case adjustments_exposure = "adjustments.exposure"
   case adjustments_brightness = "adjustments.brightness"
   case adjustments_contrast = "adjustments.contrast"
@@ -80,11 +108,11 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
     }
   }
   public var category: EditCategory {
-    if rawValue.hasPrefix("adjustments.") || self == .filterEdit || self == .autoEnhance || self == .look || self == .lookStrength { return .adjustments }
+    if rawValue.hasPrefix("adjustments.") || self == .filterEdit || self == .autoEnhance || self == .look || self == .lookStrength || self == .colourReplacements { return .adjustments }
     if rawValue.hasPrefix("watermark.") { return .watermark }
     if rawValue.hasPrefix("crop.") { return .framing }
     switch self {
-    case .width, .height, .resizeBasis, .percentage, .preventUpscaling, .background,
+    case .nativeOutputSizing, .width, .height, .resizeBasis, .percentage, .preventUpscaling, .background,
       .canvasAlignment, .canvasStyle:
       return .sizeAndCanvas
     case .quarterTurns, .flipHorizontal, .flipVertical, .straighten: return .orientation
@@ -116,6 +144,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
   public init(from previous: ProcessingConfiguration, to value: ProcessingConfiguration) {
     values = value
     fields = []
+    if previous.nativeOutputSizing != value.nativeOutputSizing { fields.insert(.nativeOutputSizing) }
     if previous.width != value.width { fields.insert(.width) }
     if previous.height != value.height { fields.insert(.height) }
     if previous.quarterTurns != value.quarterTurns { fields.insert(.quarterTurns) }
@@ -136,6 +165,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
     if previous.privacyExport != value.privacyExport { fields.insert(.privacyExport) }
     if previous.retouchStrokes != value.retouchStrokes { fields.insert(.retouchStrokes) }
     if previous.masks != value.masks { fields.insert(.masks) }
+    if previous.colourReplacements != value.colourReplacements { fields.insert(.colourReplacements) }
     if previous.annotations != value.annotations { fields.insert(.annotations) }
     if previous.canvasStyle != value.canvasStyle { fields.insert(.canvasStyle) }
     if previous.crop.mode != value.crop.mode { fields.insert(.crop_mode) }
@@ -154,6 +184,32 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
     if previous.autoEnhance != value.autoEnhance { fields.insert(.autoEnhance) }
     if previous.look != value.look { fields.insert(.look) }
     if previous.lookStrength != value.lookStrength { fields.insert(.lookStrength) }
+    if previous.adjustments.vibrance != value.adjustments.vibrance { fields.insert(.adjustments_vibrance) }
+    if previous.adjustments.tint != value.adjustments.tint { fields.insert(.adjustments_tint) }
+    if previous.adjustments.redHue != value.adjustments.redHue { fields.insert(.adjustments_redHue) }
+    if previous.adjustments.redSaturation != value.adjustments.redSaturation { fields.insert(.adjustments_redSaturation) }
+    if previous.adjustments.redLightness != value.adjustments.redLightness { fields.insert(.adjustments_redLightness) }
+    if previous.adjustments.orangeHue != value.adjustments.orangeHue { fields.insert(.adjustments_orangeHue) }
+    if previous.adjustments.orangeSaturation != value.adjustments.orangeSaturation { fields.insert(.adjustments_orangeSaturation) }
+    if previous.adjustments.orangeLightness != value.adjustments.orangeLightness { fields.insert(.adjustments_orangeLightness) }
+    if previous.adjustments.yellowHue != value.adjustments.yellowHue { fields.insert(.adjustments_yellowHue) }
+    if previous.adjustments.yellowSaturation != value.adjustments.yellowSaturation { fields.insert(.adjustments_yellowSaturation) }
+    if previous.adjustments.yellowLightness != value.adjustments.yellowLightness { fields.insert(.adjustments_yellowLightness) }
+    if previous.adjustments.greenHue != value.adjustments.greenHue { fields.insert(.adjustments_greenHue) }
+    if previous.adjustments.greenSaturation != value.adjustments.greenSaturation { fields.insert(.adjustments_greenSaturation) }
+    if previous.adjustments.greenLightness != value.adjustments.greenLightness { fields.insert(.adjustments_greenLightness) }
+    if previous.adjustments.aquaHue != value.adjustments.aquaHue { fields.insert(.adjustments_aquaHue) }
+    if previous.adjustments.aquaSaturation != value.adjustments.aquaSaturation { fields.insert(.adjustments_aquaSaturation) }
+    if previous.adjustments.aquaLightness != value.adjustments.aquaLightness { fields.insert(.adjustments_aquaLightness) }
+    if previous.adjustments.blueHue != value.adjustments.blueHue { fields.insert(.adjustments_blueHue) }
+    if previous.adjustments.blueSaturation != value.adjustments.blueSaturation { fields.insert(.adjustments_blueSaturation) }
+    if previous.adjustments.blueLightness != value.adjustments.blueLightness { fields.insert(.adjustments_blueLightness) }
+    if previous.adjustments.purpleHue != value.adjustments.purpleHue { fields.insert(.adjustments_purpleHue) }
+    if previous.adjustments.purpleSaturation != value.adjustments.purpleSaturation { fields.insert(.adjustments_purpleSaturation) }
+    if previous.adjustments.purpleLightness != value.adjustments.purpleLightness { fields.insert(.adjustments_purpleLightness) }
+    if previous.adjustments.magentaHue != value.adjustments.magentaHue { fields.insert(.adjustments_magentaHue) }
+    if previous.adjustments.magentaSaturation != value.adjustments.magentaSaturation { fields.insert(.adjustments_magentaSaturation) }
+    if previous.adjustments.magentaLightness != value.adjustments.magentaLightness { fields.insert(.adjustments_magentaLightness) }
     if previous.adjustments.exposure != value.adjustments.exposure {
       fields.insert(.adjustments_exposure)
     }
@@ -202,6 +258,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
     var value = original
     for field in fields {
       switch field {
+      case .nativeOutputSizing: value.nativeOutputSizing = values.nativeOutputSizing
       case .width: value.width = values.width
       case .height: value.height = values.height
       case .quarterTurns: value.quarterTurns = values.quarterTurns
@@ -222,6 +279,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .privacyExport: value.privacyExport = values.privacyExport
       case .retouchStrokes: value.retouchStrokes = values.retouchStrokes
       case .masks: value.masks = values.masks
+      case .colourReplacements: value.colourReplacements = values.colourReplacements
       case .annotations: value.annotations = values.annotations
       case .canvasStyle: value.canvasStyle = values.canvasStyle
       case .crop_mode: value.crop.mode = values.crop.mode
@@ -238,6 +296,32 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .autoEnhance: value.autoEnhance = values.autoEnhance
       case .look: value.look = values.look
       case .lookStrength: value.lookStrength = values.lookStrength
+      case .adjustments_vibrance: value.adjustments.vibrance = values.adjustments.vibrance
+      case .adjustments_tint: value.adjustments.tint = values.adjustments.tint
+      case .adjustments_redHue: value.adjustments.redHue = values.adjustments.redHue
+      case .adjustments_redSaturation: value.adjustments.redSaturation = values.adjustments.redSaturation
+      case .adjustments_redLightness: value.adjustments.redLightness = values.adjustments.redLightness
+      case .adjustments_orangeHue: value.adjustments.orangeHue = values.adjustments.orangeHue
+      case .adjustments_orangeSaturation: value.adjustments.orangeSaturation = values.adjustments.orangeSaturation
+      case .adjustments_orangeLightness: value.adjustments.orangeLightness = values.adjustments.orangeLightness
+      case .adjustments_yellowHue: value.adjustments.yellowHue = values.adjustments.yellowHue
+      case .adjustments_yellowSaturation: value.adjustments.yellowSaturation = values.adjustments.yellowSaturation
+      case .adjustments_yellowLightness: value.adjustments.yellowLightness = values.adjustments.yellowLightness
+      case .adjustments_greenHue: value.adjustments.greenHue = values.adjustments.greenHue
+      case .adjustments_greenSaturation: value.adjustments.greenSaturation = values.adjustments.greenSaturation
+      case .adjustments_greenLightness: value.adjustments.greenLightness = values.adjustments.greenLightness
+      case .adjustments_aquaHue: value.adjustments.aquaHue = values.adjustments.aquaHue
+      case .adjustments_aquaSaturation: value.adjustments.aquaSaturation = values.adjustments.aquaSaturation
+      case .adjustments_aquaLightness: value.adjustments.aquaLightness = values.adjustments.aquaLightness
+      case .adjustments_blueHue: value.adjustments.blueHue = values.adjustments.blueHue
+      case .adjustments_blueSaturation: value.adjustments.blueSaturation = values.adjustments.blueSaturation
+      case .adjustments_blueLightness: value.adjustments.blueLightness = values.adjustments.blueLightness
+      case .adjustments_purpleHue: value.adjustments.purpleHue = values.adjustments.purpleHue
+      case .adjustments_purpleSaturation: value.adjustments.purpleSaturation = values.adjustments.purpleSaturation
+      case .adjustments_purpleLightness: value.adjustments.purpleLightness = values.adjustments.purpleLightness
+      case .adjustments_magentaHue: value.adjustments.magentaHue = values.adjustments.magentaHue
+      case .adjustments_magentaSaturation: value.adjustments.magentaSaturation = values.adjustments.magentaSaturation
+      case .adjustments_magentaLightness: value.adjustments.magentaLightness = values.adjustments.magentaLightness
       case .adjustments_exposure: value.adjustments.exposure = values.adjustments.exposure
       case .adjustments_brightness: value.adjustments.brightness = values.adjustments.brightness
       case .adjustments_contrast: value.adjustments.contrast = values.adjustments.contrast
@@ -288,6 +372,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .autoEnhance: values.autoEnhance = try read(\.autoEnhance, field)
       case .look: values.look = try read(\.look, field)
       case .lookStrength: values.lookStrength = try read(\.lookStrength, field)
+      case .nativeOutputSizing: values.nativeOutputSizing = try read(\.nativeOutputSizing, field)
       case .width: values.width = try read(\.width, field)
       case .height: values.height = try read(\.height, field)
       case .quarterTurns: values.quarterTurns = try read(\.quarterTurns, field)
@@ -308,6 +393,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .privacyExport: values.privacyExport = try read(\.privacyExport, field)
       case .retouchStrokes: values.retouchStrokes = try read(\.retouchStrokes, field)
       case .masks: values.masks = try read(\.masks, field)
+      case .colourReplacements: values.colourReplacements = try read(\.colourReplacements, field)
       case .annotations: values.annotations = try read(\.annotations, field)
       case .canvasStyle: values.canvasStyle = try read(\.canvasStyle, field)
       case .crop_mode: values.crop.mode = try read(\.crop.mode, field)
@@ -320,6 +406,32 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .crop_straighten: values.crop.straighten = try read(\.crop.straighten, field)
       case .crop_flipHorizontal: values.crop.flipHorizontal = try read(\.crop.flipHorizontal, field)
       case .crop_flipVertical: values.crop.flipVertical = try read(\.crop.flipVertical, field)
+      case .adjustments_vibrance: values.adjustments.vibrance = try read(\.adjustments.vibrance, field)
+      case .adjustments_tint: values.adjustments.tint = try read(\.adjustments.tint, field)
+      case .adjustments_redHue: values.adjustments.redHue = try read(\.adjustments.redHue, field)
+      case .adjustments_redSaturation: values.adjustments.redSaturation = try read(\.adjustments.redSaturation, field)
+      case .adjustments_redLightness: values.adjustments.redLightness = try read(\.adjustments.redLightness, field)
+      case .adjustments_orangeHue: values.adjustments.orangeHue = try read(\.adjustments.orangeHue, field)
+      case .adjustments_orangeSaturation: values.adjustments.orangeSaturation = try read(\.adjustments.orangeSaturation, field)
+      case .adjustments_orangeLightness: values.adjustments.orangeLightness = try read(\.adjustments.orangeLightness, field)
+      case .adjustments_yellowHue: values.adjustments.yellowHue = try read(\.adjustments.yellowHue, field)
+      case .adjustments_yellowSaturation: values.adjustments.yellowSaturation = try read(\.adjustments.yellowSaturation, field)
+      case .adjustments_yellowLightness: values.adjustments.yellowLightness = try read(\.adjustments.yellowLightness, field)
+      case .adjustments_greenHue: values.adjustments.greenHue = try read(\.adjustments.greenHue, field)
+      case .adjustments_greenSaturation: values.adjustments.greenSaturation = try read(\.adjustments.greenSaturation, field)
+      case .adjustments_greenLightness: values.adjustments.greenLightness = try read(\.adjustments.greenLightness, field)
+      case .adjustments_aquaHue: values.adjustments.aquaHue = try read(\.adjustments.aquaHue, field)
+      case .adjustments_aquaSaturation: values.adjustments.aquaSaturation = try read(\.adjustments.aquaSaturation, field)
+      case .adjustments_aquaLightness: values.adjustments.aquaLightness = try read(\.adjustments.aquaLightness, field)
+      case .adjustments_blueHue: values.adjustments.blueHue = try read(\.adjustments.blueHue, field)
+      case .adjustments_blueSaturation: values.adjustments.blueSaturation = try read(\.adjustments.blueSaturation, field)
+      case .adjustments_blueLightness: values.adjustments.blueLightness = try read(\.adjustments.blueLightness, field)
+      case .adjustments_purpleHue: values.adjustments.purpleHue = try read(\.adjustments.purpleHue, field)
+      case .adjustments_purpleSaturation: values.adjustments.purpleSaturation = try read(\.adjustments.purpleSaturation, field)
+      case .adjustments_purpleLightness: values.adjustments.purpleLightness = try read(\.adjustments.purpleLightness, field)
+      case .adjustments_magentaHue: values.adjustments.magentaHue = try read(\.adjustments.magentaHue, field)
+      case .adjustments_magentaSaturation: values.adjustments.magentaSaturation = try read(\.adjustments.magentaSaturation, field)
+      case .adjustments_magentaLightness: values.adjustments.magentaLightness = try read(\.adjustments.magentaLightness, field)
       case .adjustments_exposure:
         values.adjustments.exposure = try read(\.adjustments.exposure, field)
       case .adjustments_brightness:
@@ -360,6 +472,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .autoEnhance: try payload.encode(values.autoEnhance, forKey: field)
       case .look: try payload.encode(values.look, forKey: field)
       case .lookStrength: try payload.encode(values.lookStrength, forKey: field)
+      case .nativeOutputSizing: try payload.encode(values.nativeOutputSizing, forKey: field)
       case .width: try payload.encode(values.width, forKey: field)
       case .height: try payload.encode(values.height, forKey: field)
       case .quarterTurns: try payload.encode(values.quarterTurns, forKey: field)
@@ -380,6 +493,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .privacyExport: try payload.encode(values.privacyExport, forKey: field)
       case .retouchStrokes: try payload.encode(values.retouchStrokes, forKey: field)
       case .masks: try payload.encode(values.masks, forKey: field)
+      case .colourReplacements: try payload.encode(values.colourReplacements, forKey: field)
       case .annotations: try payload.encode(values.annotations, forKey: field)
       case .canvasStyle: try payload.encode(values.canvasStyle, forKey: field)
       case .crop_mode: try payload.encode(values.crop.mode, forKey: field)
@@ -392,6 +506,32 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .crop_straighten: try payload.encode(values.crop.straighten, forKey: field)
       case .crop_flipHorizontal: try payload.encode(values.crop.flipHorizontal, forKey: field)
       case .crop_flipVertical: try payload.encode(values.crop.flipVertical, forKey: field)
+      case .adjustments_vibrance: try payload.encode(values.adjustments.vibrance, forKey: field)
+      case .adjustments_tint: try payload.encode(values.adjustments.tint, forKey: field)
+      case .adjustments_redHue: try payload.encode(values.adjustments.redHue, forKey: field)
+      case .adjustments_redSaturation: try payload.encode(values.adjustments.redSaturation, forKey: field)
+      case .adjustments_redLightness: try payload.encode(values.adjustments.redLightness, forKey: field)
+      case .adjustments_orangeHue: try payload.encode(values.adjustments.orangeHue, forKey: field)
+      case .adjustments_orangeSaturation: try payload.encode(values.adjustments.orangeSaturation, forKey: field)
+      case .adjustments_orangeLightness: try payload.encode(values.adjustments.orangeLightness, forKey: field)
+      case .adjustments_yellowHue: try payload.encode(values.adjustments.yellowHue, forKey: field)
+      case .adjustments_yellowSaturation: try payload.encode(values.adjustments.yellowSaturation, forKey: field)
+      case .adjustments_yellowLightness: try payload.encode(values.adjustments.yellowLightness, forKey: field)
+      case .adjustments_greenHue: try payload.encode(values.adjustments.greenHue, forKey: field)
+      case .adjustments_greenSaturation: try payload.encode(values.adjustments.greenSaturation, forKey: field)
+      case .adjustments_greenLightness: try payload.encode(values.adjustments.greenLightness, forKey: field)
+      case .adjustments_aquaHue: try payload.encode(values.adjustments.aquaHue, forKey: field)
+      case .adjustments_aquaSaturation: try payload.encode(values.adjustments.aquaSaturation, forKey: field)
+      case .adjustments_aquaLightness: try payload.encode(values.adjustments.aquaLightness, forKey: field)
+      case .adjustments_blueHue: try payload.encode(values.adjustments.blueHue, forKey: field)
+      case .adjustments_blueSaturation: try payload.encode(values.adjustments.blueSaturation, forKey: field)
+      case .adjustments_blueLightness: try payload.encode(values.adjustments.blueLightness, forKey: field)
+      case .adjustments_purpleHue: try payload.encode(values.adjustments.purpleHue, forKey: field)
+      case .adjustments_purpleSaturation: try payload.encode(values.adjustments.purpleSaturation, forKey: field)
+      case .adjustments_purpleLightness: try payload.encode(values.adjustments.purpleLightness, forKey: field)
+      case .adjustments_magentaHue: try payload.encode(values.adjustments.magentaHue, forKey: field)
+      case .adjustments_magentaSaturation: try payload.encode(values.adjustments.magentaSaturation, forKey: field)
+      case .adjustments_magentaLightness: try payload.encode(values.adjustments.magentaLightness, forKey: field)
       case .adjustments_exposure: try payload.encode(values.adjustments.exposure, forKey: field)
       case .adjustments_brightness: try payload.encode(values.adjustments.brightness, forKey: field)
       case .adjustments_contrast: try payload.encode(values.adjustments.contrast, forKey: field)

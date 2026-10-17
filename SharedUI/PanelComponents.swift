@@ -265,17 +265,30 @@ struct InspectorSlider: View {
   let range: ClosedRange<Double>
   var percentage = false
   var interaction: (Bool) -> Void = { _ in }
+  @FocusState private var enteringValue: Bool
+  var multiplier: Double { percentage || title == "Zoom" ? 100 : 1 }
+  var unit: String { percentage || title == "Zoom" ? "%" : title == "Rotation" ? "°" : title.contains("(px)") ? "px" : "" }
+  var displayed: Binding<Double> {
+    Binding(get: { value * multiplier }, set: { candidate in
+      guard candidate.isFinite else { return }
+      value = min(range.upperBound, max(range.lowerBound, candidate / multiplier))
+    })
+  }
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack {
-        Text(title)
+        Text(title.replacingOccurrences(of: " (px)", with: ""))
         Spacer()
-        Text(EditorChrome.value(value, percentage: percentage))
-          .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+        TextField(title, value: displayed, format: .number.precision(.fractionLength(0...1)))
+          .textFieldStyle(.roundedBorder).multilineTextAlignment(.trailing).monospacedDigit().frame(width: 64)
+          .focused($enteringValue).onSubmit { enteringValue = false }
+          .accessibilityLabel(title + " value")
+        if !unit.isEmpty { Text(unit).font(.caption).foregroundStyle(.secondary) }
       }
-      Slider(value: $value, in: range, onEditingChanged: interaction).accessibilityLabel(title)
-        .accessibilityValue(EditorChrome.value(value, percentage: percentage))
-    }
+      Slider(value: displayed, in: (range.lowerBound * multiplier)...(range.upperBound * multiplier), step: unit == "%" ? ((range.upperBound - range.lowerBound) * multiplier <= 30 ? 0.1 : 1) : unit == "px" ? 1 : 0.1, onEditingChanged: interaction)
+        .accessibilityLabel(title).accessibilityValue("\(value * multiplier) \(unit)")
+    }.onChange(of: enteringValue) { _, active in interaction(active) }
+      .onDisappear { if enteringValue { interaction(false) } }
   }
 }
 
@@ -439,4 +452,15 @@ private struct ToolNameHint: ViewModifier {
 extension View {
   /// Touch names complement native pointer help and VoiceOver labels.
   func toolNameHint(_ name: String) -> some View { modifier(ToolNameHint(name: name)) }
+}
+
+
+/// Embedded photo tools share their host's navigation rather than introducing another editor.
+struct ToolCanvasNavigation<Content: View>: View {
+  var embedded: Bool
+  @ViewBuilder var content: () -> Content
+  var body: some View {
+    if embedded { content() }
+    else { NavigationStack { content() } }
+  }
 }

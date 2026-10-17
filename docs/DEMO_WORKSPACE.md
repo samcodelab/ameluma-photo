@@ -1,6 +1,6 @@
 # Demo Workspace
 
-Open **Demo Workspace** from the workspace sidebar, Projects, or the iPhone home screen. It opens 27 independent generated photographs in the normal editing tools. A compact **Demo** menu in native navigation identifies the sample session and provides **Return to Your Workspace**. Full-screen draft tools identify the demo in their title; apply or cancel the draft before returning. Demo content is never inserted automatically into a personal workspace. The vertical and landscape hero portraits are first in the seed order; deliberately imperfect photographs are last.
+Open **Demo Workspace** from the workspace sidebar, Projects, or the iPhone home screen. It opens 30 independent generated photographs in the normal editing tools. A compact **Demo** menu in native navigation identifies the sample session and provides **Return to Your Workspace**. Full-screen draft tools identify the demo in their title; apply or cancel the draft before returning. Demo content is never inserted automatically into a personal workspace. The bird hero leads the seed order, followed by the golden-light and coastal portraits; deliberately imperfect photographs are last.
 
 The original personal `Workspace` instance stays alive with its sources, edits, selection, history and open tabs. Opening the demo checkpoints personal edits first. The active view and Mac menu commands then use the demo model. The Mac status-menu/Automations adapter stays attached to the personal workspace; Automations is omitted from the demo sidebar. Entering or leaving the demo is disabled during active import/export/generation or an overlay draft. Finish that work first.
 
@@ -37,3 +37,13 @@ Mac, iPhone and iPad use the same bundled 27-photo manifest and files, including
 ## Mobile viewport and tool tray
 
 The ordinary photo preview supports transient pinch magnification and double-tap zoom/reset; it never changes crop geometry. Full-resolution inspection is an optional Photo View menu action, with a dedicated Done Inspecting control and separate zoom bar. Filters replace the phone/portrait editing toolbox with a fixed Tools return button and scrolling presets. Accessibility text sizes use a dedicated scrollable Filter Settings presentation. On iOS and iPadOS, drawing drafts put Cancel, Undo, Redo and Apply in the navigation toolbar, keeping the bottom for tool controls. Mac retains its existing draft action footer. Pinch zoom on drawing canvases takes priority over drawing and clears the unfinished gesture path; committed edits remain unchanged. Physical touch/Pencil gesture verification remains required.
+
+## Bird hero and golden-light portrait — 17 October 2026
+
+The collection now contains 29 individual photographs. `28-rainbow-bird-hero.jpg` is the primary hero and first photo in fresh demo sessions. `29-golden-light-portrait.jpg` is a polished lead portrait of a fictional Black woman, placed alongside both retained coastal portraits. Both new images use the built-in image generator without external reference photos. Exact prompts, dimensions and hashes are in the asset manifests. Existing demo sessions receive these additions once on next opening in the updated build, preserving their edits and respecting later removal.
+
+Bird/portrait verification: all 29 originals and both built-app resource collections matched their manifest hashes. The full Xcode macOS build and seven DemoWorkspaceTests passed (zero failures); the iOS Simulator app build also passed. Tests cover real app-bundle loading, original preservation, source-size rendering, demo restoration and one-time additions/removal. Physical-device and App Store checks were not run. Exact prompts are in generation-prompts.json; generated photos do not imply National Geographic publication or endorsement.
+
+## Central lorikeet refinement — 17 October 2026
+
+`30-lorikeet-hero-clean.jpg` replaces the primary hero designation and leads fresh demo sessions and screenshot capture. It centres the bird against a quieter background. The original lorikeet and all portraits remain intact. Existing saved demos receive the new source once on next open in the updated build, without changing their existing edits or original source bytes. The gallery now contains 30 photographs. Exact prompt, generation provenance, dimensions and hashes are recorded alongside the assets.

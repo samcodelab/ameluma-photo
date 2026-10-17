@@ -1,4 +1,6 @@
 import SwiftUI
+import os
+import CoreGraphics
 import FramepebbleCore
 import UniformTypeIdentifiers
 
@@ -7,6 +9,52 @@ enum LibraryScope: String, CaseIterable { case exceptions = "Individual Override
 enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Selected images", results = "Search results", individual = "Current image" }
 
 @MainActor @Observable final class Workspace {
+    enum EditorFeedbackKind: String { case toolSwitch, strokePreview }
+    struct EditorFeedbackMeasurement {
+      var kind: EditorFeedbackKind
+      var label: String
+      var stages: [String:Double]
+      var milliseconds: Double
+    }
+    private static let editorSignposter=OSSignposter(subsystem:"com.broadframestudio.framepebble",category:"EditorInteraction")
+    private struct PendingEditorFeedback {
+      var token: UUID; var kind: EditorFeedbackKind; var label:String; var asset: SourceAsset; var session: UUID
+      var baseline: ProcessingConfiguration; var requested: ProcessingConfiguration?
+      var started: Double; var stages:[String:Double]; var interval: OSSignpostIntervalState
+    }
+    @ObservationIgnored private var pendingEditorFeedback: PendingEditorFeedback?
+    @ObservationIgnored private(set) var editorFeedbackMeasurements: [EditorFeedbackMeasurement] = []
+    private(set) var editorFeedbackGeneration = 0
+    var editorFeedbackToken: UUID? { pendingEditorFeedback?.token }
+    @discardableResult func beginEditorFeedback(_ kind: EditorFeedbackKind, for asset: SourceAsset, configuration: ProcessingConfiguration?, label:String = "") -> UUID {
+      if let previous=pendingEditorFeedback { cancelEditorFeedback(previous.token) }
+      let token=UUID()
+      editorFeedbackGeneration += 1
+      pendingEditorFeedback=PendingEditorFeedback(token:token,kind:kind,label:label,asset:asset,session:sourceSessionID,baseline:self.configuration(for:asset),requested:configuration,started:ProcessInfo.processInfo.systemUptime,stages:[:],interval:Self.editorSignposter.beginInterval("CanvasPreparation"))
+      return token
+    }
+    func markEditorFeedback(_ token:UUID?, stage:String) {
+      guard let token,let pending=pendingEditorFeedback,pending.token == token else { return }
+      pendingEditorFeedback?.stages[stage]=(ProcessInfo.processInfo.systemUptime-pending.started)*1000
+    }
+    func updateEditorFeedback(_ token: UUID, configuration: ProcessingConfiguration) {
+      guard pendingEditorFeedback?.token == token else { return }
+      pendingEditorFeedback?.requested=configuration
+    }
+    func finishEditorFeedback(_ token: UUID?, for asset: SourceAsset, configuration: ProcessingConfiguration) {
+      guard let token, let pending=pendingEditorFeedback, pending.token == token,
+        pending.asset == asset,pending.session == sourceSessionID,
+        pending.baseline == self.configuration(for:asset),pending.requested == configuration else { return }
+      Self.editorSignposter.endInterval("CanvasPreparation",pending.interval)
+      editorFeedbackMeasurements.append(EditorFeedbackMeasurement(kind:pending.kind,label:pending.label,stages:pending.stages,milliseconds:(ProcessInfo.processInfo.systemUptime-pending.started)*1000))
+      if editorFeedbackMeasurements.count>64 { editorFeedbackMeasurements.removeFirst(editorFeedbackMeasurements.count-64) }
+      pendingEditorFeedback=nil
+    }
+    func cancelEditorFeedback(_ token: UUID?) {
+      guard let token,let pending=pendingEditorFeedback,pending.token == token else { return }
+      Self.editorSignposter.emitEvent("CanvasPreparationCancelled")
+      Self.editorSignposter.endInterval("CanvasPreparation",pending.interval);pendingEditorFeedback=nil
+    }
     var filterBatchRequest: FilterBatchRequest?
     var filterComparisonActive = false
     var archivedGIFs: [GIFProject] = []
@@ -34,9 +82,38 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var assets: [SourceAsset] = []
     var hiddenSourceIDs: Set<UUID> = []
     var workspaceAssets: [SourceAsset] { hiddenSourceIDs.isEmpty ? assets : assets.filter { !hiddenSourceIDs.contains($0.id) } }
+    var editorDocuments: [EditorDocumentSession] = []
+    var activeEditorDocumentID: UUID?
     var editorTabs: [UUID] = []
     var editorPhotoID: UUID?
     var editorTools: [UUID: (precision: Bool, inspector: InspectorTask)] = [:]
+    /// Session-only view magnification, shared by every photo tool; never an output edit.
+    private var photoMagnifications: [UUID: Double] = [:]
+    private var photoViewportCenters: [UUID: CGPoint] = [:]
+    func photoViewportCenter(for id: UUID) -> CGPoint {
+      guard magnificationSessionID == sourceSessionID else { return CGPoint(x:0.5,y:0.5) }
+      return photoViewportCenters[id] ?? CGPoint(x:0.5,y:0.5)
+    }
+    func setPhotoViewportCenter(_ point: CGPoint, for id: UUID) {
+      guard point.x.isFinite, point.y.isFinite, assets.contains(where: { $0.id == id }) else { return }
+      if magnificationSessionID != sourceSessionID {
+        photoMagnifications.removeAll(); photoViewportCenters.removeAll(); magnificationSessionID = sourceSessionID
+      }
+      photoViewportCenters[id] = CGPoint(x:min(1,max(0,point.x)),y:min(1,max(0,point.y)))
+    }
+    private var magnificationSessionID: UUID?
+    func photoMagnification(for id: UUID) -> Double {
+      guard magnificationSessionID == sourceSessionID else { return 1 }
+      return photoMagnifications[id] ?? 1
+    }
+    func setPhotoMagnification(_ value: Double, for id: UUID) {
+      guard value.isFinite, assets.contains(where: { $0.id == id }) else { return }
+      if magnificationSessionID != sourceSessionID {
+        photoMagnifications.removeAll(); photoViewportCenters.removeAll(); magnificationSessionID = sourceSessionID
+      }
+      photoMagnifications[id] = min(4, max(1, value))
+    }
+
     var activePhotoID: UUID?
     /// Legacy UI accessor; active photo and the explicit selected-ID set are independent.
     var selected: UUID? { get { workflow == .photo && !browsingLibrary ? editorPhotoID ?? activePhotoID : activePhotoID } set { if workflow == .photo && !browsingLibrary { editorPhotoID = newValue } else { activePhotoID = newValue } } }
@@ -61,6 +138,25 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var thumbnailEditing = false
     var photoToolOptionsVisible = true
     var overlayEditor = false
+    var colourReplacementAsset: SourceAsset?
+    var colourReplacementID: UUID?
+    struct EditorPreviewSnapshot {
+      var source: SourceAsset
+      var sessionID: UUID
+      var configuration: ProcessingConfiguration
+      var image: CGImage
+      var maximum: Int
+    }
+    @ObservationIgnored var editorPreviewSnapshot: EditorPreviewSnapshot?
+    func editorPreview(for source: SourceAsset, configuration: ProcessingConfiguration, minimum: Int = 0) -> CGImage? {
+      guard !privateEditing, let cached = editorPreviewSnapshot, cached.source == source, cached.sessionID == sourceSessionID,
+        cached.configuration == configuration, cached.maximum >= minimum else { return nil }
+      return cached.image
+    }
+    func rememberEditorPreview(_ image: CGImage, source: SourceAsset, configuration: ProcessingConfiguration, maximum: Int? = nil) {
+      guard !privateEditing, workflow == .photo, !browsingLibrary, self.configuration(for: source) == configuration, max(image.width, image.height) <= 3200 else { return }
+      editorPreviewSnapshot = EditorPreviewSnapshot(source: source, sessionID: sourceSessionID, configuration: configuration, image: image, maximum: maximum ?? max(image.width, image.height))
+    }
     var overlayStartsWithMasks = true
     var overlaySession: OverlayEditingSession?
     var overlayRetouch = false
@@ -106,7 +202,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var sourceAcquisitions = 0
     var clearingWorkspace = false
     var concealed = false
-    var privateEditing = false { didSet { Task { await processor.setPrivateMode(privateEditing) }; persist() } }
+    var privateEditing = false { didSet { editorPreviewSnapshot=nil; let enabled=privateEditing; Task { await editorProcessor.setPrivateMode(enabled); await processor.setPrivateMode(enabled) }; persist() } }
     var showGuides = true
     var showSubjects = false
     var favourites: Set<UUID> = []
@@ -175,6 +271,8 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     private var started = false
     @ObservationIgnored private var visibleIDs: Set<UUID> = []
     let processor = ImageProcessor()
+    /// Interactive work must not wait behind a full-resolution export on the processing actor.
+    let editorProcessor = ImageProcessor()
     let analyzer = VisionAnalyzer()
     let store = ProjectStore()
     let directory: URL
@@ -191,6 +289,17 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         value.settings.percentage = 100
         return value
     }
+    var universalActionRequest: UniversalActionRequest?
+    var pendingUniversalAction: (UniversalIntent,WorkspaceActionContext)?
+    var creationActionRequest: CreationActionRequest?
+    var capturedPhotoExport: CapturedPhotoExport?
+    var pendingCapturedExport: CapturedPhotoExport?
+    var recipeRequest: RecipeRequest?
+    var recipeApplying = false
+    var recipeProgress = 0.0
+    let recipeLibrary: RecipeLibrary
+    let watermarkDesignLibrary: WatermarkDesignLibrary
+
     init(directory: URL? = nil, sensitiveAnalyzer: any SensitiveImageAnalyzing = AppleSensitiveAnalyzer(), startInLibrary: Bool = false, isDemoWorkspace: Bool = false) {
         self.isDemoWorkspace = isDemoWorkspace
         self.sensitiveAnalyzer = sensitiveAnalyzer
@@ -204,6 +313,8 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         #endif
         isReviewSession = directory == nil && reviewRoot != nil
         let root = directory ?? reviewRoot ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Framepebble", isDirectory: true)
+        recipeLibrary = RecipeLibrary(root: root)
+        watermarkDesignLibrary = WatermarkDesignLibrary(root: root.appendingPathComponent("WatermarkDesigns"))
         self.directory = root.appendingPathComponent("Sources", isDirectory: true)
         projectURL = root.appendingPathComponent("Session.json")
         do { try FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true) } catch { status = error.localizedDescription }
@@ -260,7 +371,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var canRedo: Bool { history.canRedo }
     func configuration(for asset: SourceAsset) -> ProcessingConfiguration {
         var value = edits.configuration(for: asset.id)
-        if workflow == .batch, !browsingLibrary, conversionInputIDs?.contains(asset.id) == true, !conversionResizingEnabled { value.nativeOutputSizing = true }
+        if workflow == .batch, !browsingLibrary, conversionInputIDs?.contains(asset.id) == true, !conversionResizingEnabled, value.nativeOutputSizing != false { value.nativeOutputSizing = true }
         return value
     }
     var gallerySummary: String {
@@ -340,7 +451,12 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     }
     func updateField<T>(_ key: WritableKeyPath<ProcessingConfiguration, T>, value: T, fields: Set<ConfigurationField>) {
         var config = controlConfiguration; config[keyPath: key] = value
-        applyChange(ConfigurationPatch(values: config, fields: fields))
+        var changed = fields
+        let sizing: Set<ConfigurationField> = [.width, .height, .resizeBasis, .percentage]
+        if config.nativeOutputSizing == true && !fields.isDisjoint(with: sizing) {
+            config.nativeOutputSizing = false; changed.insert(.nativeOutputSizing)
+        }
+        applyChange(ConfigurationPatch(values: config, fields: changed))
     }
     var mixedFields: Set<ConfigurationField> {
         if workflow == .batch && scope == .all { return [] }
@@ -519,7 +635,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
             restoreEditorTabs(doc)
             restoreGIF(doc)
             restoreCollageDocuments(doc)
-            for asset in assets where !FileManager.default.fileExists(atPath:asset.url.path) {issues.append("Missing source: \(asset.name). Select it and use Projects → Relink.")};await flush();startIndexing()
+            for asset in assets where !FileManager.default.fileExists(atPath:asset.url.path) {issues.append("Missing source: \(asset.name). Select it and use Workspace Settings → Locate or Replace Source.")};await flush();startIndexing()
         } catch {issues.append("Project could not be opened: \(error.localizedDescription)")}
     }
     func relinkSource(_ url: URL, sourceID: UUID? = nil) async {
@@ -692,9 +808,9 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         do { let asset = try await processor.importSnapshot(url, to: directory); guard !clearingWorkspace, sourceSession == sourceSessionID else { try? FileManager.default.removeItem(at: asset.url); return }; var c = controlConfiguration; c.watermark.imageURL = asset.url; c.watermark.kind = .image; c.watermark.enabled = true; applyChange(ConfigurationPatch(values: c, fields: [.watermark_imageURL, .watermark_kind, .watermark_enabled])) }
         catch { issues.append("Watermark import failed: \(error.localizedDescription)") }
     }
-    func export(to destination: URL, retry: Bool = false, targetIDs: Set<UUID>? = nil, after: (@MainActor ([URL]) async -> Void)? = nil) {
+    func export(to destination: URL, retry: Bool = false, targetIDs: Set<UUID>? = nil, frozenRequests: [ExportRequest]? = nil, after: (@MainActor ([URL]) async -> Void)? = nil) {
         guard !running, !clearingWorkspace else { return }
-        let jobs = retry ? pendingExports : plannedRequests(targetIDs: targetIDs)
+        let jobs = retry ? pendingExports : (frozenRequests ?? plannedRequests(targetIDs: targetIDs))
         guard !jobs.isEmpty else { status = "Choose images to export."; return }
         sharingSession = nil; latestExport = nil
         if !retry { pendingExports = jobs }; persist()

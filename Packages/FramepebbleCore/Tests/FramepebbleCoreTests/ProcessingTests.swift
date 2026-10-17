@@ -206,6 +206,92 @@ extension ProcessingTests {
         XCTAssertEqual(try JSONDecoder().decode(RetouchStroke.self, from: data), stroke)
     }
 
+    func testVersionThreeHealExcludesEntirePaintedPathAndMatchesSurroundings() throws {
+        let context = CIContext()
+        // Explicit CI colour fixtures avoid the machine-dependent DeviceRGB primaries.
+        let blue = CIImage(color: CIColor(red: 0, green: 0, blue: 1)).cropped(to: CGRect(x:0,y:0,width:256,height:128))
+        let background = CIImage(color: CIColor(red: 1, green: 0, blue: 0)).cropped(to: CGRect(x:0,y:0,width:128,height:128)).composited(over: blue)
+        let blemish = CIImage(color: CIColor(red: 1, green: 1, blue: 1)).cropped(to: CGRect(x:190,y:24,width:4,height:80)).composited(over: background)
+        let bitmap = try XCTUnwrap(context.createCGImage(blemish, from: blemish.extent))
+        var stroke = RetouchStroke(); stroke.samplingVersion = 3; stroke.diameter = 0.08; stroke.hardness = 0.8
+        stroke.points = (0...20).map { NormalizedPoint(0.75, 0.2 + Double($0) * 0.03) }
+        stroke.source = try RetouchRenderer.suggestedSource(in: bitmap, points: stroke.points, diameter: stroke.diameter, context: context)
+        XCTAssertGreaterThan(try XCTUnwrap(stroke.source).x, 0.5)
+        XCTAssertGreaterThan(abs(try XCTUnwrap(stroke.source).x-0.75), 0.04, "Do not sample any part of the long blemish itself")
+        let output = try RetouchRenderer.apply(to: blemish, strokes: [stroke], context: context)
+        let centre = retouchPixel(output, x:192,y:64,context:context)
+        let expected = retouchPixel(background, x:192,y:64,context:context)
+        for channel in 0..<3 { XCTAssertLessThan(abs(Int(centre[channel])-Int(expected[channel])), 15) }
+        XCTAssertEqual(retouchPixel(output,x:20,y:20,context:context), retouchPixel(background,x:20,y:20,context:context))
+        XCTAssertEqual(try JSONDecoder().decode(RetouchStroke.self, from: JSONEncoder().encode(stroke)), stroke)
+    }
+
+    func testWholeStrokeHealingKitchenStalk() async throws {
+        var root = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { root.deleteLastPathComponent() }
+        let url = root.appendingPathComponent("Resources/DemoWorkspace/Photos/23-warm-cast-kitchen.jpg")
+        guard FileManager.default.fileExists(atPath: url.path) else { throw XCTSkip("Repository demo fixture unavailable") }
+        let processor = ImageProcessor(), context = CIContext()
+        var c = ProcessingConfiguration(); c.nativeOutputSizing = true
+        let before = try await processor.render(url, configuration: c, previewMaximum: 1000)
+        var stroke = RetouchStroke(); stroke.samplingVersion = 3; stroke.diameter = 0.03; stroke.hardness = 0.65
+        stroke.points = (0...24).map { i in let t = Double(i)/24; return NormalizedPoint(0.588+0.010*t,0.120+0.106*t) }
+        let clock = ContinuousClock(); let start = clock.now
+        stroke.source = try await processor.retouchSource(before, points: stroke.points, diameter: stroke.diameter)
+        let sampled = clock.now
+        c.retouchStrokes = [stroke]
+        let after = try await processor.render(url, configuration: c, previewMaximum: 1000)
+        print("KITCHEN RETOUCH sampling \(start.duration(to: sampled)); rendering \(sampled.duration(to: clock.now)); source \(String(describing: stroke.source))")
+        let x = Int(0.596 * Double(after.width)), y = Int((1-0.173) * Double(after.height))
+        let old = retouchPixel(CIImage(cgImage: before), x:x,y:y,context:context)
+        let new = retouchPixel(CIImage(cgImage: after), x:x,y:y,context:context)
+        let wall = retouchPixel(CIImage(cgImage: before), x: Int(0.61 * Double(after.width)), y:y,context:context)
+        let oldError = zip(old.prefix(3), wall.prefix(3)).reduce(0) { $0 + abs(Int($1.0)-Int($1.1)) }
+        let newError = zip(new.prefix(3), wall.prefix(3)).reduce(0) { $0 + abs(Int($1.0)-Int($1.1)) }
+        XCTAssertLessThan(newError, oldError / 4, "The stalk interior must match nearby clean wall rather than copy another stalk fragment")
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("ameluma-kitchen-v3.png")
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(output as CFURL, UTType.png.identifier as CFString, 1,nil))
+        CGImageDestinationAddImage(destination, after,nil); XCTAssertTrue(CGImageDestinationFinalize(destination))
+        print("KITCHEN RETOUCH image: \(output.path)")
+    }
+
+    func testRetouchPreviewTimingDiagnostic() async throws {
+        let url = try fixture(width: 4000, height: 3000)
+        let processor = ImageProcessor()
+        var c = ProcessingConfiguration(); c.nativeOutputSizing = true
+        let clock = ContinuousClock()
+        var start = clock.now
+        _ = try await processor.render(url, configuration: c, previewMaximum: 1000)
+        print("RETOUCH TIMING cold preview: \(start.duration(to: clock.now))")
+        for mode in [RetouchMode.clone, .heal] {
+            c.retouchStrokes = []
+            for index in 0..<12 {
+                var stroke = RetouchStroke(); stroke.mode = mode
+                stroke.source = NormalizedPoint(0.3, 0.4)
+                stroke.points = [NormalizedPoint(0.5 + Double(index) * 0.01, 0.5)]
+                c.retouchStrokes.append(stroke)
+            }
+            start = clock.now
+            let output = try await processor.render(url, configuration: c, previewMaximum: 1000)
+            XCTAssertEqual(max(output.width, output.height), 1000)
+            print("RETOUCH TIMING 12 \(mode.rawValue) dabs: \(start.duration(to: clock.now))")
+        }
+    }
+
+    func testPixelSizedRetouchDabIsAcceptedWithoutChangingLegacyStrokes() throws {
+        let context = CIContext(options: [.useSoftwareRenderer: true])
+        let image = CIImage(cgImage: try retouchFixture())
+        var dab = RetouchStroke(); dab.mode = .clone
+        dab.source = NormalizedPoint(0.25, 0.5); dab.points = [NormalizedPoint(0.75, 0.5)]
+        dab.diameter = 0.001
+        let output = try RetouchRenderer.apply(to: image, strokes: [dab], context: context)
+        XCTAssertEqual(output.extent, image.extent)
+        XCTAssertNotNil(context.createCGImage(output, from: output.extent))
+        XCTAssertEqual(RetouchStroke().diameter, 0.03)
+        dab.diameter = 0
+        XCTAssertThrowsError(try RetouchRenderer.apply(to: image, strokes: [dab], context: context))
+    }
+
     func testRetouchCloneDabsOpacityHealingAndProtectedSourcePixels() throws {
         let original = CIImage(cgImage: try retouchFixture()), context = CIContext()
         var stroke = RetouchStroke(); stroke.mode = .clone

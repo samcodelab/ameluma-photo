@@ -63,7 +63,8 @@ struct MobileWorkspace: View {
       } else {
         phoneWorkspace
       }
-    }.tint(.blue)
+    }.workspaceActionSurfaces(model).tint(.blue).environment(\.workspaceOwner, personalWorkspace)
+      .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in model.editorPreviewSnapshot = nil; Task { await model.processor.clearInteractiveCaches(); await model.editorProcessor.clearInteractiveCaches() } }
       .onChange(of: model.isDemoWorkspace) { _, _ in home = false; navigationSheet = false }
       .sheet(isPresented: $navigationSheet) {
         NavigationStack {
@@ -83,17 +84,6 @@ struct MobileWorkspace: View {
       .sheet(isPresented: $model.helpPresented) {
         HelpPrivacyView(storageDirectory: model.directory.deletingLastPathComponent())
           .privacyCurtain(model: model)
-      }
-      .fullScreenCover(
-        isPresented: Binding(
-          get: {
-            model.overlayEditor
-              && !(UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular)
-          }, set: { model.overlayEditor = $0 }), onDismiss: model.finishOverlayPresentation
-      ) {
-        VStack(spacing: 0) {
-          OverlayEditor(model: model)
-        }.privacyCurtain(model: model)
       }
       .sheet(isPresented: $model.collageEditor) {
         CollageEditor(model: model).privacyCurtain(model: model)
@@ -136,7 +126,7 @@ struct MobileWorkspace: View {
           case .framing: model.precision = true
           case .collage: model.collageEditor = true
           case .overlays: if let asset = model.current { model.openOverlayEditor(for: asset) }
-          case .projects: model.projectsView = true
+          case .projects: model.presentWorkspaceSwitcher()
           }
         }
       ) {
@@ -211,6 +201,8 @@ struct MobileWorkspace: View {
       .onChange(of: phase) { _, value in
         if value == .inactive && model.privateEditing { model.concealed = true }
         if value == .background {
+          model.editorPreviewSnapshot = nil
+          Task { await model.processor.clearInteractiveCaches(); await model.editorProcessor.clearInteractiveCaches() }
           if model.privateEditing { model.concealed = true }
           model.sensitivityTask?.cancel()
           model.cancelImport()
@@ -238,7 +230,7 @@ struct MobileWorkspace: View {
           GeometryReader { geometry in
             Group {
               if model.overlayEditor {
-                OverlayEditor(model: model, embedded: true).privacyCurtain(model: model)
+                PhotoDraftWorkspace(model: model).privacyCurtain(model: model)
               } else {
                 HStack(spacing: 0) {
                   collection.frame(maxWidth: .infinity)
@@ -281,7 +273,7 @@ struct MobileWorkspace: View {
                 HStack {
                 if photoEditing { backToWorkspaceButton }
                 else {
-                if personalWorkspace.demoWorkspace != nil { DemoWorkspaceMenu(owner: personalWorkspace) }
+
                 Button {
                   if typeSize.isAccessibilitySize { navigationSheet = true }
                   else { navigationPreference = !navigationVisible }
@@ -295,7 +287,6 @@ struct MobileWorkspace: View {
               ToolbarItemGroup(placement: .topBarTrailing) {
               if !photoEditing && model.workflow != .gif && model.workflow != .collages {
                 Menu { importActions } label: { Label("Import", systemImage: "plus") }
-                Button("Projects", systemImage: "folder") { model.projectsView = true }
               }
               if !model.browsingLibrary && model.workflow != .collages && model.workflow != .gif {
               if model.workflow != .photo || tabletRail {
@@ -319,12 +310,12 @@ struct MobileWorkspace: View {
   var phoneWorkspace: some View {
         NavigationStack {
           Group { if home { homeScreen } else { collection } }.navigationTitle(
-            home ? "Ameluma Photo" : photoEditing ? "" : model.workspaceTitle
-          ).navigationBarTitleDisplayMode(.inline).toolbar {
+            home ? "Ameluma Photo" : (photoEditing || model.overlayEditor) ? "" : model.workspaceTitle
+          ).navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar).toolbar {
             ToolbarItem(placement: .topBarLeading) {
               if photoEditing { backToWorkspaceButton }
-              else if personalWorkspace.demoWorkspace != nil { DemoWorkspaceMenu(owner: personalWorkspace) }
-              else if !home { Button("Home", systemImage: "house") { home = true } }
+              else if !home && !model.overlayEditor { Button("Home", systemImage: "house") { home = true } }
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
               if home {
@@ -332,7 +323,7 @@ struct MobileWorkspace: View {
                   model.helpPresented = true
                 }
               }
-              if !home {
+              if !home && !model.overlayEditor {
                 if !photoEditing && model.workflow != .gif && model.workflow != .collages {
                   Menu { importActions } label: { Image(systemName: "plus") }
                 }
@@ -377,7 +368,7 @@ struct MobileWorkspace: View {
         Text("Create something").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).padding(.top, 8)
         homeTask("Create GIF", title: "Make a GIF", detail: "Photos, motion and a little personality.")
         homeTask("Collages", title: "Create a collage", detail: "Bring your photos together.")
-        Button("Projects", systemImage: "folder") { model.projectsView = true }
+        Button("Workspaces", systemImage: "square.grid.2x2") { home = false; model.presentWorkspaceSwitcher() }
         if !model.workspaceAssets.isEmpty {
           Text("Recent workspace").font(.headline)
           Button(
@@ -498,7 +489,9 @@ struct MobileWorkspace: View {
   }
   var collection: some View {
     Group {
-      if model.browsingLibrary { libraryCollection }
+      if model.overlayEditor {
+        PhotoDraftWorkspace(model: model)
+      } else if model.browsingLibrary { libraryCollection }
       else if model.workflow == .photo && !model.workspaceAssets.isEmpty { PhotoEditorWorkspace(model: model, openSettings: {
         if tabletRail { showInspector = true }
         else { settingsSheet = true }

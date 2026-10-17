@@ -73,7 +73,10 @@ public actor FilterPreviewService {
     clock &+= 1; memory[key]=Entry(image:image,used:clock,asset:asset)
     while memory.values.reduce(0,{$0+$1.image.bytesPerRow*$1.image.height}) > memoryLimit, let oldest=memory.min(by:{$0.value.used<$1.value.used})?.key { memory.removeValue(forKey:oldest) }
   }
-  public func clearMemory() { memory.removeAll() }
+  public func clearMemory() async {
+    memory.removeAll()
+    for worker in workers { await worker.clearInteractiveCaches() }
+  }
   public func purge(_ ids: Set<UUID>) {
     memory = memory.filter { !ids.contains($0.value.asset) }
     let prefixes=ids.map(\.uuidString)

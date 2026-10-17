@@ -84,6 +84,8 @@ extension Workspace {
     gifSelectionContext?.collageID = activeCollageID
   }
   func performTask(_ task: WorkspaceTask, ids: [UUID], collageID: UUID? = nil) {
+    let ids = workspaceActionIDs(ids)
+    guard !overlayEditor, !running, !ids.isEmpty else { return }
     switch task {
     case .gif: startGIF(ids: ids)
     case .convert: beginConversion(ids: ids)

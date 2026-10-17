@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Ameluma slider units audit</title><style>body{font:16px system-ui;max-width:980px;margin:48px auto;padding:24px;line-height:1.5}table{border-collapse:collapse;width:100%}td,th{padding:10px;border:1px solid #aaa;text-align:left}</style>
+<h1>Slider units audit — 17 October 2026</h1>
+<p>Reviewed slider call sites across SharedUI and platform apps. Units follow familiar professional conventions. Competitors do not have a single universal numerical range. Display mappings preserve Ameluma's existing recipes and saved values; matching labels does not imply identical effects.</p>
+<table><tr><th>Control family</th><th>Presentation and behavior</th></tr>
+<tr><td>Retouch brush</td><td>Pixels on the full edited output canvas, not display points or preview pixels. 1 px minimum; maximum 5,000 px or 40% of the shorter canvas edge, whichever is smaller. Square-root slider travel improves small-size precision. Brackets change size by approximately 10%, at least 1 px. Immediate centred canvas footprint during slider or numeric entry; persists briefly after changing size, scales with zoom.</td></tr>
+<tr><td>Hardness / opacity</td><td>0–100%, editable numerical values, 1% slider steps. Existing normalized storage retained.</td></tr>
+<tr><td>Exposure</td><td>EV, existing −2 to +2 EV range, 0.01 EV increments. No undocumented renderer change.</td></tr>
+<tr><td>Brightness / contrast / saturation</td><td>−100 to +100, neutral 0. Presentation-only mapping of established parameters.</td></tr>
+<tr><td>Highlights / shadows</td><td>Highlights −100 to 0 (recovery); shadows 0 to 100 (lifting). Current engine has one-directional controls; a symmetric range would require new processing behavior.</td></tr>
+<tr><td>Warmth / tint / vibrance</td><td>Relative −100 to +100, neutral 0. Warmth is not calibrated temperature; never label it Kelvin.</td></tr>
+<tr><td>Colour Mix</td><td>Hue in degrees, −60 to +60; saturation/lightness −100 to +100. Numerical input and whole display-unit slider increments.</td></tr>
+<tr><td>Creative filters / replacement / masks</td><td>Strength and intensity in percent. Replacement feather remains a percentage of edited shorter edge, not a fabricated radius.</td></tr>
+<tr><td>Crop / GIF / collage zoom</td><td>Percent (100% = base framing), consistent with existing crop precision controls. GIF speed remains a playback multiplier; duration remains seconds.</td></tr>
+<tr><td>Rotation / straighten</td><td>Degrees, including explicit degree labels on straighten; existing bounds retained.</td></tr>
+<tr><td>Annotations</td><td>Stroke width in output pixels, opacity in percent. Transform coordinates stay explicitly labelled normalized percentages.</td></tr>
+<tr><td>Watermark</td><td>Opacity, relative width and margin in percent; rotation in degrees. Relative sizing deliberately follows the existing resolution-independent watermark contract.</td></tr>
+<tr><td>Collage layout</td><td>Spacing, borders and corners retain proportional percentages because cells can differ in size. Freeform geometry now has visible percentage readouts; rotation has degrees.</td></tr>
+<tr><td>Output quality</td><td>Percent, rounded readouts. Compression target stays KB. Gallery thumbnail size is a display-size control, not image resolution.</td></tr></table>
+<h2>Primary references</h2><ul>
+<li><a href="https://affinity.help/photo2/en-US.lproj/pages/Tools/tools_paintBrush.html">Affinity Photo: brush width in pixels; opacity and hardness percentages; numeric entry</a></li>
+<li><a href="https://helpx.adobe.com/uk/photoshop/using/painting-tools.html">Photoshop: brush cursor and painting options</a></li>
+<li><a href="https://support.apple.com/guide/pixelmator-pro/color-adjustment-effects-pixz2l6335km/mac">Pixelmator Pro: exposure in EV</a></li></ul>
+<h2>Verification boundaries</h2><p>Automated tests cover reversible display mappings, existing rendering behavior, and newly accepted small retouch dabs. Native Mac and iOS builds are checked separately. This audit does not claim physical-device usability or pixel-perfect equivalence with competitor algorithms. Existing source bytes and normalized edit records are retained.</p></html>

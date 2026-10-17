@@ -2,131 +2,191 @@ import FramepebbleCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// One destination for choosing workspaces. File and maintenance actions stay secondary.
 struct ProjectsView: View {
   @Bindable var model: Workspace
-  @State private var section = "Projects"
-  @State private var open = false
-  @State private var relink = false
-  @State private var projects: [URL] = []
-  @State private var saved: URL?
-  @State private var confirmClear = false
-  @State private var storage: SourceStorageSummary?
-  @State private var storageError: String?
+  @Environment(\.workspaceOwner) private var workspaceOwner
   @Environment(\.dismiss) private var dismiss
+  @State private var projects: [URL] = []
+  @State private var switching = false
+  @State private var actionError: String?
+  var owner: Workspace { workspaceOwner ?? model }
+  var canSwitch: Bool { model.canSwitchDemoWorkspace && model.gifSelectionContext == nil && !switching }
   var body: some View {
     NavigationStack {
       List {
-        Picker("Manage", selection: $section) {
-          Text("Projects").tag("Projects"); Text("Sources").tag("Sources"); Text("Settings").tag("Settings")
-        }.pickerStyle(.segmented)
-        if section == "Projects" {
-        if !model.isDemoWorkspace {
-          Section("Try Ameluma") {
-            DemoWorkspaceButton(model: model)
-            Text("Practice with generated sample photos in a separate workspace. Your current photos and edits stay here.").font(.caption).foregroundStyle(.secondary)
-          }
-        }
-        Section("Current Project") {
-          TextField("Project name", text: $model.projectName)
-          Text(
-            "\(model.workspaceAssets.count) workspace photos · \(model.hiddenSourceIDs.count) retained working sources. Project instructions refer to local photos; they do not embed them."
-          ).font(.caption)
-          Button("Save project copy") {
-            Task {
-              do {
-                saved = try await model.saveProjectCopy()
-                reload()
-              } catch { model.issues.append(error.localizedDescription) }
+        Section("Current workspace") {
+          HStack {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(model.isDemoWorkspace ? "Demo Workspace" : model.projectName).font(.headline)
+              Text("\(model.workspaceAssets.count) photos · Autosaves on this device").font(.caption).foregroundStyle(.secondary)
             }
-          }
-          if let saved {
-            ShareLink(item: saved) {
-              Label("Export project instructions", systemImage: "square.and.arrow.up")
-            }
-          }
-          Button("New project") {
-            Task {
-              await model.newProject()
-              reload()
-            }
-          }
-          Button("Close Project") { Task { await model.closeProject(); reload() } }
-          Text("Close saves your work. Clear removes current photos and edits, and frees unused local copies. Originals, exported images and copies needed by saved projects remain untouched.").font(.caption).foregroundStyle(.secondary)
-          Button("Open project instructions…") { open = true }
-          if model.current != nil || model.relinkSourceID != nil {
-            Button("Relink " + (model.assets.first { $0.id == (model.relinkSourceID ?? model.selected) }?.name ?? "selected source") + "…") { relink = true }
-            Text("Choose the matching original. Existing edits remain attached; review the result.")
-              .font(.caption)
+            Spacer()
+            Image(systemName: "checkmark").foregroundStyle(Color.accentColor).accessibilityLabel("Current workspace")
           }
         }
+        Section("Switch workspace") {
+          if model.isDemoWorkspace {
+            Button {
+              switchWorkspace { await owner.returnFromDemoWorkspace(); owner.showLibrary() }
+            } label: {
+              Label { VStack(alignment: .leading, spacing: 3) {
+                Text(owner.projectName)
+                Text("Your photos and edits").font(.caption).foregroundStyle(.secondary)
+              } } icon: { Image(systemName: "photo.on.rectangle") }
+            }.disabled(workspaceOwner == nil || !canSwitch)
+          } else {
+            Button {
+              switchWorkspace { await owner.openDemoWorkspace(); owner.demoWorkspace?.showLibrary() }
+            } label: {
+              Label { VStack(alignment: .leading, spacing: 3) {
+                Text("Demo Workspace")
+                Text("Sample photos · edits kept separately").font(.caption).foregroundStyle(.secondary)
+              } } icon: { Image(systemName: "photo.on.rectangle.angled") }
+            }.disabled(!canSwitch)
+          }
         }
-        if section == "Sources" {
-        Section("Local Source Storage") {
-          Text("Workspace photos: \(model.workspaceAssets.count). Retained creation sources: \(model.hiddenSourceIDs.count). Removing a workspace photo keeps sources needed by creations.").font(.caption)
-          Button("Free Unused Working Copies") { Task { do { let count = try await model.freeUnusedWorkingCopies(); model.status = "Freed \(count) unused working copies."; await refreshStorage() } catch { storageError = error.localizedDescription } } }.disabled(model.clearingWorkspace || model.isImporting || model.sourceAcquisitions > 0 || model.running || model.gifExporting || model.collageGenerating)
-          Button("Clear Workspace & Creations…", role: .destructive) { confirmClear = true }
-            .disabled(model.clearingWorkspace)
-          if let storage {
-            LabeledContent("Managed source copies", value: "\(storage.managedFiles)")
-            LabeledContent("Source file sizes", value: ByteCountFormatter.string(fromByteCount: storage.totalBytes, countStyle: .file))
-            LabeledContent("Retained by saved work", value: ByteCountFormatter.string(fromByteCount: storage.retainedBytes, countStyle: .file))
-            Text("Clear may remove \(ByteCountFormatter.string(fromByteCount: storage.removableBytes, countStyle: .file)) of unreferenced copies. Originals and exported files are excluded. File sizes are not a guarantee of reclaimed disk space.").font(.caption).foregroundStyle(.secondary)
-          } else if let storageError { Text(storageError).font(.caption) }
-          else { ProgressView("Checking owned storage…") }
-        }
-        }
-        if section == "Settings" {
-        Section("Privacy & Imports") {
-          Toggle("Private Editing Mode", isOn: $model.privateEditing)
-          Toggle("Skip duplicate imports", isOn: $model.skipDuplicates)
-          Text("Private mode avoids persistent preview thumbnails and disables the app’s memory thumbnail cache. Saved sources and project recovery remain on disk. It does not control system screenshots, backups or user-selected cloud folders, and is not secure deletion or encryption.").font(.caption).foregroundStyle(.secondary)
-          Button("Conceal Workspace", systemImage: "eye.slash") { model.concealed = true }
-        }
-        }
-        if section == "Projects" {
-        Section("Recent Projects") {
+        if !projects.isEmpty { Section("Saved workspace copies") {
           ForEach(projects, id: \.self) { url in
             Button {
-              Task { await model.openProject(url); dismiss() }
+              switchWorkspace { await model.openProject(url); model.showLibrary() }
             } label: { SavedProjectLabel(url: url, store: model.store) }
+              .disabled(!canSwitch)
           }
         }
         }
-        if section == "Settings" { Section {
-          Text(
-            "Private Editing Mode uses text-only project listings. Saving projects preserves recovery data; sources and backups are not securely erased."
-          ).font(.caption)
-        }
-        }
-      }.navigationTitle(section).compactNavigationTitle().toolbar {
-        Button("Done") { dismiss() }
-      }.onAppear { reload() }
-        .task(id: [model.assets.count, projects.count, model.profiles.count, model.watermarkPresets.count]) { await refreshStorage() }
-        .fileImporter(isPresented: $open, allowedContentTypes: [.json]) { result in
-          switch result {
-          case .success(let url):
-            Task {
-              await model.openProject(url)
-              dismiss()
-            }
-          case .failure(let error): if !error.isUserCancellation { model.issues.append(error.localizedDescription) }
+        Section {
+          if !model.isDemoWorkspace {
+            Button("New Workspace…", systemImage: "plus") {
+              switchWorkspace { await model.newProject(); model.showLibrary() }
+            }.disabled(!canSwitch)
           }
+          NavigationLink { WorkspaceFilesView(model: model) } label: { Label("Save & Open Files", systemImage: "folder") }
+          NavigationLink { WorkspaceSettingsView(model: model) } label: { Label("Workspace Settings", systemImage: "gearshape") }
         }
-        .fileImporter(isPresented: $relink, allowedContentTypes: ImageProcessor.importTypes) {
-          result in
-          switch result {
-          case .success(let url): Task { await model.relinkSource(url) }
-          case .failure(let error): if !error.isUserCancellation { model.issues.append(error.localizedDescription) }
-          }
+        if let actionError { Section { Text(actionError).foregroundStyle(.red).font(.caption) } }
+        if switching { Section { ProgressView("Opening workspace…") } }
+        else if !canSwitch {
+          Section { Text("Finish or cancel the current edit, selection or operation before switching workspaces.").font(.caption).foregroundStyle(.secondary) }
         }
-    }.alert("Clear imported photos and edits?", isPresented: $confirmClear) {
-      Button("Clear Workspace & Creations", role: .destructive) { Task { await model.clearImportedPhotos(); reload(); await refreshStorage() } }
-      Button("Cancel", role: .cancel) {}
-    } message: { Text("This removes current workspace photos, photo edits, GIFs and collages. Saved project copies, originals and exported files remain. To remove photos while keeping creations, use Remove from Workspace. Save a project copy first to preserve this work.") }
+      }.navigationTitle("Workspaces").compactNavigationTitle()
+        .toolbar { Button("Done") { dismiss() } }
+        .task { reload() }
+    }
     .frame(minWidth: 320)
     #if os(macOS)
-    .frame(minHeight: 440)
+    .frame(width: 480, height: 540)
     #endif
+  }
+  func switchWorkspace(_ action: @escaping @MainActor () async -> Void) {
+    guard canSwitch else { return }
+    switching = true; actionError = nil
+    Task {
+      let issues = model.issues.count + (owner === model ? 0 : owner.issues.count)
+      await action()
+      switching = false
+      if model.issues.count + (owner === model ? 0 : owner.issues.count) == issues { dismiss() }
+      else { actionError = model.issues.last ?? owner.issues.last ?? "The workspace could not be opened. Your current work is preserved." }
+    }
+  }
+  func reload() {
+    let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Projects")
+    do {
+      projects = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+        .filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent > $1.lastPathComponent }
+    } catch {
+      if FileManager.default.fileExists(atPath: folder.path) { model.issues.append("Saved workspaces could not be listed: " + error.localizedDescription) }
+    }
+  }
+}
+
+struct WorkspaceFilesView: View {
+  @Bindable var model: Workspace
+  @State private var saved: URL?
+  @State private var open = false
+  @State private var saving = false
+  @State private var fileError: String?
+  @Environment(\.dismiss) private var dismiss
+  var body: some View {
+    Form {
+      Section("Save a copy") {
+        Text("Your current workspace saves automatically. Save a named snapshot to return to this version later.").font(.caption).foregroundStyle(.secondary)
+        TextField("Workspace name", text: $model.projectName).onChange(of: model.projectName) { _, _ in model.persist() }
+        Button(saving ? "Saving…" : "Save Workspace Copy") {
+          saving = true
+          Task { defer { saving = false }; do { saved = try await model.saveProjectCopy(); fileError = nil } catch { fileError = error.localizedDescription } }
+        }.disabled(saving || !model.canSwitchDemoWorkspace)
+        if let saved {
+          Label("Copy saved", systemImage: "checkmark.circle")
+          ShareLink(item: saved) { Label("Share Workspace Instructions…", systemImage: "square.and.arrow.up") }
+        }
+      }
+      Section("Open a file") {
+        Button("Open Workspace Instructions…", systemImage: "folder") { open = true }.disabled(!model.canSwitchDemoWorkspace)
+        Text("Instructions reference local source photos; they do not include the photos and are not a self-contained cross-device project.").font(.caption).foregroundStyle(.secondary)
+      }
+      if let fileError { Section { Text(fileError).foregroundStyle(.red).font(.caption) } }
+    }.navigationTitle("Save & Open Files")
+      .fileImporter(isPresented: $open, allowedContentTypes: [.json]) { result in
+        switch result {
+        case .success(let url): Task { let count = model.issues.count; await model.openProject(url); if model.issues.count == count { model.showLibrary(); model.projectsView = false; dismiss() } else { fileError = model.issues.last } }
+        case .failure(let error): if !error.isUserCancellation { fileError = error.localizedDescription }
+        }
+      }
+  }
+}
+
+struct WorkspaceSettingsView: View {
+  @Bindable var model: Workspace
+  @State private var relink = false
+  @State private var confirmClear = false
+  @State private var storage: SourceStorageSummary?
+  @State private var storageError: String?
+  var body: some View {
+    Form {
+      if !model.isDemoWorkspace {
+        Section("Name") { TextField("Workspace name", text: $model.projectName).onChange(of: model.projectName) { _, _ in model.persist() } }
+      }
+      Section("Source recovery") {
+        if let source = model.assets.first(where: { $0.id == (model.relinkSourceID ?? model.selected) }) {
+          Text(source.name).lineLimit(2)
+          Button("Locate or Replace Source…", systemImage: "folder") { relink = true }
+          Text("Edits stay attached. Review framing and protective coverage after replacing a source.").font(.caption).foregroundStyle(.secondary)
+        } else { Text("Select a photo in the workspace to locate or replace its source.").font(.caption).foregroundStyle(.secondary) }
+      }
+      Section("Privacy & imports") {
+        Toggle("Private Editing Mode", isOn: $model.privateEditing)
+        Toggle("Skip duplicate imports", isOn: $model.skipDuplicates)
+        Text("Private mode avoids persistent preview thumbnails. Sources and recovery data remain on disk; this is not encryption or secure deletion.").font(.caption).foregroundStyle(.secondary)
+        Button("Conceal Workspace", systemImage: "eye.slash") { model.concealed = true }
+      }
+      Section("Storage") {
+        LabeledContent("Workspace photos", value: "\(model.workspaceAssets.count)")
+        LabeledContent("Sources kept for creations", value: "\(model.hiddenSourceIDs.count)")
+        if let storage {
+          LabeledContent("Working copies", value: ByteCountFormatter.string(fromByteCount: storage.totalBytes, countStyle: .file))
+        }
+        Button("Free Unused Working Copies") {
+          Task { do { let count = try await model.freeUnusedWorkingCopies(); model.status = "Freed \(count) unused working copies."; await refreshStorage() } catch { storageError = error.localizedDescription } }
+        }.disabled(!model.canSwitchDemoWorkspace)
+        Text("Originals and sources needed by current or saved creations are preserved.").font(.caption).foregroundStyle(.secondary)
+        if let storageError { Text(storageError).font(.caption).foregroundStyle(.red) }
+      }
+      Section {
+        Button("Clear Workspace & Creations…", role: .destructive) { confirmClear = true }.disabled(!model.canSwitchDemoWorkspace)
+      }
+    }.navigationTitle("Workspace Settings")
+      .task { await refreshStorage() }
+      .fileImporter(isPresented: $relink, allowedContentTypes: ImageProcessor.importTypes) { result in
+        switch result {
+        case .success(let url): Task { await model.relinkSource(url) }
+        case .failure(let error): if !error.isUserCancellation { model.issues.append(error.localizedDescription) }
+        }
+      }
+      .alert("Clear photos, edits and creations?", isPresented: $confirmClear) {
+        Button("Clear Workspace & Creations", role: .destructive) { Task { await model.clearImportedPhotos(); await refreshStorage() } }
+        Button("Cancel", role: .cancel) {}
+      } message: { Text("This clears the current workspace. Originals, exported files and saved workspace copies remain. Save a workspace copy first to preserve the current edits and creations.") }
   }
   func refreshStorage() async {
     do {
@@ -134,15 +194,8 @@ struct ProjectsView: View {
       let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Projects")
       let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONEncoder().encode(model.document()))
       storage = try await cleanup.summary(in: model.directory, retaining: retained)
+      storageError = nil
     } catch is CancellationError {} catch { storageError = "Storage accounting unavailable: " + error.localizedDescription }
-  }
-  func reload() {
-    let folder = model.directory.deletingLastPathComponent().appendingPathComponent("Projects")
-    projects =
-      ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil))
-      ?? []).filter { $0.pathExtension == "json" }.sorted {
-        $0.lastPathComponent > $1.lastPathComponent
-      }
   }
 }
 
@@ -151,12 +204,13 @@ struct SavedProjectLabel: View {
   let store: ProjectStore
   @State private var name: String?
   @State private var unavailable = false
+  @State private var modified: Date?
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
       Text(name ?? (unavailable ? "Project instructions unavailable" : "Loading project name…"))
-      Text(url.deletingPathExtension().lastPathComponent).font(.caption).foregroundStyle(.secondary)
+      if let modified { Text(modified, format: .dateTime.month(.abbreviated).day().hour().minute()).font(.caption).foregroundStyle(.secondary) }
     }.task(id: url) {
-      do { name = try await store.load(url).name }
+      do { name = try await store.load(url).name; modified = try url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate }
       catch is CancellationError {} catch { unavailable = true }
     }
   }

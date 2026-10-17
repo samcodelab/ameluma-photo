@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-17",
+  "scope": "Approved phases 0\u20132: workflow cohesion, editable annotations, watermark designer",
+  "phases": [
+    {
+      "phase": 0,
+      "name": "Workflow cohesion",
+      "implemented": [
+        "Validate and deduplicate explicit workspace action IDs; exclude retained hidden sources without excluding filtered selections.",
+        "Prevent blocked conversion entry from clearing profiles or conversion state.",
+        "Expose Annotate Photo and Open Photos as Layers in workspace actions.",
+        "Preserve independent workspace selection, batch inputs and document state."
+      ],
+      "verification": [
+        "12 native Mac output/scope regression tests passed at phase checkpoint.",
+        "iOS Simulator app build succeeded."
+      ],
+      "remaining": [
+        "Further recipe, command palette and creation/export bridges follow these phases."
+      ]
+    },
+    {
+      "phase": 1,
+      "name": "Editable annotation",
+      "implemented": [
+        "Translucent editable highlights and semantic numbered callouts in existing annotation pipeline.",
+        "Automatic callout renumbering after order changes or deletion, persisted identities, Undo/Redo.",
+        "Editable speech-bubble text controls; annotation order controls and consistent labels.",
+        "Preview/export parity tests and source-byte preservation."
+      ],
+      "verification": [
+        "Phase checkpoint: 163 Core tests, 3 opt-in skips, 0 failures.",
+        "Phase checkpoint: 29 native Mac tests, 0 failures; iOS build succeeded.",
+        "Final Core and mobile suites include annotation export, blending, round-trip and undo tests."
+      ],
+      "remaining": [
+        "Live mouse/touch/Pencil, VoiceOver and dense overlapping-object interaction checks remain manual."
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Watermark designer",
+      "implemented": [
+        "12 original editable templates using existing EditorDocument text, shape and image layers.",
+        "Installed-font editing, transforms, opacity, ordering, visibility, locking, duplication and editable text outlines/shadows.",
+        "Local named version-2 design packages with embedded resources, import, edit and deletion.",
+        "Dark/light/checkerboard authoring previews; backgrounds excluded from design output.",
+        "Explicit captured photo targets; one grouped undoable application preserving placement and unrelated edits.",
+        "Immutable applied image snapshots rendered through the existing layer and watermark engines.",
+        "High-resolution vector stamp rendering, bounded to 16 MP per application; no competing composition renderer.",
+        "Import/application on iPhone and iPad, compact and accessibility layouts."
+      ],
+      "verification": [
+        "Final Core: 167 tests, 3 opt-in skips, 0 failures.",
+        "Final Mac: 43 tests, 0 failures.",
+        "Final iPhone: 57 tests, 0 failures; successful complete Xcode result.",
+        "Final iPad: 57 tests, 0 failures; successful complete Xcode result.",
+        "Final optimized macOS build succeeded.",
+        "Release-tool tests: 2 passed. Static preflight: 0 failures, existing submission blockers.",
+        "Native hosted Mac designer/template and mobile library normal/large-text captures inspected."
+      ],
+      "remaining": [
+        "Full multi-element authoring currently requires Mac.",
+        "No real-device or VoiceOver/Pencil validation; native UI automation pipe cannot start.",
+        "Photograph background preview currently uses reversible application in the photo editor; designer offers solid/checkerboard backgrounds.",
+        "Template art direction is an original first collection and still needs broader photographic/print review.",
+        "No M1/8 GB performance target or hundreds-of-images physical-device acceptance claim."
+      ]
+    }
+  ],
+  "compatibility": "Legacy text/image watermarks and document version 1 remain supported. New designer metadata and text treatments require version 2 to prevent older editors silently dropping them. Internal Framepebble modules/storage/bundle identities are retained.",
+  "known_environment_issues": [
+    "Native computer control fails with Sky Computer Use native pipe startup failed. Captures populate hosted native views programmatically, not by simulated user input.",
+    "Mac test host continues logging MDB_MAP_FULL; origin is unresolved.",
+    "An initial iPhone run completed all assertions but stalled finalizing its result bundle. Complete iPhone and iPad retries succeeded with automatic diagnostic collection disabled.",
+    "Existing public privacy/support URLs and signed distribution artifacts remain submission blockers."
+  ],
+  "follow_on": [
+    "Reusable recipes with source-specific geometry/Auto Enhance handling.",
+    "Command-K routing to existing explicitly scoped actions.",
+    "Creation/export integration and further watermark preview/application refinements."
+  ],
+  "commit_push": "Neither committed nor pushed.",
+  "logs": {
+    "core": "/tmp/ameluma-phases-core.log",
+    "mac": "/tmp/ameluma-phases-mac.log",
+    "iphone": "/tmp/ameluma-phases-iphone.log",
+    "ipad": "/tmp/ameluma-phases-ipad.log",
+    "macRelease": "/tmp/ameluma-phases-mac-release.log",
+    "releaseTools": "/tmp/ameluma-phases-release-tests.log",
+    "preflight": "/tmp/ameluma-phases-preflight.log"
+  }
+}

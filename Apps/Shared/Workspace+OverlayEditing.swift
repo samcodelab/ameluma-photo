@@ -9,6 +9,7 @@ extension Workspace {
   @discardableResult
   func activatePhotoTool(_ tool: PhotoTool, resolvingDraft resolution: OverlayDraftResolution? = nil) -> Bool {
     guard let asset = current else { return false }
+    if colourReplacementAsset != nil { return tool == .replaceColour }
     if overlayEditor {
       if tool == .privacy || tool == .annotate || tool == .retouch {
         overlayRetouch = tool == .retouch
@@ -23,12 +24,16 @@ extension Workspace {
       pendingOverlayDestination = nil
       overlayEditor = false
     }
+    beginEditorFeedback(.toolSwitch,for:asset,configuration:configuration(for:asset),label:tool.rawValue)
+    // Crop is a tool, not a sticky mode underneath every subsequent tool.
+    if tool != .crop { precision = false }
     switch tool {
     case .adjust: choosePhotoInspector(.adjust)
     case .filters: choosePhotoInspector(.filters)
     case .crop: precision = true
     case .resize: choosePhotoInspector(.resize)
     case .annotate: openOverlayEditor(for: asset, masking: false)
+    case .replaceColour: openColourReplacement(asset)
     case .retouch: openOverlayEditor(for: asset, masking: false); overlayRetouch = true
     case .privacy: openOverlayEditor(for: asset)
     case .watermark: choosePhotoInspector(.watermark)
@@ -54,6 +59,9 @@ extension Workspace {
     openPhoto(asset)
     // Explicitly opening the editor is a request to view this photo.
     sensitivity.revealed.insert(asset.id)
+    if overlaySession == nil {
+      overlaySession=OverlayEditingSession(sourceID:asset.id,configuration:configuration(for:asset))
+    }
     overlayEditor = true
   }
   @discardableResult func applyOverlaySession(_ session: OverlayEditingSession) -> Bool {

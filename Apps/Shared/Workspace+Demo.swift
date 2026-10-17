@@ -9,6 +9,7 @@ struct DemoPhotoManifest: Decodable {
         let exercise: String
     }
     let version: Int
+    let hero: String
     let photos: [Photo]
     let additions: [String]?
 
@@ -17,12 +18,13 @@ struct DemoPhotoManifest: Decodable {
             throw DemoWorkspaceError.missingAssets
         }
         let manifest = try JSONDecoder().decode(Self.self, from: Data(contentsOf: root.appendingPathComponent("manifest.json")))
-        guard manifest.version == 1, manifest.photos.count == 27,
-              Set(manifest.photos.map(\.filename)).count == 27,
+        guard manifest.version == 1, manifest.photos.count == 30,
+              Set(manifest.photos.map(\.filename)).count == 30,
               manifest.photos.allSatisfy({ $0.filename == ($0.filename as NSString).lastPathComponent && $0.filename.hasSuffix(".jpg") }) else {
             throw DemoWorkspaceError.missingAssets
         }
-        guard Set(manifest.additions ?? []).isSubset(of: Set(manifest.photos.map(\.filename))) else {
+        guard manifest.photos.contains(where: { $0.filename == manifest.hero }),
+              Set(manifest.additions ?? []).isSubset(of: Set(manifest.photos.map(\.filename))) else {
             throw DemoWorkspaceError.missingAssets
         }
         return (manifest, root.appendingPathComponent("Photos", isDirectory: true))
@@ -35,8 +37,15 @@ enum DemoWorkspaceError: LocalizedError {
 }
 
 extension Workspace {
+    var canPresentWorkspaceSwitcher: Bool { canSwitchDemoWorkspace && gifSelectionContext == nil }
+    /// Switching is a gallery action; opening it never changes selection or operation inputs.
+    func presentWorkspaceSwitcher() {
+        guard canPresentWorkspaceSwitcher else { return }
+        showLibrary()
+        projectsView = true
+    }
     var canSwitchDemoWorkspace: Bool {
-        !switchingDemo && !isImporting && !running && !gifExporting && !collageGenerating && !quickFixRunning && !clearingWorkspace && sourceAcquisitions == 0 && !overlayEditor
+        pendingUniversalAction == nil && pendingCapturedExport == nil && universalActionRequest == nil && recipeRequest == nil && capturedPhotoExport == nil && !recipeApplying && !switchingDemo && !isImporting && !running && !gifExporting && !collageGenerating && !quickFixRunning && !clearingWorkspace && sourceAcquisitions == 0 && !overlayEditor
     }
 
     /// The personal model remains alive. No personal project is opened, cleared or reseeded.

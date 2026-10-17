@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-17",
+  "scope": "Initial Mac editable-document stage of the approved plan. Broader milestones remain unimplemented.",
+  "base_commit": "62ba1af plus preserved working-tree changes",
+  "checks": [
+    {
+      "check": "Core tests",
+      "result": "161 tests; 3 opt-in skips; 0 failures",
+      "log": "/tmp/ameluma-doc-core-complete.log"
+    },
+    {
+      "check": "Mac document/editor/panel tests",
+      "result": "55 tests; 0 failures; native hosted capture inspected",
+      "log": "/tmp/ameluma-doc-mac-final.log"
+    },
+    {
+      "check": "iPhone shared document/editor tests",
+      "result": "32 tests; 0 failures",
+      "log": "/tmp/ameluma-doc-iphone-final.log"
+    },
+    {
+      "check": "iPad shared document/editor tests",
+      "result": "32 tests; 0 failures",
+      "log": "/tmp/ameluma-doc-ipad-final.log"
+    },
+    {
+      "check": "macOS Release build",
+      "result": "BUILD SUCCEEDED; existing signing configuration unchanged",
+      "log": "/tmp/ameluma-doc-mac-release-complete.log"
+    },
+    {
+      "check": "Release tools",
+      "result": "2 tests passed; static preflight has no static failures; existing distribution blockers remain",
+      "log": "/tmp/ameluma-doc-release-tests.log; /tmp/ameluma-doc-preflight.log"
+    }
+  ],
+  "implemented": [
+    "Version-1 document model: image, editable text and shape layers; top-left pixel geometry",
+    "Portable package with owned immutable source resources, validated staged saves and atomic publication",
+    "Mac file type, native open/save coordination, session security bookmarks, dirty state and local crash recovery",
+    "Independent document history, grouped transforms/text interactions and active-target Undo/Redo",
+    "Native pointer layer movement, resize/rotation handles, numeric transforms, proportion constraint and flips",
+    "Visibility, locks, duplication, reordering, thumbnails, opacity and eight tested blend modes",
+    "SDR sRGB shared composition renderer, incremental layer materialization and bounded content cache",
+    "Fit/actual pixel view, zoom, scroll/pan and checkerboard; canvas boundaries independent of layers",
+    "Existing export/encoding validation and collision handling, flattened clipboard copy and image-as-layer paste/drop",
+    "Explicit captured workspace-photo inputs; preserve review-required state before document export",
+    "Deleted layers prune saved resource references; session Undo retains their working copies and review flags follow duplicated layers"
+  ],
+  "not_implemented": [
+    "General-purpose region selections, magic wand and pixel-region edits",
+    "Raster paint/pencil/eraser/bucket/gradients and tile history",
+    "Groups, merges and adjustment layers",
+    "Layer photo-adjustment editing and ordered effect stacks",
+    "Full advanced typography, rulers/guides/snapping and perspective",
+    "Mobile document authoring or document handoff to GIF/workspace",
+    "Native file drag export promises and full multi-process FilePresenter conflict handling"
+  ],
+  "limitations": [
+    "Real mouse/trackpad and VoiceOver interaction testing blocked by Cua native-pipe startup failure",
+    "Native hosted captures instantiate real views with programmatically populated state; they do not establish live usability",
+    "No measured end-to-end latency, peak-memory or M1 8 GB performance acceptance yet; no competitor performance claim",
+    "Current version limits: 200 layers/resources, 20,000 pixels per side and 50 MP canvas/layer bounds; limits do not guarantee all such documents fit physical-device memory",
+    "Old object-removal photographic quality gate remains open and its experimental UI remains gated",
+    "Mac test host continues logging MDB_MAP_FULL; origin not established; tests pass, diagnostic remains unresolved",
+    "Initial iPhone final run failed Simulator preflight; device was found shutdown, explicitly booted, and retry passed",
+    "Initial native capture failed on an unsupported /tmp write from the sandboxed host; keeping the screenshot in test attachments resolved it",
+    "Editable packages include originals and are not privacy-sanitized sharing artifacts; flattened export is separate",
+    "Session Undo is bounded to 80 semantic states; undo history itself is not restored across launches"
+  ],
+  "new_files": [
+    "Packages/FramepebbleCore/Sources/FramepebbleCore/Editor/EditorDocument.swift",
+    "Packages/FramepebbleCore/Sources/FramepebbleCore/Editor/EditorDocumentStore.swift",
+    "Packages/FramepebbleCore/Sources/FramepebbleCore/Editor/EditorDocumentRenderer.swift",
+    "Apps/Shared/EditorDocumentSession.swift",
+    "SharedUI/DocumentEditorWorkspace.swift",
+    "Apps/macOS/Info.plist",
+    "Packages/FramepebbleCore/Tests/FramepebbleCoreTests/EditorDocumentTests.swift",
+    "Tests/EditorDocumentUsabilityTests.swift"
+  ],
+  "committed": false,
+  "pushed": false,
+  "native_capture": "/tmp/ameluma-document-final-capture/B9D0A11A-2BA0-49EC-81CE-29ED5CB580FF.png"
+}

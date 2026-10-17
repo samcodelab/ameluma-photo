@@ -7,11 +7,9 @@ struct LibrarySidebar: View {
   var body: some View {
     List {
       Section("Workspace") {
-        Text(model.projectName).font(.headline).lineLimit(2)
-        Button { model.projectsView = true } label: {
-          Label { Text("Projects…") } icon: { Image(systemName: "folder").foregroundStyle(.primary) }
-        }
-        DemoWorkspaceButton(model: model)
+        Button { model.presentWorkspaceSwitcher() } label: {
+          Label("Switch Workspace…", systemImage: "square.grid.2x2")
+        }.disabled(!model.canSwitchDemoWorkspace || model.gifSelectionContext != nil)
         scopeButton(.all)
         scopeButton(.favourites)
         ForEach([LibraryScope.edited, .exceptions].filter { prominent($0) }, id: \.self) { scopeButton($0) }
@@ -36,6 +34,8 @@ struct LibrarySidebar: View {
         }
       }
       Section("Quick Tasks") {
+        Button("Actions…", systemImage: "command") { model.presentActions() }
+        Button("Recipes…", systemImage: "list.bullet.rectangle") { model.presentRecipes() }
         Button { model.selectPhotos(for: .convert) } label: {
           Label { Text("Convert Photos") } icon: { Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.primary) }
         }
@@ -150,13 +150,13 @@ struct LibraryToolbar: View {
     if model.browsingLibrary {
       #if os(macOS)
       VStack(alignment: .leading, spacing: 2) {
-        Text(model.library.rawValue).font(.headline)
+        WorkspaceSwitcherButton(model: model)
         gallerySummary
       }
       #else
       if sizeClass == .compact {
-        Text("\(model.filtered.count) \(model.filtered.count == 1 ? "photo" : "photos")").font(.subheadline).foregroundStyle(.secondary)
-      } else { gallerySummary }
+        WorkspaceSwitcherButton(model: model)
+      } else { VStack(alignment: .leading, spacing: 2) { WorkspaceSwitcherButton(model: model); gallerySummary } }
       #endif
     } else if sizeClass == .compact {
       OperationContextHeader(model: model)
@@ -315,7 +315,7 @@ struct LibraryToolbar: View {
         Button("Undo edit") { model.undo() }.disabled(!model.canUndo)
         Button("Redo edit") { model.redo() }.disabled(!model.canRedo)
         Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
-        Button("Projects…") { model.projectsView = true }
+        Button("Switch Workspace…") { model.presentWorkspaceSwitcher() }
         Button("Privacy Review…") { model.sensitiveReviewPresented = true }
         Button("Select visible photos") { model.selectVisiblePhotos() }
         Button("Clear selection") { model.selection = [] }

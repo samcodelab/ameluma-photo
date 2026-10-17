@@ -8,6 +8,26 @@ A focused everyday photo editor: a smaller set of tools held to a high standard 
 
 Retouch is currently local patch-based healing/cloning, not structural content-aware object removal. Complex removals crossing branches or object boundaries can leave fragments or damage texture; improving this is an open quality priority.
 
+Single-photo tools now share session magnification and a normalized viewport centre. Crop and Watermark use the same view-zoom container; overlay tools are embedded without a nested navigation stack. Floating options are the default on wider screens, with an explicit pin action. Recolouring resolves pending edits before changing tools. Crop mode ends when another tool is selected. These changes preserve output geometry and batch inputs.
+
+Interactive rendering has its own shared Core worker, separate from exports. Single-photo preview coalescing is 16 ms, with reduced resolution during adjustment gestures and refinement afterward. Preview-result and retouch-prefix caches are bounded to 16 MiB each, source/edit/resolution keyed, and cleared on lifecycle/private-mode transitions. Native signposts and bounded in-memory timing records cover canvas preparation, with superseded identities excluded. These measure image handoff, not display presentation or pointer latency.
+
+The local exemplar-removal prototype fails photographic review on the bird tail/claws. It is absent from normal tool choices; Debug builds can expose it using `--experimental-removal` for development. Heal and Clone retain their existing recipes. Synthetic edge tests passing does not establish acceptable object removal.
+
+See [editor implementation and verification evidence](docs/EDITOR_FOUNDATION_2026-10-17.json) for the measured environment, reproducible commands and remaining gates. Physical-device/Pencil testing, frame-presentation latency, an M1/8 GB performance baseline, a matched competitor benchmark and acceptable complex removal remain outstanding.
+
+## Recipes and contextual actions
+
+Use **Actions… (Command-K on Mac)** from the workspace or editor. Its scope is captured when opened: current photo, explicit gallery selection, captured batch inputs, layered document, GIF or collage. Creation actions never substitute a stale gallery selection. Supported local parameter commands include `resize to 1920`, `convert to PNG` and `filter Warm`; other actions expose existing tools. This is a deterministic local action system, not a general natural-language assistant. Draft editing keeps actions inside the draft until it is applied or cancelled.
+
+**Recipes** is a visual builder for Corrections → Resize → Filter → Watermark → Output, using the existing processing engine's canonical order. Enable only needed steps, preview the first captured photo, save a named recipe, then apply it to the stated inputs. Recipes store independent parameters, not crop positions, source IDs, retouch, annotations, colour traces, resolved Auto Enhance or destinations. Each photo keeps its unrelated edits and grain seed. Watermark capture is an explicit action; image assets become owned local recipe resources. Conversion alone preserves existing dimensions; resizing is a separate enabled step. Older processing profiles and automation recipes retain their existing meaning.
+
+Application reports changed/skipped/failed/not-run counts, skips concurrently edited sources, and supports cancellation and grouped Undo for committed changes. Retry is explicit. Recipes are local app data, not portable cross-device projects. Owned recipe assets are retained after deletion because current photos, saved work or Undo may still use them. Step reordering and an Auto Enhance analysis step are not included.
+
+The Mac layered editor's **Use Result** menu adds a flattened finished image to Workspace or starts a GIF from it, preserving the editable document. The new source has an independent baseline even through existing Undo history. **Export Changed Photos** from Recipes freezes only successful changed targets and their export configurations; later selection or editing cannot alter the queued request. Saving editable documents remains separate from exporting finished images. Multi-element watermark authoring remains Mac-first; iPhone/iPad can import and apply saved designs.
+
+See the [review and follow-on phase report](docs/WORKFLOW_PHASES_3_5_2026-10-17.html) for current screenshots, test outcomes and verification limitations. The 24-filter collection is unchanged.
+
 ## Implemented workflows
 
 - Import multiple files, recursive folders, Finder drops and item-based Photos selections. Native decoder capabilities determine JPEG, PNG, HEIC, TIFF and WebP availability; input validation uses content, not extensions.
@@ -122,6 +142,41 @@ Current reliability work and verification: [review results](docs/RELIABILITY_REV
 
 ## Demo Workspace
 
-Choose **Open Demo Workspace** from the workspace sidebar, Projects, or iPhone home screen to try 27 generated sample photographs in a separate saved editing session. Use **Return to Your Workspace** to resume your own photos and edits. The collection includes a signature coastal portrait and five deliberately imperfect editing challenges. See [Demo Workspace behaviour and verification](docs/DEMO_WORKSPACE.md) and [asset provenance and usage](Resources/DemoWorkspace/README.md).
+Choose **Open Demo Workspace** from the workspace sidebar, Projects, or iPhone home screen to try 30 generated sample photographs in a separate saved editing session. Use **Return to Your Workspace** to resume your own photos and edits. The collection includes a colourful bird hero, polished coastal and golden-light portraits, and five deliberately imperfect editing challenges. See [Demo Workspace behaviour and verification](docs/DEMO_WORKSPACE.md) and [asset provenance and usage](Resources/DemoWorkspace/README.md).
 
 Creative Filters uses a versioned catalog of 24 original SDR recipes, independent persisted Auto Enhance, scoped history and captured batch inputs. Native kernels and the shared renderer drive thumbnails, canvas and export; legacy six-look edits remain compatible. See the filter delivery report for measured hardware, validation evidence and release limitations.
+
+### Inline colour replacement and edge refinement (17 October 2026)
+
+Replace Colour is a dedicated toolbox tool (under Tools on iPhone), using the existing editor canvas rather than an adjustment or separate editing sheet. Tracing shows a live translucent selection with a contrasting outline. A single bounded, session-and-edit-keyed editor preview is reused across matching tool entries; changed sources or edits never reuse an unrelated image. Apply and Cancel affect only its captured single-photo draft. Select Object uses local Apple Vision foreground instances with sampled-colour guidance; Trace followed by Refine Edges restricts detection to a rough area when adjacent objects are grouped. New feathered selections remain inside their boundary; older saved replacements retain their original feather rendering. Significant detected cutouts are saved as normalized contours, so preview, export and reopening share the selection.
+
+Automatic selection is approximate, not guaranteed object or garment recognition. Similar colours, connected objects, fine hair, transparency and patterned materials need review or manual tracing. On the tested iPhone Simulator, Vision could not create an inference context: the selection diagnostic is skipped and Trace remains available. Physical iPhone/iPad validation is still required. All processing stays local.
+
+### Retouch stroke revision 3 (17 October 2026)
+
+New UI-authored retouch strokes use whole-path automatic sampling: candidate source translations are scored against the surrounding path and rejected if they overlap the removal area. Heal estimates low-frequency tone from outside the painted coverage rather than blending the unwanted content back in. Version-1/2 saved strokes keep their historical rendering. This remains local texture-based healing, not semantic scene reconstruction; complex structural edges and large removals need review or a manual Clone source.
+
+Mac painting uses native mouse-down/drag/up tracking inside the canvas. An isolated native mouse test on the kitchen demo confirmed a real drag produces a multi-point stroke. The opt-in `AMELUMA_NATIVE_BRUSH_CHECK=1` test-action environment flag enables that interactive test; use a separate test host when another editing session is open. The 1,000-pixel kitchen diagnostic measures source matching and rendering separately; these warm test timings are not release p95 or physical-device performance claims. Physical touch/Pencil and very large images still require verification.
+
+
+### Editable image documents — initial Mac implementation (17 October 2026)
+
+File → **New Image Document** creates a transparent canvas. **Open Selected Photos as Layers** captures the chosen workspace photos and their effective edits; **Duplicate Current Photo as Document** captures the active photo. Document commands never use live batch selection after creation. Use File → **Open Documents** to resume an open document after returning to Workspace.
+
+The initial document editor supports raster image placement/drop/paste, editable text and basic shapes, independent layer transforms with handles and numeric fields, ordering, duplication, visibility, locking, opacity, eight blend modes, thumbnails and document-local Undo/Redo. Fit/actual-pixel viewing, pinch/Option-scroll zoom, native scrolling, independent canvas dimensions and a display-only checkerboard are included.
+
+**Save** writes a version-1 `.ameluma` package containing the editable model and immutable image resources. It remains usable after the source workspace is cleared. Editable packages contain their original image resources; **Export** or **Copy Flattened Image** produces the finished image instead. Export shares the existing encoding, validation and collision-safe publication path. Local recovery preserves unsaved content, saved location and dirty state. Older workspace project instructions retain their existing format and local-reference semantics.
+
+This is the first stage of the approved general-purpose editor plan, not the whole roadmap. New document authoring is currently Mac-only; Core models/rendering/storage compile and run on iOS/iPadOS. Existing mobile photo editing remains intact. New documents use SDR sRGB; HDR development, arbitrary document profiles, groups/merging, raster painting/eraser/fill, general region selections, adjustment layers, effect stacks and guides remain later stages. Per-layer photo recipes are captured, not yet editable through a new layer adjustment inspector. Normal photo adjustment/filter tools remain available in the existing photo editor.
+
+Validation and remaining real-input/performance/accessibility gates: [document editor implementation report](docs/EDITOR_DOCUMENT_IMPLEMENTATION_2026-10-17.html).
+
+### Editable annotations and saved watermark designs
+
+In the workspace action menu, **Annotate Photo** opens editable text, arrows, shapes, freehand strokes, translucent highlights and numbered callouts. Callouts renumber when reordered or removed; Undo restores their editable objects. Opaque privacy covers remain separate from translucent highlights.
+
+On Mac, open **Watermark → Watermark Designs…**, choose an original template, then edit its ordinary text, shape and image layers. The Canvas name field names the reusable design. **Save Design** (or Command-S) saves its editable package locally; **Back** returns to the photo or batch without changing selection. **Save As…** can save a portable `.ameluma` copy. Preview backgrounds are never exported.
+
+Choose a saved design and **Apply to N Photos** to replace only watermark content on those captured targets. Placement, size, opacity, rotation and tiling remain independently editable. Application is one undoable operation; later design changes/deletion cannot alter applied stamps. Vector design elements render at the requested stamp size, bounded to 16 megapixels; raster logos retain their original resolution limits. iPhone/iPad can import and apply saved designs; multi-element design authoring currently requires Mac. Designs use document version 2; existing version-1 documents and legacy text/image watermarks remain supported.
+
+See [phase delivery evidence](docs/PHASES_0_2_IMPLEMENTATION_2026-10-17.html) for test outcomes, native captures and remaining verification.

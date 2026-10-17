@@ -40,13 +40,22 @@ extension Workspace {
   }
   var orderedSelection: [UUID] { selectionOrder.filter { selection.contains($0) } }
   func contextIDs(for id: UUID) -> [UUID] { selection.contains(id) ? orderedSelection : [id] }
+  /// Capture only visible project members, once and in caller order. Filters do not alter membership.
+  func workspaceActionIDs(_ ids: [UUID]) -> [UUID] {
+    let available = Set(workspaceAssets.map(\.id))
+    var seen = Set<UUID>()
+    return ids.filter { available.contains($0) && seen.insert($0).inserted }
+  }
   func beginBatch(ids: [UUID], tool: InspectorTask = .resize) {
-    guard !overlayEditor, !ids.isEmpty else { return }
+    let ids = workspaceActionIDs(ids)
+    guard !overlayEditor, !running, !ids.isEmpty else { return }
     removalUndo?.restoreBatchMembership = false
     conversionInputIDs = nil; conversionResizingEnabled = false
     switchWorkflow(.batch); scope = .selected; batchInputIDs = Set(ids); inspectorTask = tool; persist()
   }
   func beginConversion(ids: [UUID]) {
+    let ids = workspaceActionIDs(ids)
+    guard !overlayEditor, !running, !ids.isEmpty else { return }
     beginBatch(ids: ids, tool: .output)
     conversionInputIDs = batchInputIDs; conversionResizingEnabled = false; exportProfiles = []; persist()
   }
@@ -84,14 +93,19 @@ struct WorkspaceActions: View {
     Group {
       if ids.count == 1, let id = ids.first, let asset = model.assets.first(where: { $0.id == id }) {
         Button("Edit Photo") { model.openPhoto(asset) }
+        Button("Annotate Photo") { model.openOverlayEditor(for: asset, masking: false) }
         Button("Retouch Photo") { model.performTask(.retouch, ids: [id]) }
         Button("Censor Photo") { model.openOverlayEditor(for: asset) }
       }
+      Button("Apply Recipe to \(photoCount)…") { model.presentRecipes(ids: ids) }
       Button(filterActionTitle) { model.presentFilterBatch(ids) }
       Button("Auto Enhance \(photoCount)") { model.setAutoEnhance(true, targetIDs: Set(ids)) }
       Button("Batch Edit \(photoCount)") { model.beginBatch(ids: ids) }
       Button("Resize \(photoCount)") { model.beginBatch(ids: ids, tool: .resize) }
       Button("Convert \(photoCount)") { model.beginConversion(ids: ids) }
+      #if os(macOS)
+      Button("Open \(photoCount) as Layers") { Task { await model.openPhotosAsDocument(ids) } }
+      #endif
       Button("Create GIF from \(photoCount)") { model.startGIF(ids: ids) }
       Button("Create Collage from \(photoCount)") {
         model.switchWorkflow(.collages); model.newCollage(sourceIDs: ids)

@@ -100,12 +100,13 @@ public struct ProcessingConfiguration: Codable, Sendable, Equatable {
     public var look: PhotoLook?
     public var lookStrength: Double = 1
     public var privacyExport = false
+    public var colourReplacements: [ColourReplacement] = []
     public var retouchStrokes: [RetouchStroke] = []
     public var masks: [PrivacyMask] = []
     public var annotations: [Annotation] = []
     public var canvasStyle = CanvasStyle()
     public init() {}
-    private enum CodingKeys: String, CodingKey { case nativeOutputSizing, width, height, quarterTurns, flipHorizontal, flipVertical, straighten, crop, resizeBasis, percentage, preventUpscaling, background, canvasAlignment, format, quality, targetBytes, minimumQuality, colourPolicy, metadata, watermark, adjustments, filterEdit, autoEnhance, look, lookStrength, retouchStrokes, masks, privacyExport, annotations, canvasStyle }
+    private enum CodingKeys: String, CodingKey { case nativeOutputSizing, width, height, quarterTurns, flipHorizontal, flipVertical, straighten, crop, resizeBasis, percentage, preventUpscaling, background, canvasAlignment, format, quality, targetBytes, minimumQuality, colourPolicy, metadata, watermark, adjustments, filterEdit, autoEnhance, look, lookStrength, colourReplacements, retouchStrokes, masks, privacyExport, annotations, canvasStyle }
     public init(from decoder: Decoder) throws {
         self.init(); let container = try decoder.container(keyedBy: CodingKeys.self)
         nativeOutputSizing = try container.decodeIfPresent(Bool.self, forKey: .nativeOutputSizing)
@@ -133,6 +134,7 @@ public struct ProcessingConfiguration: Codable, Sendable, Equatable {
         autoEnhance = try container.decodeIfPresent(AutoEnhanceEdit.self, forKey: .autoEnhance)
         look = try container.decodeIfPresent(PhotoLook.self, forKey: .look)
         lookStrength = try container.decodeIfPresent(Double.self, forKey: .lookStrength) ?? 1
+        colourReplacements = try container.decodeIfPresent([ColourReplacement].self, forKey: .colourReplacements) ?? []
         retouchStrokes = try container.decodeIfPresent([RetouchStroke].self, forKey: .retouchStrokes) ?? []
         masks = try container.decodeIfPresent([PrivacyMask].self, forKey: .masks) ?? masks
         privacyExport = try container.decodeIfPresent(Bool.self, forKey: .privacyExport) ?? false

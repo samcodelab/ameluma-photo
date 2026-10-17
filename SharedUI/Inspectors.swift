@@ -8,8 +8,9 @@ enum EditorDestination { case framing, collage, overlays, projects }
 enum AdjustmentParameter: String, CaseIterable {
   case exposure = "Exposure", brightness = "Brightness", contrast = "Contrast"
   case highlights = "Highlights", shadows = "Shadows", saturation = "Saturation", warmth = "Warmth"
+  case vibrance = "Vibrance", tint = "Tint"
   static let light: [Self] = [.exposure, .brightness, .contrast, .highlights, .shadows]
-  static let colour: [Self] = [.saturation, .warmth]
+  static let colour: [Self] = [.saturation, .vibrance, .warmth, .tint]
   var keyPath: WritableKeyPath<ProcessingConfiguration, Double> {
     switch self {
     case .exposure: \.adjustments.exposure
@@ -17,6 +18,8 @@ enum AdjustmentParameter: String, CaseIterable {
     case .contrast: \.adjustments.contrast
     case .highlights: \.adjustments.highlights
     case .shadows: \.adjustments.shadows
+    case .vibrance: \.adjustments.vibrance
+    case .tint: \.adjustments.tint
     case .saturation: \.adjustments.saturation
     case .warmth: \.adjustments.warmth
     }
@@ -28,6 +31,8 @@ enum AdjustmentParameter: String, CaseIterable {
     case .contrast: .adjustments_contrast
     case .highlights: .adjustments_highlights
     case .shadows: .adjustments_shadows
+    case .vibrance: .adjustments_vibrance
+    case .tint: .adjustments_tint
     case .saturation: .adjustments_saturation
     case .warmth: .adjustments_warmth
     }
@@ -38,6 +43,7 @@ enum AdjustmentParameter: String, CaseIterable {
     case .brightness: -0.5...0.5
     case .contrast: 0.5...1.5
     case .highlights, .shadows: 0...1
+    case .vibrance, .tint: -1...1
     case .saturation: 0...2
     case .warmth: -1...1
     }
@@ -61,6 +67,7 @@ struct SettingsEditor: View {
   var openEditor: ((EditorDestination) -> Void)? = nil
   @State private var looksPresented = false
   @State private var watermarkImport = false
+  @State private var watermarkDesignTargets: [UUID]?
   @State private var savePreset = false
   @State private var presetName = ""
   @State private var parameter: AdjustmentParameter = .exposure
@@ -78,7 +85,7 @@ struct SettingsEditor: View {
     case .framing: model.precision = true
     case .collage: model.switchWorkflow(.collages)
     case .overlays: if let asset = model.current { model.openOverlayEditor(for: asset) }
-    case .projects: model.projectsView = true
+    case .projects: model.presentWorkspaceSwitcher()
     }
   }
   var config: Binding<ProcessingConfiguration> {
@@ -196,9 +203,10 @@ struct SettingsEditor: View {
     DisclosureGroup("Colour", isExpanded: $colourExpanded) {
       VStack(spacing: 8) { ForEach(AdjustmentParameter.colour, id: \.self) { parameterControl($0) } }.padding(.top, 6)
     }
+    ColourMixControls(model: model)
     Button("Reset Light & Colour") {
       var value = model.controlConfiguration; value.adjustments = PhotoAdjustments()
-      model.applyChange(ConfigurationPatch(values: value, fields: Set(ConfigurationField.allCases.filter { $0.category == .adjustments })))
+      model.applyChange(ConfigurationPatch(values: value, fields: Set(ConfigurationField.allCases.filter { $0.rawValue.hasPrefix("adjustments.") })))
     }
   }
   var propertyForm: some View {
@@ -240,7 +248,7 @@ struct SettingsEditor: View {
         Section("Photo Tools") {
           Button("Make a Collage…") { open(.collage) }.disabled(model.workspaceAssets.isEmpty)
           Button("Annotations & Privacy…") { open(.overlays) }.disabled(model.current == nil)
-          Button("Projects & Settings…") { open(.projects) }
+          Button("Back to Workspace") { model.showLibrary() }
           Text("Opaque covers and cropping provide stronger concealment than blur or pixelation.").font(.caption).foregroundStyle(.secondary)
         }
       }
@@ -285,7 +293,7 @@ struct SettingsEditor: View {
               Button("Balanced") { field(\.quality, [.quality]).wrappedValue = 0.85 }
               Button("Smallest Practical") { field(\.quality, [.quality]).wrappedValue = 0.55 }
             }
-            LabeledContent("Quality", value: field(\.quality, [.quality]).wrappedValue, format: .percent)
+            LabeledContent("Quality", value: field(\.quality, [.quality]).wrappedValue, format: .percent.precision(.fractionLength(0)))
             Slider(value: field(\.quality, [.quality]), in: 0.1...1, onEditingChanged: editGesture)
               .accessibilityLabel("Output quality")
             Toggle(
@@ -309,7 +317,7 @@ struct SettingsEditor: View {
                 ).labelsHidden()
               }
               LabeledContent(
-                "Minimum quality", value: field(\.minimumQuality, [.minimumQuality]).wrappedValue, format: .percent)
+                "Minimum quality", value: field(\.minimumQuality, [.minimumQuality]).wrappedValue, format: .percent.precision(.fractionLength(0)))
               Slider(
                 value: field(\.minimumQuality, [.minimumQuality]), in: 0.1...max(0.1, field(\.quality, [.quality]).wrappedValue),
                 onEditingChanged: editGesture)
@@ -386,6 +394,13 @@ struct SettingsEditor: View {
           }
   }
   @ViewBuilder var watermarkControls: some View {
+    Button("Watermark Designs…", systemImage: "square.stack.3d.up") {
+      watermarkDesignTargets = model.targets.map(\.id)
+    }
+    .sheet(isPresented: Binding(get: { watermarkDesignTargets != nil }, set: { if !$0 { watermarkDesignTargets = nil } })) {
+      WatermarkDesignsView(model: model, targetIDs: watermarkDesignTargets ?? [])
+    }
+
     if !model.controlConfiguration.watermark.enabled {
       Button("Add Watermark", systemImage: "plus") {
         field(\.watermark.enabled, [.watermark_enabled]).wrappedValue = true
@@ -427,8 +442,8 @@ struct SettingsEditor: View {
           AnchorPicker(anchor: field(\.watermark.anchor, [.watermark_anchor]))
           InspectorSlider(title: "Rotation", value: field(\.watermark.rotation, [.watermark_rotation]), range: -180...180, interaction: editGesture)
           InspectorSlider(title: "Margin", value: field(\.watermark.margin, [.watermark_margin]), range: 0...0.2, percentage: true, interaction: editGesture)
-          TextField("Horizontal offset", value: field(\.watermark.offsetX, [.watermark_offsetX]), format: .percent)
-          TextField("Vertical offset", value: field(\.watermark.offsetY, [.watermark_offsetY]), format: .percent)
+          TextField("Horizontal offset", value: field(\.watermark.offsetX, [.watermark_offsetX]), format: .percent.precision(.fractionLength(0)))
+          TextField("Vertical offset", value: field(\.watermark.offsetY, [.watermark_offsetY]), format: .percent.precision(.fractionLength(0)))
           Toggle("Tile watermark", isOn: field(\.watermark.tiled, [.watermark_tiled]))
         }.padding(.top, 8)
       }
@@ -479,7 +494,7 @@ struct SettingsEditor: View {
           Toggle("Flip horizontally", isOn: field(\.flipHorizontal, [.flipHorizontal]))
           Toggle("Flip vertically", isOn: field(\.flipVertical, [.flipVertical]))
           LabeledContent(
-            "Straighten", value: field(\.straighten, [.straighten]).wrappedValue,
+            "Straighten (°)", value: field(\.straighten, [.straighten]).wrappedValue,
             format: .number.precision(.fractionLength(1)))
           Slider(value: field(\.straighten, [.straighten]), in: -20...20, onEditingChanged: editGesture)
             .accessibilityLabel("Straighten angle")
@@ -514,8 +529,8 @@ struct SettingsEditor: View {
               Button("\(edge) × \(edge) · Fit") {
                 var c = config.wrappedValue
                 c.width = edge
-                c.height = edge; c.crop.mode = .fit
-                model.applyChange(ConfigurationPatch(values: c, fields: [.width, .height, .crop_mode]))
+                c.height = edge; c.crop.mode = .fit; c.nativeOutputSizing = false
+                model.applyChange(ConfigurationPatch(values: c, fields: [.width, .height, .crop_mode, .nativeOutputSizing]))
               }
             }
             Button("1080 × 1350 · Fit") { setSize(1080, 1350) }
@@ -588,8 +603,8 @@ struct SettingsEditor: View {
   func setSize(_ w: Int, _ h: Int) {
     var c = config.wrappedValue
     c.width = w
-    c.height = h; c.crop.mode = .fit
-    model.applyChange(ConfigurationPatch(values: c, fields: [.width, .height, .crop_mode]))
+    c.height = h; c.crop.mode = .fit; c.nativeOutputSizing = false
+    model.applyChange(ConfigurationPatch(values: c, fields: [.width, .height, .crop_mode, .nativeOutputSizing]))
   }
   func applyAspect(_ ratio: Double) {
     var c = config.wrappedValue
@@ -666,7 +681,28 @@ struct AnchorPicker: View {
 
 /// Numeric entry and dragging share the same scoped field binding. Neither copies a photo's
 /// complete configuration into the other selected photos.
-private struct AdjustmentControl: View {
+/// Display units only: persisted Core Image parameters retain their established meaning.
+struct AdjustmentDisplayScale {
+  var multiplier: Double = 1
+  var offset: Double = 0
+  var unit = ""
+  var step: Double = 0.01
+  func display(_ value: Double) -> Double { value * multiplier + offset }
+  func stored(_ value: Double) -> Double { (value - offset) / multiplier }
+  static func forTitle(_ title: String) -> Self {
+    switch title {
+    case "Exposure": return Self(unit: "EV")
+    case "Brightness": return Self(multiplier: 200, step: 1)
+    case "Contrast": return Self(multiplier: 200, offset: -200, step: 1)
+    case "Saturation": return Self(multiplier: 100, offset: -100, step: 1)
+    case "Highlights": return Self(multiplier: 100, offset: -100, step: 1)
+    case "Shadows", "Warmth", "Tint", "Vibrance": return Self(multiplier: 100, step: 1)
+    default: return Self(step: title.contains("(°)") || title.contains("(%)") ? 1 : 0.01)
+    }
+  }
+}
+
+struct AdjustmentControl: View {
   let title: String
   @Binding var value: Double
   let range: ClosedRange<Double>
@@ -694,8 +730,11 @@ private struct AdjustmentControl: View {
     HStack {
       if let parameterSelection {
         Menu {
-          Picker("Adjustment", selection: parameterSelection) {
-            ForEach(AdjustmentParameter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+          ForEach(AdjustmentParameter.allCases, id: \.self) { parameter in
+            Button { parameterSelection.wrappedValue = parameter } label: {
+              if parameter == parameterSelection.wrappedValue { Label(parameter.rawValue, systemImage: "checkmark") }
+              else { Text(parameter.rawValue) }
+            }
           }
         } label: {
           HStack(spacing: 4) {
@@ -711,8 +750,14 @@ private struct AdjustmentControl: View {
       }
     }
   }
+  var displayScale: AdjustmentDisplayScale { .forTitle(title) }
+  var displayRange: ClosedRange<Double> { displayScale.display(range.lowerBound)...displayScale.display(range.upperBound) }
+  var displayValue: Binding<Double> {
+    Binding(get: { displayScale.display(value) }, set: { boundedValue.wrappedValue = displayScale.stored($0) })
+  }
   var valueField: some View {
-    TextField(title, value: boundedValue, format: .number.precision(.fractionLength(0...2)))
+    HStack(spacing: 2) {
+    TextField(title, value: displayValue, format: .number.precision(.fractionLength(0...2)))
       .labelsHidden().multilineTextAlignment(.trailing).monospacedDigit().textFieldStyle(.roundedBorder)
       .modifier(SignedNumericEntry())
       .focused($valueFocused)
@@ -725,7 +770,9 @@ private struct AdjustmentControl: View {
       .onChange(of: targetIDs) { _, _ in valueFocused = false; finishNumericInteraction() }
       .onDisappear { finishNumericInteraction(); if ownsSliderInteraction { ownsSliderInteraction = false; interaction(false) } }
       .accessibilityLabel("\(title) value")
-      .help("Enter a value from \(range.lowerBound) to \(range.upperBound).")
+      .help("Enter a value from \(displayRange.lowerBound) to \(displayRange.upperBound) \(displayScale.unit).")
+    if !displayScale.unit.isEmpty { Text(displayScale.unit).font(.caption).foregroundStyle(.secondary) }
+    }
   }
   var resetButton: some View {
     Button { valueFocused = false; finishNumericInteraction(); boundedValue.wrappedValue = neutral } label: {
@@ -744,7 +791,7 @@ private struct AdjustmentControl: View {
         } else {
           HStack { titleLabel; Spacer(); valueField.frame(width: 64) }
         }
-        Slider(value: boundedValue, in: range, onEditingChanged: { editing in
+        Slider(value: displayValue, in: displayRange, step: displayScale.step, onEditingChanged: { editing in
           if editing {
             valueFocused = false; finishNumericInteraction()
             if interactionAvailable() { ownsSliderInteraction = true; interaction(true) }
@@ -752,7 +799,7 @@ private struct AdjustmentControl: View {
         })
           .labelsHidden().frame(maxWidth: .infinity)
           .accessibilityLabel(title)
-          .accessibilityValue(mixed ? "Mixed values; representative \(value)" : "\(value), neutral \(neutral)")
+          .accessibilityValue(mixed ? "Mixed values; representative \(displayScale.display(value))" : "\(displayScale.display(value)) \(displayScale.unit), neutral \(displayScale.display(neutral))")
       }
       resetButton
     }.accessibilityElement(children: .contain)

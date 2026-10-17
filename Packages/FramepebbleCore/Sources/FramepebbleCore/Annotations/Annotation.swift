@@ -1,12 +1,21 @@
 import CoreGraphics
 import CoreImage
+import CoreText
 import Foundation
 
 public enum AnnotationTextAlignment: String, Codable, Sendable, CaseIterable {
   case leading, centre, trailing
 }
 public enum AnnotationKind: String, Codable, Sendable, CaseIterable {
-  case text, speechBubble, arrow, line, rectangle, ellipse, freehand
+  case text, speechBubble, arrow, line, rectangle, ellipse, freehand, sticker, highlight, callout
+  public var title: String {
+    switch self {
+    case .speechBubble: "Speech Bubble"
+    case .freehand: "Freehand"
+    case .callout: "Numbered Callout"
+    default: rawValue.capitalized
+    }
+  }
 }
 /// Normalised final-output geometry. Text uses the same CoreText stamp renderer as watermarks.
 public struct Annotation: Codable, Sendable, Equatable, Identifiable {
@@ -21,13 +30,17 @@ public struct Annotation: Codable, Sendable, Equatable, Identifiable {
   public var lineWidth = 0.006
   public var colour = RGBAColour(1, 1, 1, 1)
   public var alignment: AnnotationTextAlignment = .leading
+  public var flipHorizontal = false
+  public var stickerID: String?
   public var text = "Your caption"
   public var fontName = "HelveticaNeue-Medium"
   public var points: [NormalizedPoint] = []
+  /// New arrows follow drag direction. nil preserves legacy top-left→bottom-right rendering.
+  public var directionVersion: Int?
   public init() {}
   private enum CodingKeys: String, CodingKey {
-    case id, kind, x, y, width, height, rotation, opacity, lineWidth, colour, alignment, text,
-      fontName, points
+    case id, kind, x, y, width, height, rotation, opacity, lineWidth, colour, alignment, text, stickerID, flipHorizontal,
+      fontName, points, directionVersion
   }
   public init(from decoder: Decoder) throws {
     self.init()
@@ -43,9 +56,12 @@ public struct Annotation: Codable, Sendable, Equatable, Identifiable {
     lineWidth = try c.decodeIfPresent(Double.self, forKey: .lineWidth) ?? lineWidth
     colour = try c.decodeIfPresent(RGBAColour.self, forKey: .colour) ?? colour
     alignment = try c.decodeIfPresent(AnnotationTextAlignment.self, forKey: .alignment) ?? alignment
+    flipHorizontal = try c.decodeIfPresent(Bool.self, forKey: .flipHorizontal) ?? false
+    stickerID = try c.decodeIfPresent(String.self, forKey: .stickerID)
     text = try c.decodeIfPresent(String.self, forKey: .text) ?? text
     fontName = try c.decodeIfPresent(String.self, forKey: .fontName) ?? fontName
     points = try c.decodeIfPresent([NormalizedPoint].self, forKey: .points) ?? points
+    directionVersion = try c.decodeIfPresent(Int.self, forKey: .directionVersion)
   }
 
 }
@@ -67,6 +83,16 @@ public struct CanvasStyle: Codable, Sendable, Equatable {
 
 }
 public enum AnnotationRenderer {
+  /// Numbers are semantic order, never burned into editable text. Deleting or
+  /// reordering other objects cannot introduce gaps in screenshot callouts.
+  public static func calloutNumbers(_ annotations: [Annotation]) -> [UUID: Int] {
+    var result: [UUID: Int] = [:]
+    for annotation in annotations where annotation.kind == .callout {
+      result[annotation.id] = result.count + 1
+    }
+    return result
+  }
+
   public static func apply(to image: CIImage, annotations: [Annotation], canvas: CanvasStyle) throws
     -> CIImage
   {
@@ -85,6 +111,7 @@ public enum AnnotationRenderer {
     else { throw ProcessingError.encoding }
     ctx.translateBy(x: 0, y: size.height)
     ctx.scaleBy(x: 1, y: -1)
+    let numbers = calloutNumbers(annotations)
     for a in annotations {
       try Task.checkCancellation()
       try PrivacyRenderer.validate(
@@ -105,12 +132,20 @@ public enum AnnotationRenderer {
       ctx.setAlpha(a.opacity)
       ctx.translateBy(x: r.midX, y: r.midY)
       ctx.rotate(by: a.rotation * .pi / 180)
+      if a.flipHorizontal { ctx.scaleBy(x: -1, y: 1) }
       ctx.translateBy(x: -r.midX, y: -r.midY)
       ctx.setStrokeColor(a.colour.cgColor)
       ctx.setLineWidth(a.lineWidth * min(size.width, size.height))
       ctx.setLineCap(.round)
       ctx.setLineJoin(.round)
       switch a.kind {
+      case .sticker:
+        guard let id = a.stickerID, let sticker = StickerCatalog.sticker(id) else { throw StickerError.unavailable }
+        // Composite the entire sticker once: overlapping vector parts must not
+        // accumulate the object opacity independently.
+        ctx.beginTransparencyLayer(auxiliaryInfo: nil)
+        StickerRenderer.draw(sticker, in: r, context: ctx)
+        ctx.endTransparencyLayer()
       case .text, .speechBubble:
         if a.kind == .speechBubble {
           ctx.addPath(CGPath(roundedRect: r.insetBy(dx: -4, dy: -4), cornerWidth: r.height * 0.15, cornerHeight: r.height * 0.15, transform: nil))
@@ -142,20 +177,45 @@ public enum AnnotationRenderer {
         ctx.translateBy(x: textX, y: r.minY + h)
         ctx.scaleBy(x: 1, y: -1)
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: h))
+      case .highlight:
+        ctx.setFillColor(a.colour.cgColor)
+        ctx.fill(r)
+      case .callout:
+        let diameter = min(r.width, r.height)
+        let circle = CGRect(x: r.midX-diameter/2, y: r.midY-diameter/2, width: diameter, height: diameter)
+        ctx.setFillColor(a.colour.cgColor); ctx.fillEllipse(in: circle)
+        let luminance = a.colour.red * 0.2126 + a.colour.green * 0.7152 + a.colour.blue * 0.0722
+        let ink = CGColor(gray: luminance > 0.55 ? 0 : 1, alpha: 1)
+        let font = CTFontCreateWithName(a.fontName as CFString, diameter * 0.55, nil)
+        let string = NSAttributedString(string: String(numbers[a.id] ?? 1), attributes: [
+          NSAttributedString.Key(kCTFontAttributeName as String): font,
+          NSAttributedString.Key(kCTForegroundColorAttributeName as String): ink])
+        let line = CTLineCreateWithAttributedString(string)
+        let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
+        let fit = min(1, diameter * 0.75 / max(1, bounds.width))
+        ctx.translateBy(x: circle.midX, y: circle.midY)
+        ctx.scaleBy(x: fit, y: -fit)
+        ctx.textPosition = CGPoint(x: -bounds.midX, y: -bounds.midY)
+        CTLineDraw(line, ctx)
       case .rectangle: ctx.stroke(r)
       case .ellipse: ctx.strokeEllipse(in: r)
       case .line, .arrow:
-        ctx.move(to: r.origin)
-        ctx.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+        guard a.directionVersion == nil || a.directionVersion == 1 else { throw ProcessingError.invalidConfiguration }
+        let directed = a.directionVersion == 1 && a.points.count >= 2
+        let start = directed ? CGPoint(x: r.minX + a.points[0].x * r.width, y: r.minY + a.points[0].y * r.height) : r.origin
+        let last = a.points.last ?? NormalizedPoint(1,1)
+        let end = directed ? CGPoint(x: r.minX + last.x * r.width, y: r.minY + last.y * r.height) : CGPoint(x:r.maxX,y:r.maxY)
+        ctx.move(to: start)
+        ctx.addLine(to: end)
         ctx.strokePath()
         if a.kind == .arrow {
-          let angle = atan2(r.height, r.width)
+          let angle = atan2(end.y-start.y, end.x-start.x)
           let d = min(size.width, size.height) * 0.04
           ctx.move(
-            to: CGPoint(x: r.maxX - d * cos(angle - .pi / 6), y: r.maxY - d * sin(angle - .pi / 6)))
-          ctx.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+            to: CGPoint(x: end.x - d * cos(angle - .pi / 6), y: end.y - d * sin(angle - .pi / 6)))
+          ctx.addLine(to: end)
           ctx.addLine(
-            to: CGPoint(x: r.maxX - d * cos(angle + .pi / 6), y: r.maxY - d * sin(angle + .pi / 6)))
+            to: CGPoint(x: end.x - d * cos(angle + .pi / 6), y: end.y - d * sin(angle + .pi / 6)))
           ctx.strokePath()
         }
       case .freehand:

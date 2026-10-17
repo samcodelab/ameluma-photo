@@ -1,0 +1,275 @@
+{
+  "date": "2026-10-17",
+  "status": "Implementation and automated/hosted visual validation complete; hands-on and release gates remain",
+  "environment": {
+    "hardware": "M5 Pro Mac17,8, 64 GB",
+    "macOS": "27.0.1 (26A434)",
+    "simulatorRuntime": "iOS 26.5",
+    "deploymentTargets": "macOS 15+, iOS/iPadOS 18+"
+  },
+  "phases": [
+    {
+      "name": "Review gate \u2014 watermark, annotations and scope",
+      "completed": [
+        "Exposed the watermark design name beside Save Design. Existing layers remain the editable model; text, frame and tagline stay separate elements.",
+        "Kept 12 original templates and differentiated their proportions: compact signatures/copyright/social marks, a square serif monogram, a framed studio stamp, a vertical-accent modern layout and angled protection. Existing saved designs are not rewritten.",
+        "Empty watermark states explain authoring/import/application; zero-photo scopes do not offer a misleading Apply-to-0 action. Applying disables competing library actions while cancellation remains available.",
+        "Annotation selection now stays in Select when clicking empty canvas. Object labels identify actual kinds/text/callout numbers. Rectangle/ellipse/highlight/callout drawing has immediate outline feedback.",
+        "New arrows and lines follow gesture endpoints. A versioned direction flag preserves legacy rendering and saved output. Existing automatic callout renumbering and draft Undo/Redo remain shared.",
+        "Action-target tests deliberately leave unrelated gallery photos selected while editing one photo. Document, GIF and collage contexts never fall back to that gallery selection."
+      ],
+      "validation": "Core ToolboxTests/EditorDocumentTests and native WatermarkDesignUsabilityTests, EditorDocumentUsabilityTests, OutputUsabilityTests and SelectionAdapterTests. New captures show templates, designer and annotation canvas across platforms. Pointer/Pencil gesture quality is still a hands-on gate."
+    },
+    {
+      "name": "Phase 3 \u2014 visual reusable recipes",
+      "completed": [
+        "Added a versioned independent recipe record and native visual builder: Corrections \u2192 Resize \u2192 Filter \u2192 Watermark \u2192 Output. Enable steps and edit parameters; wider layouts keep preview beside controls, compact layouts put it above. Accessibility text starts with the preview collapsed.",
+        "Parameters start from recipe defaults, never implicitly captured from the current photo. Explicit watermark capture copies only watermark configuration. Photo crop, annotations, masks, retouch, colour traces, Auto Enhance and grain seeds stay on their original photos.",
+        "Recipe save owns immutable local image/design assets, writes atomically and rebinds owned assets after app-container relocation. Missing/invalid resources report errors.",
+        "Application freezes target identities/configurations, skips concurrent changes, reports changed/skipped/failed/not-run counts, supports stop/retry and groups successful edit changes into one Undo step. Reapplication refreshes only successful snapshots.",
+        "Conversion alone preserves dimensions; explicit resize overrides native sizing. Native sizing is now a sparse patch field and spatial changes revoke protective-coverage review as required."
+      ],
+      "validation": "RecipeTests verify semantic independence, geometry/patch round trips, unsupported versions, preview/export rendering equality and original hashes. ActionRecipeUsabilityTests cover failures, cancellation, concurrent edits, reapplication, Undo/Redo, resource ownership and relocation."
+    },
+    {
+      "name": "Phase 4 \u2014 universal contextual Actions / Command-K",
+      "completed": [
+        "Added a context-aware action system spanning current photo, explicit workspace selection, captured batch inputs, layered document, GIF, collage and unapplied draft.",
+        "Relevant actions expose existing tools and workflows. Scope is visible before execution; stale project/creation identities and busy states disable execution. Empty creations explain why export is unavailable.",
+        "Local commands such as \u201cresize to 1920\u201d, \u201cconvert to PNG\u201d and \u201cfilter Warm\u201d resolve real parameters through the existing engine. Search aliases cover common tool terminology. Explicit \u201cselected images\u201d requests cannot silently target the current photo.",
+        "Commands defer execution until their panel closes. Mac has Command-K and menu entry; mobile has visible Actions entries and a hardware keyboard shortcut registration.",
+        "Removed duplicate scope text from result rows and shortened helper text after large-text visual review. Keyboard arrow/Return/Escape handlers and accessibility scope labels are implemented."
+      ],
+      "validation": "ActionRecipeUsabilityTests exercise action filtering, parameter limits, scope, stale identities, disabled exports and watermark removal. Native captures include normal and accessibility-size parameter results. Actual hardware shortcut and VoiceOver activation remain unverified."
+    },
+    {
+      "name": "Phase 5 \u2014 creation and export integration",
+      "completed": [
+        "Mac Use Result transfers a finished layered document into Workspace or a new GIF using the existing document renderer, validated safe publisher and snapshot importer.",
+        "Finished sources receive a neutral full independent baseline, including in earlier Undo/Redo states, so old batch watermark/adjustments cannot leak into the flattened result. Existing workspace selection and batch input identities stay unchanged.",
+        "Universal creation Save/Export actions invoke the existing creation views. Privacy-review-required document layers block export/transfer until reviewed.",
+        "Recipe Export Changed Photos includes only successfully changed inputs and freezes their planned export requests. Later photo edits or selection changes cannot change those jobs. Sharing receives only successful outputs from the requested export."
+      ],
+      "validation": "ActionRecipeUsabilityTests render a real document, transfer it to Workspace/GIF, verify neutral output configuration through Undo/Redo and unchanged selection/batch IDs; frozen export tests verify later edits cannot alter queued snapshots. Existing output/collision/original-preservation Core tests remain green."
+    }
+  ],
+  "checks": [
+    {
+      "name": "Core",
+      "log": "/tmp/ameluma-final2-core.log",
+      "result": "172 executed; 3 intentional opt-in skips; 0 failures"
+    },
+    {
+      "name": "macOS app state/native adapters",
+      "log": "/tmp/ameluma-delivery-mac.log",
+      "result": "33 tests; 0 failures"
+    },
+    {
+      "name": "iPhone 17 Pro Simulator",
+      "log": "/tmp/ameluma-delivery-iphone.log",
+      "result": "59 tests; 0 failures"
+    },
+    {
+      "name": "iPad Pro 13-inch M5 Simulator",
+      "log": "/tmp/ameluma-delivery-ipad.log",
+      "result": "59 tests; 0 failures"
+    },
+    {
+      "name": "macOS Release build",
+      "log": "/tmp/ameluma-delivery-mac-release.log",
+      "result": "BUILD SUCCEEDED"
+    },
+    {
+      "name": "iOS/iPadOS Release Simulator build",
+      "log": "/tmp/ameluma-delivery-ios-release.log",
+      "result": "BUILD SUCCEEDED"
+    },
+    {
+      "name": "Release tooling",
+      "log": "/tmp/ameluma-final-release-tools.log",
+      "result": "2 tests; OK"
+    },
+    {
+      "name": "Static release preflight",
+      "log": "/tmp/ameluma-final-preflight.log",
+      "result": "No static failures; 4 existing submission blockers"
+    }
+  ],
+  "screenshots": [
+    {
+      "platform": "mac",
+      "label": "Layered document editor",
+      "file": "workflow-phase-captures/mac-layered-document-editor.png",
+      "test": "EditorDocumentUsabilityTests/testDocumentEditorCapture()",
+      "sha256": "f656de4ff1c17b5e7a1acd78b8ae9fc1760e432fe9b4f6be7d8b37833b98964b"
+    },
+    {
+      "platform": "mac",
+      "label": "Parameterized resize action",
+      "file": "workflow-phase-captures/mac-parameterized-resize-action.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "81917aeb8871eb718317bb572cbe5db42ab5846de92c91f560691fba4b8eda8e"
+    },
+    {
+      "platform": "mac",
+      "label": "Context-aware universal actions",
+      "file": "workflow-phase-captures/mac-context-aware-universal-actions.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "075d413fab07e873dea72f0dfa72a5ec30c12d0358f1df20f69881c5a4059cc1"
+    },
+    {
+      "platform": "mac",
+      "label": "Visual recipe builder",
+      "file": "workflow-phase-captures/mac-visual-recipe-builder.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "e141b113d514f215eaba6be2af11644dfe3d340de9812b47ae5969e3a26f4a28"
+    },
+    {
+      "platform": "mac",
+      "label": "Reviewed editable annotations",
+      "file": "workflow-phase-captures/mac-reviewed-editable-annotations.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "b8eb91ddfe080080131ca8a08045443c5e06028d60a7096b16ede79f6c821d56"
+    },
+    {
+      "platform": "mac",
+      "label": "Watermark template library",
+      "file": "workflow-phase-captures/mac-watermark-template-library.png",
+      "test": "WatermarkDesignUsabilityTests/testWatermarkDesignerAndLibraryCaptures()",
+      "sha256": "dd38085853e05af1063de5ee1bce4265f6b4e6c661d438ea7eb787ce7314ff48"
+    },
+    {
+      "platform": "mac",
+      "label": "Watermark layered designer",
+      "file": "workflow-phase-captures/mac-watermark-layered-designer.png",
+      "test": "WatermarkDesignUsabilityTests/testWatermarkDesignerAndLibraryCaptures()",
+      "sha256": "4ea5f28dfb21faff6ce09633f3a125f00c64645c986f341e98bdc51974738397"
+    },
+    {
+      "platform": "iphone",
+      "label": "Universal actions large text",
+      "file": "workflow-phase-captures/iphone-universal-actions-large-text.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "94cc61a56bd5656b59e583f50f11e82027cd138914ef31de2f860ead10b2a0e5"
+    },
+    {
+      "platform": "iphone",
+      "label": "Recipe builder large text",
+      "file": "workflow-phase-captures/iphone-recipe-builder-large-text.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "9cdf2c8c9e7588c29d9a39c7982e69a8c2853db082a5012694f35297279deb53"
+    },
+    {
+      "platform": "iphone",
+      "label": "Parameterized resize action",
+      "file": "workflow-phase-captures/iphone-parameterized-resize-action.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "d3c85fe98a71fb9b169596171e04fd4e07fbbdb216116434eb02aaf9ec64a8cd"
+    },
+    {
+      "platform": "iphone",
+      "label": "Context-aware universal actions",
+      "file": "workflow-phase-captures/iphone-context-aware-universal-actions.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "cbc1b887f3136bce754f1e156fc2686af92c4d6c4726055b8cf33e1186fa9857"
+    },
+    {
+      "platform": "iphone",
+      "label": "Visual recipe builder",
+      "file": "workflow-phase-captures/iphone-visual-recipe-builder.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "015c8c0ca3fd2b5c5ac157a4b201f7e927c9f9e259c9a623d18979a213006cc8"
+    },
+    {
+      "platform": "iphone",
+      "label": "Reviewed editable annotations",
+      "file": "workflow-phase-captures/iphone-reviewed-editable-annotations.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "68581f0e7b6070d48d57c2c195ff72a8f0d0cf19b527cb18f4f4535844214d4f"
+    },
+    {
+      "platform": "iphone",
+      "label": "Watermark library \u2014 iPhone \u2014 Large Text",
+      "file": "workflow-phase-captures/iphone-watermark-library-iphone-large-text.png",
+      "test": "WatermarkDesignUsabilityTests/testMobileSavedDesignLibraryCompactAndLargeTextCaptures()",
+      "sha256": "a44057cc399a12c8a3511dc562a7faaabc047d0395154f3e5ecdd25015353ff8"
+    },
+    {
+      "platform": "iphone",
+      "label": "Watermark library \u2014 iPhone",
+      "file": "workflow-phase-captures/iphone-watermark-library-iphone.png",
+      "test": "WatermarkDesignUsabilityTests/testMobileSavedDesignLibraryCompactAndLargeTextCaptures()",
+      "sha256": "2e25c89902c08d15309c254789a242310e347d4ede0fba13f42e1c9d765fbc4c"
+    },
+    {
+      "platform": "ipad",
+      "label": "Universal actions large text",
+      "file": "workflow-phase-captures/ipad-universal-actions-large-text.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "4f7e4c7b5df09422af1c05ea228905ecbb333476d98972a10a82eb6b9cd152f3"
+    },
+    {
+      "platform": "ipad",
+      "label": "Recipe builder large text",
+      "file": "workflow-phase-captures/ipad-recipe-builder-large-text.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "267f25f3b1df26311e1a25520be7a800ee4a704125ec25efac42a89f23666e82"
+    },
+    {
+      "platform": "ipad",
+      "label": "Parameterized resize action",
+      "file": "workflow-phase-captures/ipad-parameterized-resize-action.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "0dcf8b8aa3ee3bd3f82ea5553b58e2c8028a985b8321f5f3dd0d7c6c8401c6a9"
+    },
+    {
+      "platform": "ipad",
+      "label": "Context-aware universal actions",
+      "file": "workflow-phase-captures/ipad-context-aware-universal-actions.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "f7a41c19d40d3d6553cb8a6a885159a51e524224d80de0089239ec7cd7600b53"
+    },
+    {
+      "platform": "ipad",
+      "label": "Visual recipe builder",
+      "file": "workflow-phase-captures/ipad-visual-recipe-builder.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "76db6b535f8d384deba81f31d79b5ef94309d50422028c6c0d531e6fa4d4febb"
+    },
+    {
+      "platform": "ipad",
+      "label": "Reviewed editable annotations",
+      "file": "workflow-phase-captures/ipad-reviewed-editable-annotations.png",
+      "test": "NextPhaseCaptureUsabilityTests/testReviewedAnnotationsRecipeBuilderAndContextActionsCaptures()",
+      "sha256": "14f1d3037e3a60e85f0d0fa7d04ad5d0b3db8f44759d3f84b24869ca58874c99"
+    },
+    {
+      "platform": "ipad",
+      "label": "Watermark library \u2014 iPad \u2014 Large Text",
+      "file": "workflow-phase-captures/ipad-watermark-library-ipad-large-text.png",
+      "test": "WatermarkDesignUsabilityTests/testMobileSavedDesignLibraryCompactAndLargeTextCaptures()",
+      "sha256": "f74a08b22b6f4de3ed0eef3cc40ca9fd8f0f90aa204634b6eeaac5b7262133bb"
+    },
+    {
+      "platform": "ipad",
+      "label": "Watermark library \u2014 iPad",
+      "file": "workflow-phase-captures/ipad-watermark-library-ipad.png",
+      "test": "WatermarkDesignUsabilityTests/testMobileSavedDesignLibraryCompactAndLargeTextCaptures()",
+      "sha256": "12182c718b5525d5b3c3d5dfd5748cdcc3e501e335d6017f2c558878cb86280e"
+    }
+  ],
+  "knownLimitations": [
+    "Native UI automation was unavailable (native pipe startup failed). Evidence is source review, app-hosted SwiftUI captures, model/rendering tests and native Mac modifier-event tests. Full mouse, touch, Pencil, VoiceOver and hardware Command-K activation still need hands-on testing.",
+    "Large-text captures cover Recipes, Actions and mobile saved-watermark application. They do not establish every accessibility combination or keyboard-visible layout. Physical iPhone/iPad validation remains required.",
+    "Mac test-host logs contain repeated MDB_MAP_FULL messages. Their origin is unresolved; passing tests do not establish that they are harmless. Simulator logs also contain missing haptic-library and scroll-update warnings.",
+    "Recipes use the existing engine\u2019s fixed canonical order. Arbitrary step reordering, automatic enhancement analysis as a recipe step, portable recipe exchange and automation-watcher migration are not part of this increment.",
+    "Recipe preview shows the first captured photo, debounces changes and uses the shared renderer. It is not an encoded compression comparison, and interactive latency or large-batch memory targets were not measured on an M1/8GB baseline.",
+    "Owned recipe watermark files are intentionally retained after recipe deletion: current photos, saved projects and history may still reference them. Dependency-aware garbage collection can be added later.",
+    "Multi-element watermark/document authoring remains Mac-first. Mobile supports saved-design import/application and the shared recipe/action workflows; it does not have full designer parity.",
+    "Finished document transfer is flattened to a new local PNG while the editable document remains intact. Workspace import is outside edit Undo; remove the finished source using normal workspace removal. Earlier history retains an independent baseline for that source.",
+    "Universal actions support deterministic local commands and aliases, not unrestricted natural-language interpretation. Unsupported operations are not fabricated.",
+    "The 24 filters are unchanged. Existing complex object-removal/retouch quality limitations remain. No claim of competitor performance parity or absence of all usability issues is made.",
+    "Public privacy/support URLs and distribution artifacts remain release blockers. Signing, bundle identifiers and storage identities were not changed. No commit or push was performed."
+  ],
+  "commitPush": "Not performed"
+}

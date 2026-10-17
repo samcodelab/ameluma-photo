@@ -3,7 +3,15 @@ import FramepebbleCore
 import SwiftUI
 
 @MainActor final class FramepebbleDelegate: NSObject, NSApplicationDelegate {
-  var workspace: Workspace?
+  var workspace: Workspace? {
+    didSet {if let workspace {let pending=pendingDocuments;pendingDocuments=[];for url in pending {Task {await workspace.openEditableDocument(url)}}}}
+  }
+  private var pendingDocuments:[URL]=[]
+  func application(_ sender:NSApplication,openFiles filenames:[String]) {
+    let urls=filenames.map{URL(fileURLWithPath:$0)}.filter{$0.pathExtension.lowercased()=="ameluma"}
+    if let workspace {Task {for url in urls {await workspace.openEditableDocument(url)};sender.reply(toOpenOrPrint:.success)}}
+    else {pendingDocuments += urls;sender.reply(toOpenOrPrint:.success)}
+  }
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     guard let workspace else { return .terminateNow }
@@ -12,7 +20,9 @@ import SwiftUI
       await workspace.stopWork()
       let previousIssues = workspace.issues.count
       await workspace.flush()
-      let saved = workspace.issues.count == previousIssues
+      var documentsSaved=true
+      for session in workspace.editorDocuments {if !(await session.flushRecovery()) {documentsSaved=false}}
+      let saved = workspace.issues.count == previousIssues && documentsSaved
       if !saved && !workspace.isReviewSession { Automations.shared.start() }
       sender.reply(toApplicationShouldTerminate: saved)
     }
@@ -22,6 +32,7 @@ import SwiftUI
 
 @main struct FramepebbleMacApp: App {
   @NSApplicationDelegateAdaptor(FramepebbleDelegate.self) private var delegate
+  @FocusedValue(\.editorDocumentCommands) private var documentCommands
   @State private var personalWorkspace = Workspace(startInLibrary: true)
   private var model: Workspace { personalWorkspace.demoWorkspace ?? personalWorkspace }
   var body: some Scene {
@@ -30,10 +41,11 @@ import SwiftUI
         Text("Automated tests are running.").padding(40)
       } else {
         MacWorkspace(model: model)
-          .toolbar { ToolbarItem(placement: .principal) { DemoWorkspaceMenu(owner: personalWorkspace) } }
+          .environment(\.workspaceOwner, personalWorkspace)
           .onChange(of: model.isDemoWorkspace) { _, _ in delegate.workspace = model }
           .task {
           await model.start()
+          await model.restoreEditorDocuments()
           delegate.workspace = model
           if !model.isReviewSession { Automations.shared.start() }
         }
@@ -41,38 +53,58 @@ import SwiftUI
     }.defaultLaunchBehavior(.presented).defaultSize(width: 1280, height: 820).windowResizability(.contentMinSize)
       .commands {
         CommandGroup(replacing: .undoRedo) {
-          Button(model.undoActionTitle) {
-            model.undoActiveWorkspace()
+          Button(model.activeEditorDocument.map { "Undo " + ($0.history.undoSteps.last?.title ?? "") } ?? model.undoActionTitle) {
+            if let session=model.activeEditorDocument {session.undo()}else{model.undoActiveWorkspace()}
           }
           .keyboardShortcut("z").disabled(
-            !model.canUndoActiveWorkspace)
-          Button(model.redoActionTitle) {
-            model.redoActiveWorkspace()
+            model.activeEditorDocument.map { !$0.canUndo } ?? !model.canUndoActiveWorkspace)
+          Button(model.activeEditorDocument.map { "Redo " + ($0.history.redoSteps.last?.title ?? "") } ?? model.redoActionTitle) {
+            if let session=model.activeEditorDocument {session.redo()}else{model.redoActiveWorkspace()}
           }
           .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(
-            !model.canRedoActiveWorkspace)
+            model.activeEditorDocument.map { !$0.canRedo } ?? !model.canRedoActiveWorkspace)
         }
         CommandGroup(after: .undoRedo) {
+          Button("Actions…") {model.presentActions()}.keyboardShortcut("k")
+          Button("Recipes…") {model.presentRecipes()}.disabled(model.overlayEditor || model.activeEditorDocument != nil)
           Button("Undo History…") { model.historyPresented = true }
             .disabled(model.overlayEditor || (!model.browsingLibrary && model.workflow != .batch && model.workflow != .photo))
         }
         CommandGroup(replacing: .newItem) {
-          Button("New Project") { Task { await model.newProject() } }.keyboardShortcut("n")
-          Button("Close Project") { Task { await model.closeProject() } }.keyboardShortcut(
+          if !model.editorDocuments.isEmpty {Menu("Open Documents") {ForEach(model.editorDocuments) {session in Button(session.document.name) {model.activeEditorDocumentID=session.id}}}}
+          Button("New Image Document") {model.newEditorDocument()}.keyboardShortcut("n").disabled(model.overlayEditor)
+          Button("Open Editable Document…") {MacWorkspace(model:model).openEditorDocument()}.keyboardShortcut("o",modifiers:[.command,.shift]).disabled(model.overlayEditor)
+          Button("Open Selected Photos as Layers") {let ids=model.workspaceAssets.filter{model.selection.contains($0.id)}.map(\.id);Task {await model.openPhotosAsDocument(ids)}}.disabled(model.overlayEditor || model.selection.isEmpty)
+          Button("Duplicate Current Photo as Document") {if let id=model.current?.id {Task {await model.openPhotosAsDocument([id])}}}.disabled(model.overlayEditor || model.current==nil)
+          Button("New Workspace") { Task { await model.newProject() } }.keyboardShortcut("n",modifiers:[.command,.option]).disabled(model.activeEditorDocument != nil)
+          Button("Save and Start Empty Workspace") { Task { await model.closeProject() } }.keyboardShortcut(
             "w", modifiers: [.command, .shift])
-          Button("Projects & Clear Photos…") { model.projectsView = true }
-          Button("Import Images…") { MacWorkspace(model: model).importImages() }.keyboardShortcut(
+          Button("Switch Workspace…") { model.presentWorkspaceSwitcher() }
+          Button(model.activeEditorDocument == nil ? "Import Images…":"Place Image Layer…") { if let commands=documentCommands {commands.place()}else{MacWorkspace(model: model).importImages()} }.keyboardShortcut(
             "o")
-          Button("Export " + model.actionLabel + "…") { MacWorkspace(model: model).exportImages() }.keyboardShortcut(
+          Button(model.activeEditorDocument == nil ? "Export " + model.actionLabel + "…":"Export Document…") { if let commands=documentCommands {commands.export()}else{MacWorkspace(model: model).exportImages()} }.keyboardShortcut(
             "e"
-          ).disabled(model.targets.isEmpty || model.running)
+          ).disabled(model.activeEditorDocument == nil && (model.targets.isEmpty || model.running))
+        }
+        CommandGroup(replacing:.saveItem) {
+          if model.activeEditorDocument != nil {
+            Button("Save Editable Document") {documentCommands?.save()}.keyboardShortcut("s").disabled(documentCommands==nil)
+            Button("Save Editable Document As…") {documentCommands?.saveCopy()}.keyboardShortcut("s",modifiers:[.command,.shift]).disabled(documentCommands==nil)
+            Button("Close Document") {documentCommands?.close()}.keyboardShortcut("w").disabled(documentCommands==nil)
+          }
+        }
+        CommandGroup(after:.pasteboard) {
+          if model.activeEditorDocument != nil {
+            Button("Copy Flattened Image") {documentCommands?.copy()}.keyboardShortcut("c",modifiers:[.command,.shift])
+            Button("Paste Image as Layer") {documentCommands?.paste()}.keyboardShortcut("v",modifiers:[.command,.shift])
+          }
         }
         CommandGroup(before: .saveItem) {
-          if model.workflow == .photo && !model.browsingLibrary && !model.editorTabs.isEmpty {
+          if model.activeEditorDocument == nil && model.workflow == .photo && !model.browsingLibrary && !model.editorTabs.isEmpty {
             Button("Close Photo Tab") {
               if let id = model.current?.id { model.closeEditorTab(id) }
             }.keyboardShortcut("w").disabled(model.overlayEditor)
-          } else if model.workflow == .collages && !model.browsingLibrary && model.activeCollageID != nil {
+          } else if model.activeEditorDocument == nil && model.workflow == .collages && !model.browsingLibrary && model.activeCollageID != nil {
             Button("Close Collage Tab") {if let id=model.activeCollageID {model.closeCollageTab(id)}}
               .keyboardShortcut("w").disabled(model.running || model.collageGenerating)
           }
@@ -87,7 +119,7 @@ import SwiftUI
               c.quarterTurns += 1
               model.setImageConfiguration(c, for: asset.id)
             }
-          }.keyboardShortcut("r").disabled(model.current == nil)
+          }.keyboardShortcut("r").disabled(model.current == nil || model.activeEditorDocument != nil)
           Button("Conceal Workspace") { model.concealed = true }.keyboardShortcut(
             "h", modifiers: [.command, .shift])
           Button("Privacy Review") { model.showLibrary(.privacyReview, clearSearch: true) }.disabled(model.workspaceAssets.isEmpty)
@@ -118,12 +150,14 @@ struct MacWorkspace: View {
     let sidebarVisible = EditorPanelLayout.navigationVisible(width: geometry.size.width, editing: !model.browsingLibrary || model.overlayEditor, preference: sidebarPreference)
     let fittedInspectorWidth = EditorPanelLayout.fittedInspectorWidth(requested: inspectorWidth, available: geometry.size.width - (sidebarVisible ? 221 : 0) - (model.workflow == .photo ? 49 : 0))
     HStack(spacing: 0) {
-      if sidebarVisible {
+      if sidebarVisible && model.activeEditorDocument == nil {
       LibrarySidebar(model: model, openAutomations: { showAutomations = true }).disabled(model.overlayEditor).frame(width: 220)
       Divider()
       }
-      if model.overlayEditor {
-        OverlayEditor(model: model, embedded: true)
+      if let session=model.activeEditorDocument {
+        DocumentEditorWorkspace(model:model,session:session).id(session.id)
+      } else if model.overlayEditor {
+        PhotoDraftWorkspace(model: model)
       } else if model.browsingLibrary {
         VStack(spacing: 0) {
           ImageCollection(model: model, importAction: importImages)
@@ -189,11 +223,10 @@ struct MacWorkspace: View {
             sidebarPreference = !EditorPanelLayout.navigationVisible(width: NSApp.keyWindow?.contentView?.bounds.width ?? 1280, editing: !model.browsingLibrary || model.overlayEditor, preference: sidebarPreference)
           } label: { Image(systemName: "sidebar.left") }
             .help("Show or hide navigation").accessibilityLabel("Toggle navigation sidebar")
-          if model.browsingLibrary && !model.overlayEditor {
+          if model.activeEditorDocument == nil && model.browsingLibrary && !model.overlayEditor {
             Button(action: importImages) { Label("Import", systemImage: "plus") }.keyboardShortcut("o")
-            Button("Projects", systemImage: "folder") { model.projectsView = true }
           }
-          if !model.browsingLibrary && !model.overlayEditor && (model.workflow == .photo || model.workflow == .batch) {
+          if model.activeEditorDocument == nil && !model.browsingLibrary && !model.overlayEditor && (model.workflow == .photo || model.workflow == .batch) {
             Button(action: importImages) { Label("Import", systemImage: "plus") }.keyboardShortcut(
               "o")
             Button("Share " + model.actionLabel, systemImage: "square.and.arrow.up") { prepareShare() }.disabled(
@@ -210,7 +243,7 @@ struct MacWorkspace: View {
               Button("Privacy Review", systemImage: "checkmark.shield") {
                 model.sensitiveReviewPresented = true
               }
-              Button("Projects", systemImage: "folder") { model.projectsView = true }
+              Button("Back to Workspace", systemImage: "square.grid.2x2") { model.showLibrary() }
               Button("Conceal workspace", systemImage: "eye.slash") { model.concealed = true }
             } label: {
               Label("More", systemImage: "ellipsis.circle")
@@ -223,6 +256,7 @@ struct MacWorkspace: View {
           }
         }
       }
+      .workspaceActionSurfaces(model)
       .sheet(isPresented: $exportPresented) {
         NavigationStack {
           VStack(spacing: 0) {
@@ -249,7 +283,8 @@ struct MacWorkspace: View {
         }.frame(width: 480, height: 640).privacyCurtain(model: model)
       }
       .onDrop(of: BrowserDropImporter.acceptedTypes, isTargeted: nil) { providers in
-        BrowserDropImporter.start(providers, model: model)
+        guard model.activeEditorDocument == nil else {return false}
+        return BrowserDropImporter.start(providers, model: model)
       }
       .sheet(
         isPresented: $model.sensitiveReviewPresented,
@@ -290,6 +325,15 @@ struct MacWorkspace: View {
       .onChange(of: model.inspectorTask) { _, task in if task == .filters { showInspector = true } }
       .onChange(of: model.precision) { _, enabled in if enabled { showInspector = true } }
 
+  }
+  func openEditorDocument() {
+    let panel=NSOpenPanel();panel.allowedContentTypes=[.init(exportedAs:"com.broadframestudio.ameluma.document",conformingTo:.package)];panel.canChooseDirectories=true;panel.treatsFilePackagesAsDirectories=false
+    panel.begin {response in guard response == .OK,let url=panel.url else{return}
+      Task {@MainActor in
+        let access=url.startAccessingSecurityScopedResource();defer{if access {url.stopAccessingSecurityScopedResource()}}
+        await model.openEditableDocument(url)
+      }
+    }
   }
   func prepareShare() {
     let directory = model.directory.deletingLastPathComponent().appendingPathComponent("Exports")
@@ -347,5 +391,16 @@ private struct FramepebbleStatusMenu: View {
       model.helpPresented = true
     }
     Button("Quit Ameluma Photo") { NSApplication.shared.terminate(nil) }
+  }
+}
+
+extension Workspace {
+  func openEditableDocument(_ url:URL) async {
+    guard !overlayEditor else {issues.append("Finish the current tool before opening a document.");return}
+    if let existing=editorDocuments.first(where:{$0.fileURL?.standardizedFileURL.resolvingSymlinksInPath().path==url.standardizedFileURL.resolvingSymlinksInPath().path}) {activeEditorDocumentID=existing.id;return}
+    let access=url.startAccessingSecurityScopedResource();defer{if access {url.stopAccessingSecurityScopedResource()}}
+    let session=EditorDocumentSession(directory:directory.appendingPathComponent("EditorDocuments").appendingPathComponent(UUID().uuidString))
+    do {try await session.open(url);editorDocuments.append(session);activeEditorDocumentID=session.id}
+    catch {issues.append("Could not open editable document: "+error.localizedDescription)}
   }
 }

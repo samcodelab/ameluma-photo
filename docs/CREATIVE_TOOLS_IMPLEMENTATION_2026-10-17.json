@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-17",
+  "nativeRuns": {
+    "mac full": {
+      "passed": true,
+      "summary": "Executed 92 tests, with 0 failures (0 unexpected) in 77.238 (77.259) seconds",
+      "log": "/tmp/ameluma-creative-verified-mac.log"
+    },
+    "mac finalTargeted": {
+      "passed": true,
+      "summary": "Executed 9 tests, with 0 failures (0 unexpected) in 13.118 (13.122) seconds",
+      "log": "/tmp/ameluma-creative-delivery-mac.log"
+    },
+    "phone full": {
+      "passed": true,
+      "summary": "Executed 288 tests, with 2 tests skipped and 0 failures (0 unexpected) in 98.271 (98.335) seconds",
+      "log": "/tmp/ameluma-creative-verified-phone.log"
+    },
+    "phone finalTargeted": {
+      "passed": true,
+      "summary": "Executed 9 tests, with 0 failures (0 unexpected) in 14.013 (14.017) seconds",
+      "log": "/tmp/ameluma-creative-delivery-phone.log"
+    },
+    "ipad full": {
+      "passed": true,
+      "summary": "Executed 288 tests, with 2 tests skipped and 0 failures (0 unexpected) in 117.222 (117.281) seconds",
+      "log": "/tmp/ameluma-creative-verified-ipad.log"
+    },
+    "ipad finalTargeted": {
+      "passed": true,
+      "summary": "Executed 9 tests, with 0 failures (0 unexpected) in 14.321 (14.325) seconds",
+      "log": "/tmp/ameluma-creative-delivery-ipad.log"
+    }
+  },
+  "coreLog": "/tmp/ameluma-creative-core-delivery.log",
+  "catalogueCount": 60,
+  "replacementAreaLimit": 16,
+  "coverageLongEdgeLimit": 2048,
+  "captureDirectory": "/Users/sam/Documents/Development/ameluma-photo/output/creative-tools-2026-10-17",
+  "physicalDeviceValidation": false,
+  "coreResult": {
+    "executed": 139,
+    "skipped": 1,
+    "failures": 0
+  },
+  "embeddedImagesValidated": 8
+}

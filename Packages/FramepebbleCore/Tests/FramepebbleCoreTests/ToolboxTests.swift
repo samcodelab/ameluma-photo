@@ -107,7 +107,7 @@ final class ToolboxTests: XCTestCase {
     c.height = 100
     for kind in AnnotationKind.allCases {
       var a = Annotation()
-      a.kind = kind
+      a.kind = kind; if kind == .sticker { a.stickerID = StickerCatalog.stickers.first?.id }
       a.points = [NormalizedPoint(0.1, 0.1), NormalizedPoint(0.8, 0.8)]
       a.rotation = 20
       a.opacity = 0.6
@@ -121,6 +121,76 @@ final class ToolboxTests: XCTestCase {
     XCTAssertEqual(old.adjustments, PhotoAdjustments())
     XCTAssertTrue(old.masks.isEmpty)
   }
+  func testCalloutHighlightPreviewAndExportMatchAndLeaveOriginalUnchanged() async throws {
+    let helper = ProcessingTests(), url = try ProcessingTests().fixture()
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: url); try? FileManager.default.removeItem(at: directory) }
+    let bytes = try Data(contentsOf: url)
+    var configuration = ProcessingConfiguration(); configuration.width = 200; configuration.height = 100; configuration.format = .png
+    var highlight = Annotation(); highlight.kind = .highlight; highlight.colour = RGBAColour(1,1,0,1); highlight.opacity = 0.3
+    var callout = Annotation(); callout.kind = .callout; callout.x = 0.6; callout.width = 0.15; callout.height = 0.3
+    callout.colour = RGBAColour(0,0.3,0.9,1)
+    configuration.annotations = [highlight, callout]
+    let renderer = ImageProcessor()
+    let preview = try await renderer.render(url, configuration: configuration, previewMaximum: 200)
+    let exported = try await renderer.export(SourceAsset(url: url), configuration: configuration, to: directory)
+    let encoded = try XCTUnwrap(CGImageSourceCreateWithURL(try XCTUnwrap(exported.output) as CFURL, nil))
+    let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(encoded, 0, nil))
+    XCTAssertEqual(try helper.pixels(preview), try helper.pixels(image))
+    XCTAssertEqual(try Data(contentsOf: url), bytes)
+    var session = OverlayEditingSession(sourceID: UUID(), configuration: configuration)
+    session.removeArea(callout.id); XCTAssertTrue(AnnotationRenderer.calloutNumbers(session.current.annotations).isEmpty)
+    session.undo(); XCTAssertEqual(session.current.annotations, configuration.annotations)
+    session.redo(); XCTAssertEqual(session.current.annotations, [highlight])
+  }
+
+  func testNewArrowDirectionFollowsGestureAndLegacyPointsKeepOriginalPixels() throws {
+    let image = CIImage(color: CIColor(red: 0, green: 0, blue: 0)).cropped(to: CGRect(x: 0, y: 0, width: 200, height: 200))
+    var arrow=Annotation();arrow.kind = .arrow;arrow.x=0.2;arrow.y=0.2;arrow.width=0.6;arrow.height=0.6
+    let context=CIContext()
+    func pixels(_ value:Annotation) throws -> [UInt8] {
+      let rendered=try AnnotationRenderer.apply(to:image,annotations:[value],canvas:CanvasStyle())
+      return try ProcessingTests().pixels(XCTUnwrap(context.createCGImage(rendered,from:image.extent)))
+    }
+    let legacy=try pixels(arrow)
+    arrow.points=[NormalizedPoint(1,0),NormalizedPoint(0,1)]
+    XCTAssertEqual(try pixels(arrow),legacy,"Old saved arrows must not silently change")
+    arrow.directionVersion=1
+    XCTAssertNotEqual(try pixels(arrow),legacy)
+    let restored=try JSONDecoder().decode(Annotation.self,from:JSONEncoder().encode(arrow))
+    XCTAssertEqual(try pixels(restored),try pixels(arrow))
+  }
+
+  func testCalloutNumberingFollowsEditableOrderAndSurvivesRoundTrip() throws {
+    var first = Annotation(); first.kind = .callout
+    var second = Annotation(); second.kind = .callout
+    let text = Annotation()
+    let ordered = [first, text, second]
+    XCTAssertEqual(AnnotationRenderer.calloutNumbers(ordered), [first.id: 1, second.id: 2])
+    XCTAssertEqual(AnnotationRenderer.calloutNumbers([second, first]), [second.id: 1, first.id: 2])
+    XCTAssertEqual(AnnotationRenderer.calloutNumbers([text, second]), [second.id: 1])
+    let restored = try JSONDecoder().decode([Annotation].self, from: JSONEncoder().encode(ordered))
+    XCTAssertEqual(restored, ordered)
+    XCTAssertEqual(AnnotationRenderer.calloutNumbers(restored), [first.id: 1, second.id: 2])
+  }
+  func testHighlightBlendsWithoutChangingOutsidePixels() throws {
+    let base = CIImage(color: CIColor(red: 0, green: 0, blue: 1)).cropped(to: CGRect(x: 0, y: 0, width: 100, height: 100))
+    var mark = Annotation(); mark.kind = .highlight
+    mark.x = 0.25; mark.y = 0.25; mark.width = 0.5; mark.height = 0.5
+    mark.colour = RGBAColour(1, 1, 0, 1); mark.opacity = 0.3
+    let output = try AnnotationRenderer.apply(to: base, annotations: [mark], canvas: CanvasStyle())
+    let context = CIContext()
+    let original = try XCTUnwrap(context.createCGImage(base, from: base.extent))
+    let rendered = try XCTUnwrap(context.createCGImage(output, from: output.extent))
+    let a = try ProcessingTests().pixels(original), b = try ProcessingTests().pixels(rendered)
+    XCTAssertEqual(Array(a.prefix(4)), Array(b.prefix(4)))
+    let centre = (50 * 100 + 50) * 4
+    XCTAssertNotEqual(Array(a[centre..<centre+4]), Array(b[centre..<centre+4]))
+    XCTAssertEqual(b[centre+3], 255)
+    XCTAssertGreaterThan(b[centre+2], b[centre], "Highlight must remain translucent over the photograph")
+  }
+
   func testCanvasCornersAndBorders() async throws {
     let helper = ProcessingTests()
     let url = try helper.fixture()

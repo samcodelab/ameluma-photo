@@ -18,7 +18,7 @@ import UIKit
     let owner = Workspace(directory: root.appendingPathComponent("Owner"), startInLibrary: true)
     await owner.openDemoWorkspace(root: root.appendingPathComponent("Demo"))
     let model = try XCTUnwrap(owner.demoWorkspace)
-    let source = try XCTUnwrap(model.assets.first { $0.name == "Coastal Hero.jpg" })
+    let source = try XCTUnwrap(model.assets.first { $0.name == "Lorikeet Hero Clean.jpg" })
     model.openPhoto(source)
     let original = model.configuration(for: source)
     #if os(macOS)
@@ -70,15 +70,15 @@ import UIKit
     let owner = Workspace(directory: root.appendingPathComponent("Personal"), startInLibrary: true)
     await owner.openDemoWorkspace(root: root.appendingPathComponent("Demo"))
     let model = try XCTUnwrap(owner.demoWorkspace, owner.issues.joined(separator: "; "))
-    XCTAssertEqual(model.workspaceAssets.count, 27)
-    let hero = try XCTUnwrap(model.assets.first { $0.name == "Coastal Hero.jpg" })
+    XCTAssertEqual(model.workspaceAssets.count, 30)
+    let hero = try XCTUnwrap(model.assets.first { $0.name == "Lorikeet Hero Clean.jpg" })
     let landscape = try XCTUnwrap(model.assets.first { $0.name == "Tidal Rocks.jpg" })
     #if os(macOS)
     let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900), styleMask: [.borderless], backing: .buffered, defer: false)
     window.isReleasedWhenClosed = false
     window.appearance = NSAppearance(named: .darkAqua)
     let host = NSHostingView(rootView: MacWorkspace(model: model)
-      .toolbar { ToolbarItem(placement: .principal) { DemoWorkspaceMenu(owner: owner) } }
+      .environment(\.workspaceOwner, owner)
       .environment(\.colorScheme, .dark))
     window.contentView = host
     host.frame = NSRect(x: 0, y: 0, width: 1440, height: 900)

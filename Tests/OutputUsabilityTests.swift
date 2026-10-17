@@ -8,6 +8,36 @@ import FramepebbleCore
 #endif
 
 @MainActor final class OutputUsabilityTests: XCTestCase {
+  func testBlockedConversionDoesNotChangeCapturedInputsOrProfiles() {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let model = Workspace(directory: root)
+    defer { model.persistenceTask?.cancel(); try? FileManager.default.removeItem(at: root) }
+    let photo = SourceAsset(url: root.appendingPathComponent("One.jpg"))
+    model.assets = [photo]; model.batchInputIDs = [photo.id]
+    model.conversionInputIDs = [photo.id]; model.conversionResizingEnabled = true
+    let profiles = model.exportProfiles
+    model.beginConversion(ids: [UUID()])
+    XCTAssertEqual(model.conversionInputIDs, [photo.id]); XCTAssertTrue(model.conversionResizingEnabled)
+    XCTAssertEqual(model.exportProfiles, profiles)
+    model.running = true
+    model.beginConversion(ids: [photo.id])
+    XCTAssertEqual(model.conversionInputIDs, [photo.id]); XCTAssertTrue(model.conversionResizingEnabled)
+    XCTAssertEqual(model.exportProfiles, profiles)
+  }
+
+  func testActionCaptureExcludesRetainedSourcesAndDeduplicatesWithoutUsingSelection() {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let model = Workspace(directory: root)
+    defer { model.persistenceTask?.cancel(); try? FileManager.default.removeItem(at: root) }
+    let photos = ["One.jpg", "Two.jpg", "Retained.jpg"].map { SourceAsset(url: root.appendingPathComponent($0)) }
+    model.assets = photos; model.hiddenSourceIDs = [photos[2].id]
+    model.selection = [photos[1].id]; model.query = "No visible matches"
+    XCTAssertEqual(model.workspaceActionIDs([photos[0].id, photos[2].id, photos[0].id, UUID()]), [photos[0].id])
+    model.beginConversion(ids: [photos[0].id, photos[0].id])
+    XCTAssertEqual(model.batchInputIDs, [photos[0].id]); XCTAssertEqual(model.conversionInputIDs, [photos[0].id])
+    XCTAssertEqual(model.selection, [photos[1].id]); XCTAssertFalse(model.conversionResizingEnabled)
+  }
+
   func testCompareFocusAndReturnPreserveBatchMembershipAndEdits() {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     let model = Workspace(directory: root)

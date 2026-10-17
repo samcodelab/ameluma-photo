@@ -13,27 +13,28 @@ struct DemoWorkspaceButton: View {
     }
 }
 
-struct DemoWorkspaceMenu: View {
-    @Bindable var owner: Workspace
+private struct WorkspaceOwnerKey: EnvironmentKey {
+    static let defaultValue: Workspace? = nil
+}
+extension EnvironmentValues {
+    var workspaceOwner: Workspace? {
+        get { self[WorkspaceOwnerKey.self] }
+        set { self[WorkspaceOwnerKey.self] = newValue }
+    }
+}
+
+/// Workspace switching belongs to the gallery, never the photo's editing toolbar.
+struct WorkspaceSwitcherButton: View {
+    @Bindable var model: Workspace
     var body: some View {
-        if let demo = owner.demoWorkspace {
-            Menu {
-                Text("Demo Workspace · generated sample photos")
-                Text("Edits are saved separately from your workspace.")
-                Divider()
-                Button("Return to Your Workspace", systemImage: "arrow.uturn.backward") {
-                    Task { await owner.returnFromDemoWorkspace() }
-                }.disabled(!demo.canSwitchDemoWorkspace)
-                if !demo.canSwitchDemoWorkspace {
-                    Text("Finish or cancel the current edit or operation before returning.")
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text("Demo").font(.subheadline.weight(.semibold))
-                    Image(systemName: "chevron.down").font(.caption2)
-                }
-            }.accessibilityLabel("Demo Workspace and return options")
-              .help("Generated sample photos · your workspace is kept separately")
-        }
+        Button { model.presentWorkspaceSwitcher() } label: {
+            HStack(spacing: 5) {
+                Text(model.isDemoWorkspace ? "Demo Workspace" : model.projectName).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2)
+            }.font(.headline)
+        }.buttonStyle(.plain).accessibilityLabel("Switch workspace")
+          .accessibilityValue(model.isDemoWorkspace ? "Demo Workspace" : model.projectName)
+          .accessibilityIdentifier("workspace.switcher")
+          .disabled(!model.canSwitchDemoWorkspace || model.gifSelectionContext != nil)
     }
 }

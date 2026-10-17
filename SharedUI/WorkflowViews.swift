@@ -81,10 +81,14 @@ struct PhotoEditorWorkspace: View {
 
         Group {
           if model.precision && !original {
-            PhotoCropCanvas(model: model, asset: asset)
+            ZoomablePhotoViewport(zoom:photoZoom(asset),model:model,assetID:asset.id,editing:true) { maximum in
+              PhotoCropCanvas(model:model,asset:asset,showsHeader:false,maximum:maximum)
+            }.id(asset.id)
           } else {
             if model.inspectorTask == .watermark && !original {
-              WatermarkCanvas(model: model, asset: asset)
+              ZoomablePhotoViewport(zoom:photoZoom(asset),model:model,assetID:asset.id,editing:true) { maximum in
+                WatermarkCanvas(model:model,asset:asset,maximum:maximum)
+              }.id(asset.id)
             } else { InspectablePhoto(model: model, asset: asset, original: original) }
           }
         }
@@ -111,6 +115,17 @@ struct PhotoEditorWorkspace: View {
         #if os(macOS)
           .focusable().focused($previewFocused)
           .simultaneousGesture(TapGesture().onEnded { previewFocused = true })
+          .onKeyPress(characters: CharacterSet(charactersIn:"+=-0")) { press in
+            guard let asset=model.current else { return .ignored }
+            let current=model.photoMagnification(for:asset.id)
+            switch press.characters {
+            case "+","=": model.setPhotoMagnification(current*1.25,for:asset.id)
+            case "-": model.setPhotoMagnification(current/1.25,for:asset.id)
+            case "0": model.setPhotoMagnification(1,for:asset.id)
+            default: return .ignored
+            }
+            return .handled
+          }
           .onKeyPress("m", phases: [.down, .up]) { press in
             guard !model.precision else { return .ignored }
             if press.phase == .down { originalBeforeHold = original; heldOriginal = true; original = true }
@@ -249,6 +264,9 @@ struct PhotoEditorWorkspace: View {
       .onChange(of: geometry.size.width) { _, _ in layoutViewport.observe(geometry.size) }
     }
   }
+  func photoZoom(_ asset: SourceAsset) -> Binding<CGFloat> {
+    Binding(get:{CGFloat(model.photoMagnification(for:asset.id))},set:{model.setPhotoMagnification(Double($0),for:asset.id)})
+  }
   func documentBar(_ asset: SourceAsset) -> some View {
     HStack(spacing: 6) {
       Button { model.showLibrary() } label: { Image(systemName: "square.grid.2x2") }
@@ -270,6 +288,8 @@ struct PhotoEditorWorkspace: View {
     if sizeClass == .compact || typeSize.isAccessibilitySize {
       HStack(spacing: 8) {
         Menu {
+          Button("Actions…", systemImage: "command") { model.presentActions() }
+          Button("Recipes…", systemImage: "list.bullet.rectangle") { model.presentRecipes(ids: [asset.id]) }
           Button("Back to Workspace", systemImage: "square.grid.2x2") { model.showLibrary() }
           ForEach(model.openEditorPhotos) { photo in Button(photo.name) { model.activateEditorTab(photo.id) } }
           Divider()
@@ -578,12 +598,12 @@ struct PhotoEditorTools: View {
           layout {
             compactToolButton(.adjust, asset); compactToolButton(.filters, asset); compactToolButton(.crop, asset); compactToolButton(.retouch, asset)
             Menu {
-              toolButton(.resize, asset); toolButton(.annotate, asset); toolButton(.privacy, asset)
+              toolButton(.resize, asset); toolButton(.replaceColour, asset); toolButton(.annotate, asset); toolButton(.privacy, asset)
               toolButton(.watermark, asset); toolButton(.output, asset)
             } label: {
-              VStack(spacing: 4) { Image(systemName: secondaryTool?.symbol ?? "ellipsis.circle"); if verticalSizeClass != .compact { Text(secondaryTool?.rawValue ?? "Tools").font(.caption).lineLimit(1) } }
+              VStack(spacing: 4) { Image(systemName: secondaryTool?.symbol ?? "ellipsis.circle"); if verticalSizeClass != .compact { Text(secondaryTool?.compactTitle ?? "Tools").font(.caption).lineLimit(1) } }
                 .frame(maxWidth: .infinity, minHeight: 44)
-            }.buttonStyle(.plain)
+            }.buttonStyle(EditorToolButtonStyle(selected:secondaryTool != nil))
               .accessibilityLabel(secondaryTool.map { "\($0.rawValue), more photo tools" } ?? "More photo tools")
           }
         } else {
@@ -592,7 +612,7 @@ struct PhotoEditorTools: View {
             HStack(spacing: 8) {
               toolButton(.adjust, asset); toolButton(.filters, asset); toolButton(.crop, asset); toolButton(.resize, asset)
               Menu("More", systemImage: "ellipsis") {
-                toolButton(.retouch, asset); toolButton(.annotate, asset); toolButton(.privacy, asset)
+                toolButton(.retouch, asset); toolButton(.replaceColour, asset); toolButton(.annotate, asset); toolButton(.privacy, asset)
                 toolButton(.watermark, asset); toolButton(.output, asset)
               }.accessibilityLabel(secondaryTool.map { "\($0.rawValue), more photo tools" } ?? "More photo tools")
             }
@@ -602,7 +622,7 @@ struct PhotoEditorTools: View {
     }
   }
   private var secondaryTool: PhotoTool? {
-    [PhotoTool.resize, .annotate, .privacy, .watermark, .output].first { isActive($0) }
+    [PhotoTool.resize, .replaceColour, .annotate, .privacy, .watermark, .output].first { isActive($0) }
   }
   @ViewBuilder private func toolActions(_ asset: SourceAsset) -> some View {
     ForEach(PhotoTool.allCases, id: \.self) { tool in toolButton(tool, asset) }
@@ -646,7 +666,7 @@ struct PhotoEditorTools: View {
     }
     guard model.activatePhotoTool(tool) else { return }
     model.photoToolOptionsVisible = true
-    if tool != .annotate && tool != .privacy && tool != .retouch {
+    if tool != .annotate && tool != .privacy && tool != .retouch && tool != .replaceColour {
       if tool == .adjust || tool == .filters { openSettings?() }
       else if anchoredOptions { optionsTool = tool } else { openSettings?() }
     }
@@ -654,6 +674,7 @@ struct PhotoEditorTools: View {
 
   private func isActive(_ tool: PhotoTool) -> Bool {
     if let selectedTool { return selectedTool == tool }
+    if model.colourReplacementAsset != nil { return tool == .replaceColour }
     if model.overlayEditor { if model.overlayRetouch { return tool == .retouch }; return model.overlayStartsWithMasks ? tool == .privacy : tool == .annotate }
     if model.precision { return tool == .crop }
     switch tool {
@@ -669,13 +690,22 @@ struct PhotoEditorTools: View {
 }
 enum PhotoTool: String, CaseIterable {
     case adjust = "Adjust", filters = "Filters", crop = "Crop & Frame", resize = "Resize"
-    case retouch = "Retouch", annotate = "Annotate", privacy = "Privacy", watermark = "Watermark", output = "Output Settings"
+    case replaceColour = "Replace Colour", retouch = "Retouch", annotate = "Annotate", privacy = "Privacy", watermark = "Watermark", output = "Output Settings"
+    var compactTitle: String {
+      switch self {
+      case .replaceColour: "Recolour"
+      case .output: "Output"
+      case .crop: "Crop"
+      default: rawValue
+      }
+    }
     var symbol: String {
       switch self {
       case .adjust: "slider.horizontal.3"
       case .filters: "camera.filters"
       case .crop: "crop"
       case .resize: "arrow.up.left.and.arrow.down.right"
+      case .replaceColour: "eyedropper.halffull"
       case .retouch: "bandage"
       case .annotate: "textformat"
       case .privacy: "eye.slash"

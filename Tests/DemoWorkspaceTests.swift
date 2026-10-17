@@ -2,6 +2,10 @@ import Foundation
 import CryptoKit
 import ImageIO
 import XCTest
+import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 #if os(macOS)
 @testable import FramepebbleMac
 #else
@@ -10,6 +14,116 @@ import XCTest
 import FramepebbleCore
 
 @MainActor final class DemoWorkspaceTests: XCTestCase {
+    func testWorkspaceSwitcherUsesGalleryWithoutChangingSelectionOrBatchInputs() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = Workspace(directory: root)
+        defer { model.persistenceTask?.cancel(); try? FileManager.default.removeItem(at: root) }
+        let a = SourceAsset(url: root.appendingPathComponent("one.jpg"))
+        let b = SourceAsset(url: root.appendingPathComponent("two.jpg"))
+        model.assets = [a, b]; model.selection = [a.id, b.id]; model.batchInputIDs = [b.id]
+        model.openPhoto(a)
+        let edits = model.edits
+        let selection = model.selection
+        model.presentWorkspaceSwitcher()
+        XCTAssertTrue(model.browsingLibrary)
+        XCTAssertTrue(model.projectsView)
+        XCTAssertEqual(model.selection, selection)
+        XCTAssertEqual(model.batchInputIDs, [b.id])
+        XCTAssertEqual(model.edits, edits)
+        model.projectsView = false; model.overlayEditor = true
+        model.presentWorkspaceSwitcher()
+        XCTAssertFalse(model.projectsView)
+        model.overlayEditor = false
+        model.selectPhotos(for: .gif)
+        model.presentWorkspaceSwitcher()
+        XCTAssertFalse(model.projectsView, "A contextual photo picker cannot silently change workspaces")
+        await model.stopWork()
+    }
+
+    #if os(macOS)
+    func testWorkspaceSwitcherNativeLayout() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let owner = Workspace(directory: root)
+        owner.projectName = "My Photos"
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 540), styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .darkAqua)
+        let host = NSHostingView(rootView: ProjectsView(model: owner).environment(\.workspaceOwner, owner).environment(\.colorScheme, .dark))
+        window.contentView = host; host.frame = NSRect(x: 0, y: 0, width: 480, height: 540)
+        try await Task.sleep(for: .milliseconds(300))
+        host.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        window.appearance?.performAsCurrentDrawingAppearance { host.cacheDisplay(in: host.bounds, to: bitmap) }
+        let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+        let attachment = XCTAttachment(data: data, uniformTypeIdentifier: "public.png")
+        attachment.name = "Workspace Switcher"; attachment.lifetime = .keepAlways; add(attachment)
+        XCTAssertEqual(bitmap.pixelsWide, Int(480 * (window.backingScaleFactor)))
+        window.contentView = nil; window.close()
+        await owner.stopWork(); owner.persistenceTask?.cancel()
+        try? FileManager.default.removeItem(at: root)
+    }
+    #endif
+
+    func testNativeCitrusObjectSelectionDiagnostic() async throws {
+        let (_, photos) = try DemoPhotoManifest.load(from: resourceBundle)
+        let processor = ImageProcessor()
+        let image = try await processor.thumbnail(photos.appendingPathComponent("11-citrus-still-life.jpg"), maximum: 1000)
+        let seed = NormalizedPoint(0.73, 0.68)
+        do {
+            let boundary = [NormalizedPoint(0.54,0.47), NormalizedPoint(0.94,0.47), NormalizedPoint(0.94,0.87), NormalizedPoint(0.54,0.87)]
+            let outline = try await processor.colourObjectOutline(image, at: seed, within: boundary)
+            var edit = ColourReplacement(); edit.points = outline.points; edit.excludedContours = outline.holes
+            try edit.validate()
+            let path = CGMutablePath()
+            for (i, p) in outline.points.enumerated() { if i == 0 { path.move(to: CGPoint(x: p.x, y: p.y)) } else { path.addLine(to: CGPoint(x: p.x, y: p.y)) } }
+            path.closeSubpath()
+            XCTAssertTrue(path.contains(CGPoint(x: seed.x, y: seed.y)))
+            XCTAssertFalse(path.contains(CGPoint(x: 0.05, y: 0.95)))
+            XCTAssertFalse(path.contains(CGPoint(x: 0.56, y: 0.75)), "The table beside the orange must stay outside its refined boundary")
+            XCTAssertFalse(path.contains(CGPoint(x: 0.25, y: 0.30)), "The other orange is not part of this operation")
+            #if os(macOS)
+            edit.source = RGBAColour(0.8, 0.2, 0.05, 1); edit.range = 0.25
+            let rendered = try ColourRenderer.replace(CIImage(cgImage: image), edits: [edit])
+            let result = try XCTUnwrap(CIContext().createCGImage(rendered, from: rendered.extent))
+            let png = try XCTUnwrap(NSBitmapImageRep(cgImage: result).representation(using: .png, properties: [:]))
+            let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
+            attachment.name = "Citrus Refined Recolour"; attachment.lifetime = .keepAlways; add(attachment)
+            #endif
+            print("CITRUS OBJECT OUTLINE \(outline.points.count) points, \(outline.holes.count) holes")
+        } catch {
+            #if targetEnvironment(simulator)
+            throw XCTSkip("Simulator foreground selection unavailable: " + error.localizedDescription)
+            #else
+            throw error
+            #endif
+        }
+    }
+
+    #if os(macOS)
+    func testRetouchNativeMouseVerification() async throws {
+        guard ProcessInfo.processInfo.environment["SIMCTL_CHILD_AMELUMA_NATIVE_BRUSH_CHECK"] == "1" || ProcessInfo.processInfo.environment["AMELUMA_NATIVE_BRUSH_CHECK"] == "1" else { throw XCTSkip("Interactive native mouse verification is opt-in") }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = Workspace(directory: root)
+        let (_, photos) = try DemoPhotoManifest.load(from: resourceBundle)
+        let asset = try await model.processor.importSnapshot(photos.appendingPathComponent("23-warm-cast-kitchen.jpg"), to: model.directory)
+        model.assets = [asset]; model.openPhoto(asset); model.activatePhotoTool(.retouch)
+        let window = NSWindow(contentRect: NSRect(x: 0,y: 0,width: 1100,height: 760), styleMask: [.titled,.closable], backing: .buffered, defer: false)
+        window.title = "Retouch Mouse Verification"; window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: OverlayEditor(model: model, embedded: true))
+        window.makeKeyAndOrderFront(nil)
+        for _ in 0..<1200 {
+            if (model.overlaySession?.current.retouchStrokes.last?.points.count ?? 0) > 1 { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        let strokes = model.overlaySession?.current.retouchStrokes ?? []
+        XCTAssertFalse(strokes.isEmpty, "A real mouse drag must commit a stroke")
+        XCTAssertEqual(strokes.last?.samplingVersion, 3)
+        XCTAssertGreaterThan(strokes.last?.points.count ?? 0, 1, "A drag must retain its path, not become a stationary dab")
+        window.contentView = nil; window.close()
+        await model.stopWork(); model.persistenceTask?.cancel(); try? FileManager.default.removeItem(at: root)
+    }
+    #endif
+
     private var resourceBundle: Bundle {
         let testBundle = Bundle(for: Self.self)
         return testBundle.url(forResource: "DemoWorkspace", withExtension: nil) == nil ? .main : testBundle
@@ -17,8 +131,8 @@ import FramepebbleCore
     /// Check the installed application resources, not the test bundle fallback.
     func testAppBundleShipsSameDemoOnEveryPlatform() async throws {
         let (manifest, photos) = try DemoPhotoManifest.load(from: .main)
-        XCTAssertEqual(manifest.photos.count, 27)
-        for name in ["01-coastal-hero.jpg", "27-coastal-hero-landscape.jpg"] {
+        XCTAssertEqual(manifest.photos.count, 30)
+        for name in ["01-coastal-hero.jpg", "27-coastal-hero-landscape.jpg", "28-rainbow-bird-hero.jpg", "29-golden-light-portrait.jpg", "30-lorikeet-hero-clean.jpg"] {
             XCTAssertTrue(FileManager.default.fileExists(atPath: photos.appendingPathComponent(name).path))
         }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("app-demo-" + UUID().uuidString)
@@ -80,12 +194,13 @@ import FramepebbleCore
 
     func testBundledCollectionIsCompleteAndDecodable() throws {
         let (manifest, folder) = try DemoPhotoManifest.load(from: resourceBundle)
-        XCTAssertEqual(manifest.photos.count, 27)
+        XCTAssertEqual(manifest.photos.count, 30)
         for photo in manifest.photos {
             let source = try XCTUnwrap(CGImageSourceCreateWithURL(folder.appendingPathComponent(photo.filename) as CFURL, nil))
             XCTAssertNotNil(CGImageSourceCreateImageAtIndex(source, 0, nil), photo.filename)
         }
-        XCTAssertEqual(manifest.photos.first?.filename, "01-coastal-hero.jpg")
+        XCTAssertEqual(manifest.hero, "30-lorikeet-hero-clean.jpg")
+        XCTAssertEqual(manifest.photos.first?.filename, manifest.hero)
     }
 
     func testDemoIsolationRestorationAndReturnPreservePersonalEdits() async throws {
@@ -99,7 +214,7 @@ import FramepebbleCore
         await personal.openDemoWorkspace(bundle: resourceBundle)
         let demo = try XCTUnwrap(personal.demoWorkspace, personal.issues.joined(separator: "; "))
         XCTAssertTrue(demo.isDemoWorkspace)
-        XCTAssertEqual(demo.assets.count, 27)
+        XCTAssertEqual(demo.assets.count, 30)
         XCTAssertNotEqual(demo.projectURL, personal.projectURL)
         XCTAssertTrue(demo.assets.allSatisfy { $0.url.deletingLastPathComponent() == demo.directory })
         XCTAssertEqual(personal.assets.count, 0)
@@ -115,7 +230,7 @@ import FramepebbleCore
         XCTAssertEqual(SHA256.hash(data: try Data(contentsOf: first.url)), hashBefore)
         await personal.openDemoWorkspace(bundle: resourceBundle)
         let restored = try XCTUnwrap(personal.demoWorkspace)
-        XCTAssertEqual(restored.assets.count, 27)
+        XCTAssertEqual(restored.assets.count, 30)
         XCTAssertEqual(restored.assets.first?.id, first.id)
         XCTAssertEqual(restored.configuration(for: first).quarterTurns, 1)
         await personal.returnFromDemoWorkspace()
@@ -148,21 +263,22 @@ import FramepebbleCore
         let (manifest, photos) = try DemoPhotoManifest.load(from: resourceBundle)
         try await demo.seedDemoWorkspace(manifest: manifest, photos: photos)
         var legacy = try await demo.store.load(demo.projectURL)
-        legacy.sources.removeAll { $0.name == "Coastal Hero Landscape.jpg" }
+        let addedNames = Set(manifest.photos.filter { (manifest.additions ?? []).contains($0.filename) }.map { $0.title + ".jpg" })
+        legacy.sources.removeAll { addedNames.contains($0.name) }
         let first = try XCTUnwrap(legacy.sources.first)
         legacy.name = "Edited demo"
         legacy.edits.settings.width = 789
         try await demo.store.save(legacy, to: demo.projectURL)
         try await demo.addNewDemoPhotos(manifest: manifest, photos: photos)
         let updated = try await demo.store.load(demo.projectURL)
-        XCTAssertEqual(updated.sources.count, 27)
+        XCTAssertEqual(updated.sources.count, 30)
         XCTAssertEqual(updated.sources.first?.id, first.id)
         XCTAssertEqual(updated.name, "Edited demo")
         XCTAssertEqual(updated.edits.settings.width, 789)
         try await demo.addNewDemoPhotos(manifest: manifest, photos: photos)
         var removed = try await demo.store.load(demo.projectURL)
-        XCTAssertEqual(removed.sources.count, 27)
-        removed.sources.removeAll { $0.name == "Coastal Hero Landscape.jpg" }
+        XCTAssertEqual(removed.sources.count, 30)
+        removed.sources.removeAll { addedNames.contains($0.name) }
         try await demo.store.save(removed, to: demo.projectURL)
         try await demo.addNewDemoPhotos(manifest: manifest, photos: photos)
         let afterRemoval = try await demo.store.load(demo.projectURL)

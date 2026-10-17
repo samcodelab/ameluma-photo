@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import os
 import CoreGraphics
 import CoreImage
 import ImageIO
@@ -7,12 +8,32 @@ import UniformTypeIdentifiers
 
 /// One full-resolution operation at a time; thumbnail cache has a strict cost/count budget.
 public actor ImageProcessor {
+    private static let renderSignposter = OSSignposter(subsystem:"com.broadframestudio.framepebble",category:"ImageRendering")
     private let context = CIContext(options: [.cacheIntermediates: false])
     private let filterContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!, .workingFormat: CIFormat.RGBAh, .cacheIntermediates: false])
     private let cache = NSCache<NSString, CGImage>()
     private let maximumSourcePixels: Int
     private var privateMode = false
-    public func setPrivateMode(_ enabled: Bool) { privateMode = enabled; cache.removeAllObjects() }
+    public struct RenderMetrics: Sendable {
+        public var totalMilliseconds: Double
+        public var preparationMilliseconds: Double
+        public var retouchMilliseconds: Double
+        public var finalizationMilliseconds: Double
+        public var previewCacheHit: Bool
+        public var reusedRetouchPrefix: Bool
+    }
+    public private(set) var lastRenderMetrics: RenderMetrics?
+    private struct PreviewKey: Equatable {
+        var url: URL; var fingerprint: SourceFingerprint; var configuration: ProcessingConfiguration
+        var maximum: Int; var decodeMaximum: Int?
+    }
+    private struct RetouchCheckpoint {
+        var key: PreviewKey; var image: CGImage; var origin: CGPoint
+    }
+    private var previewResult: (key: PreviewKey, image: CGImage)?
+    private var retouchCheckpoint: RetouchCheckpoint?
+    public func clearInteractiveCaches() { previewResult=nil; retouchCheckpoint=nil; cache.removeAllObjects() }
+    public func setPrivateMode(_ enabled: Bool) { guard privateMode != enabled else { return }; privateMode = enabled; clearInteractiveCaches() }
     public init(maximumSourcePixels: Int = 100_000_000) { self.maximumSourcePixels = max(1, maximumSourcePixels); cache.totalCostLimit = 32 * 1024 * 1024; cache.countLimit = 128 }
     public nonisolated static var inputTypes: [String] { CGImageSourceCopyTypeIdentifiers() as? [String] ?? [] }
     public nonisolated static var outputFormats: [OutputFormat] {
@@ -102,12 +123,28 @@ public actor ImageProcessor {
         }
         return CGSize(width: max(1, w), height: max(1, h))
     }
+    public func retouchSource(_ image: CGImage, points: [NormalizedPoint], diameter: Double) throws -> NormalizedPoint {
+        try Task.checkCancellation()
+        return try RetouchRenderer.suggestedSource(in: image, points: points, diameter: diameter, context: context)
+    }
     public func retouchSource(_ image: CGImage, at point: NormalizedPoint, diameter: Double) throws -> NormalizedPoint {
         try Task.checkCancellation()
         return try RetouchRenderer.suggestedSource(in: image, at: point, diameter: diameter, context: context)
     }
     public func render(_ url: URL, configuration c: ProcessingConfiguration, previewMaximum: Int? = nil, decodeMaximum: Int? = nil) throws -> CGImage {
         try Task.checkCancellation()
+        let interval=Self.renderSignposter.beginInterval("ImageRender")
+        defer { Self.renderSignposter.endInterval("ImageRender",interval) }
+        let started=ProcessInfo.processInfo.systemUptime
+        lastRenderMetrics=nil
+        let previewKey: PreviewKey?
+        if let maximum=previewMaximum, !privateMode {
+            previewKey=PreviewKey(url:url,fingerprint:try SourceFingerprint.read(url),configuration:c,maximum:maximum,decodeMaximum:decodeMaximum)
+        } else { previewKey=nil }
+        if let previewKey, let hit=previewResult, hit.key == previewKey {
+            lastRenderMetrics=RenderMetrics(totalMilliseconds:(ProcessInfo.processInfo.systemUptime-started)*1000,preparationMilliseconds:0,retouchMilliseconds:0,finalizationMilliseconds:0,previewCacheHit:true,reusedRetouchPrefix:false)
+            return hit.image
+        }
         guard c.width > 0, c.height > 0, c.width <= 20000, c.height <= 20000, Double(c.width) * Double(c.height) <= 100_000_000, c.quality.isFinite, (0...1).contains(c.quality), c.percentage.isFinite, c.percentage > 0, c.crop.centerX.isFinite, c.crop.centerY.isFinite, c.crop.zoom.isFinite, (1...20).contains(c.crop.zoom), c.straighten.isFinite, c.crop.straighten.isFinite, abs(c.straighten + c.crop.straighten) <= 45, c.crop.aspectRatio.map({ $0.isFinite && $0 > 0 }) ?? true else { throw ProcessingError.invalidConfiguration }
         guard [c.background.red, c.background.green, c.background.blue, c.background.alpha].allSatisfy({ $0.isFinite && (0...1).contains($0) }) else { throw ProcessingError.invalidConfiguration }
         let nominal = try identify(url)
@@ -121,6 +158,10 @@ public actor ImageProcessor {
             cg = decoded; let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
             let orientation = props?[kCGImagePropertyOrientation] as? Int ?? 1
             image = CIImage(cgImage: decoded).oriented(forExifOrientation: Int32((1...8).contains(orientation) ? orientation : 1))
+        }
+        if c.adjustments.hasColourMix || c.colourReplacements.contains(where: { $0.intensity > 0 }) {
+            let name = cg.colorSpace?.name as String? ?? ""
+            if cg.contentHeadroom > 1 || CGImageSourceCopyAuxiliaryDataInfoAtIndex(source,0,kCGImageAuxiliaryDataTypeHDRGainMap) != nil || name.localizedCaseInsensitiveContains("PQ") || name.localizedCaseInsensitiveContains("HLG") || name.localizedCaseInsensitiveContains("2100") { throw ColourToolError.hdr }
         }
         guard c.lookStrength.isFinite, (0...1).contains(c.lookStrength) else { throw ProcessingError.invalidConfiguration }
         image = try c.adjustments.apply(to: transform(image, configuration: c))
@@ -159,7 +200,32 @@ public actor ImageProcessor {
             image=image.composited(over:shadow)
         }
         image = image.composited(over: background).cropped(to: bounds)
-        image = try RetouchRenderer.apply(to: image, strokes: c.retouchStrokes, context: context, sourceMasks: c.masks)
+        image = try ColourRenderer.replace(image, edits: c.colourReplacements)
+        let prepared=ProcessInfo.processInfo.systemUptime
+        var reusedPrefix=false
+        var pendingStrokes=c.retouchStrokes
+        if let key=previewKey, let checkpoint=retouchCheckpoint,
+           checkpoint.key.url == key.url, checkpoint.key.fingerprint == key.fingerprint,
+           checkpoint.key.maximum == key.maximum, checkpoint.key.decodeMaximum == key.decodeMaximum {
+            var previous=checkpoint.key.configuration, requested=c
+            let oldStrokes=previous.retouchStrokes
+            previous.retouchStrokes=[]; requested.retouchStrokes=[]
+            if previous == requested, oldStrokes.count<=c.retouchStrokes.count,
+               Array(c.retouchStrokes.prefix(oldStrokes.count)) == oldStrokes {
+                image=CIImage(cgImage:checkpoint.image).transformed(by:CGAffineTransform(translationX:checkpoint.origin.x,y:checkpoint.origin.y))
+                pendingStrokes=Array(c.retouchStrokes.dropFirst(oldStrokes.count));reusedPrefix=true
+            }
+        }
+        image = try RetouchRenderer.apply(to: image, strokes: pendingStrokes, context: context, sourceMasks: c.masks)
+        // A single bounded, half-float checkpoint avoids replaying completed strokes.
+        // It is preview-only; final exports always execute the full shared recipe.
+        if let key=previewKey, !c.retouchStrokes.isEmpty, Int(bounds.width*bounds.height)*8<=16*1024*1024 {
+            guard let flattened=context.createCGImage(image,from:bounds,format:.RGBAh,colorSpace:CGColorSpace(name:CGColorSpace.extendedLinearSRGB)) else { throw ProcessingError.encoding }
+            try Task.checkCancellation()
+            retouchCheckpoint=RetouchCheckpoint(key:key,image:flattened,origin:bounds.origin)
+            image=CIImage(cgImage:flattened).transformed(by:CGAffineTransform(translationX:bounds.minX,y:bounds.minY))
+        }
+        let retouched=ProcessInfo.processInfo.systemUptime
         image = try PrivacyRenderer.apply(to: image, masks: c.masks)
         if !c.annotations.isEmpty || c.canvasStyle != CanvasStyle() { image = try AnnotationRenderer.apply(to: image, annotations: c.annotations, canvas: c.canvasStyle) }
         image = try WatermarkRenderer.apply(to: image, configuration: c.watermark)
@@ -168,6 +234,10 @@ public actor ImageProcessor {
         let space = c.colourPolicy == .preserve && cg.colorSpace?.model == .rgb ? cg.colorSpace : CGColorSpace(name: CGColorSpace.sRGB)
         let renderingContext = (c.filterEdit?.presetID != nil && (c.filterEdit?.intensity ?? 0) > 0) || c.autoEnhance?.enabled == true ? filterContext : context
         guard let space, let result = renderingContext.createCGImage(image, from: bounds, format: .RGBA8, colorSpace: space) else { throw ProcessingError.encoding }
+        try Task.checkCancellation()
+        let finished=ProcessInfo.processInfo.systemUptime
+        lastRenderMetrics=RenderMetrics(totalMilliseconds:(finished-started)*1000,preparationMilliseconds:(prepared-started)*1000,retouchMilliseconds:(retouched-prepared)*1000,finalizationMilliseconds:(finished-retouched)*1000,previewCacheHit:false,reusedRetouchPrefix:reusedPrefix)
+        if let key=previewKey, result.bytesPerRow*result.height<=16*1024*1024 { previewResult=(key,result) }
         return result
     }
     public func validateCreativeSource(_ url: URL) throws {
@@ -188,7 +258,7 @@ public actor ImageProcessor {
     }
     public func quickFix(_ fix: QuickFix, url: URL, configuration: ProcessingConfiguration) throws -> ProcessingConfiguration {
         var c = configuration
-        if fix == .sharing { c.width = 1600; c.height = 1600; c.crop.mode = .fit; c.metadata = .removeLocation; return c }
+        if fix == .sharing { c.nativeOutputSizing = false; c.width = 1600; c.height = 1600; c.crop.mode = .fit; c.metadata = .removeLocation; return c }
         let image = CIImage(cgImage: try thumbnail(url, maximum: 800))
         let average=image.applyingFilter("CIAreaAverage", parameters:["inputExtent":CIVector(cgRect:image.extent)])
         var values=[Float](repeating:0,count:4)

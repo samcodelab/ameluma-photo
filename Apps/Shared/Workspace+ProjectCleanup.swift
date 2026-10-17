@@ -37,7 +37,9 @@ extension Workspace {
             try await store.save(document(), to: projectURL)
             let removed = try await cleanup.removeUnreferenced(in: directory, retaining: retained)
             await processor.setPrivateMode(true)
+            await editorProcessor.setPrivateMode(true)
             await processor.setPrivateMode(privateEditing)
+            await editorProcessor.setPrivateMode(privateEditing)
             status = "Workspace cleared. Removed \(removed) unused local copies. Saved projects and exported files remain; originals are untouched."
         } catch {
             issues.append("Local cleanup could not finish: \(error.localizedDescription). No original files were targeted.")

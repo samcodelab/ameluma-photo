@@ -1,5 +1,8 @@
 import FramepebbleCore
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 /// Discrete display-detail levels keep zoom requests bounded without changing edit geometry.
 struct OverlayPreviewRequest: Equatable {
@@ -18,6 +21,16 @@ struct OverlayPreviewRequest: Equatable {
   }
 }
 
+/// Keep input responsive without consuming the stroke limit with stationary mouse events.
+enum RetouchGesturePath {
+  static func appending(_ point: NormalizedPoint, to points: [NormalizedPoint], size: CGSize) -> [NormalizedPoint] {
+    guard points.count < 2000 else { return points }
+    guard let last = points.last else { return [point] }
+    let dx = (point.x - last.x) * size.width, dy = (point.y - last.y) * size.height
+    return dx * dx + dy * dy >= 0.25 ? points + [point] : points
+  }
+}
+
 enum OverlayCanvasInteraction { case edit, pan }
 
 /// Direct drawing and numeric alternatives share the persisted final-output overlay models.
@@ -27,10 +40,15 @@ struct OverlayEditor: View {
   @State private var retouch = false
   @State private var retouchMode: RetouchMode = .heal
   @State private var brushDiameter = 0.03
+  @State private var sourcePixelSize: CGSize?
+  @State private var brushSizePreview = false
+  @State private var resizingBrush = false
+  @FocusState private var brushSizeFocused: Bool
   @State private var brushHardness = 0.5
   @State private var brushOpacity = 1.0
   @State private var samplingSource = false
   @State private var optionSampling = false
+  @State private var nativeSamplingStroke = false
   @State private var retouchSource: NormalizedPoint?
   @State private var destinationAnchor: NormalizedPoint?
   @State private var alignedSource = true
@@ -40,8 +58,18 @@ struct OverlayEditor: View {
   @Environment(\.scenePhase) private var scenePhase
   @State private var shape: OverlayShape = .freehand
   @State private var kind: AnnotationKind = .text
+  @State private var stickerPicker = false
   @State private var effect: MaskEffect = .pixelate
   @State private var drawing: [NormalizedPoint] = []
+  @State private var brushHover: CGPoint?
+  @State private var pendingBrush: [NormalizedPoint] = []
+  @State private var spacePanning = false
+  @State private var canvasPosition = ScrollPosition()
+  @State private var canvasOffset = CGPoint.zero
+  @State private var panOrigin: CGPoint?
+  // Interactive work must not queue behind workspace thumbnails or full-size exports.
+  // One actor bounds this editor's decode/render work independently.
+  private var previewProcessor: ImageProcessor { model.editorProcessor }
   @State private var image: CGImage?
   @State private var selected: UUID?
   @State private var moveStart: NormalizedPoint?
@@ -52,11 +80,7 @@ struct OverlayEditor: View {
   }
   @State private var resizeStart: OverlayBounds?
   @State private var rotationStart: OverlayBounds?
-  #if os(iOS)
   @State private var showInspector = false
-  #else
-  @State private var showInspector = true
-  #endif
   @State private var compactOptions = false
   @State private var pendingTool: PhotoTool?
   @State private var editorWidth: CGFloat = 0
@@ -64,7 +88,10 @@ struct OverlayEditor: View {
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Environment(\.dynamicTypeSize) private var typeSize
   @State private var keepProportions = false
-  @State private var canvasZoom: Double = 1
+  private var canvasZoom: Double {
+    get { asset.map { model.photoMagnification(for: $0.id) } ?? 1 }
+    nonmutating set { if let asset { model.setPhotoMagnification(newValue, for: asset.id) } }
+  }
   @State private var canvasInteraction: OverlayCanvasInteraction = .edit
   @State private var comparingRetouch = false
   @State private var pinchStart: Double?
@@ -84,10 +111,25 @@ struct OverlayEditor: View {
   }
   @State private var renderedConfiguration: ProcessingConfiguration?
   @Environment(\.dismiss) private var dismiss
+  init(model: Workspace, embedded: Bool = false) {
+    self.model=model;self.embedded=embedded
+    let source=model.overlaySession.flatMap { session in model.assets.first { $0.id == session.sourceID } } ?? model.current
+    _asset=State(initialValue:source)
+    _retouch=State(initialValue:model.overlayRetouch)
+    _masking=State(initialValue:model.overlayStartsWithMasks)
+    _image=State(initialValue:source.flatMap { asset in model.editorPreview(for:asset,configuration:model.overlaySession?.current ?? model.configuration(for:asset)) })
+  }
   var config: Binding<ProcessingConfiguration> {
     Binding(
       get: { session?.current ?? ProcessingConfiguration() },
       set: { session?.update($0) })
+  }
+  // Reconstruction must pass photographic review before appearing in the normal toolbox.
+  var availableRetouchModes: [RetouchMode] {
+    #if DEBUG
+    if CommandLine.arguments.contains("--experimental-removal") { return RetouchMode.allCases }
+    #endif
+    return [.heal,.clone]
   }
   var draftToolName: String { retouch ? "Retouch" : masking ? "Privacy" : "Annotate" }
   var draftStatus: String { draftToolName + ((session?.hasChanges ?? false) ? " · Unapplied" : " · Draft") }
@@ -137,7 +179,7 @@ struct OverlayEditor: View {
       })
   }
   var body: some View {
-    NavigationStack {
+    ToolCanvasNavigation(embedded:embedded) {
       Group {
         if embedded {
           GeometryReader { geometry in
@@ -206,9 +248,10 @@ struct OverlayEditor: View {
         .toolbar(.visible, for: .navigationBar)
         #endif
         #if os(macOS)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .safeAreaInset(edge: .top, spacing: 0) {
           HStack {
-            Button("Cancel") { cancel() }.fixedSize(horizontal: true, vertical: false).keyboardShortcut(.cancelAction)
+            if embedded { PhotoDocumentTabs(model:model).disabled(true).frame(maxWidth:.infinity) }
+            Button(session?.hasChanges == true ? "Cancel" : "Done") { cancel() }.fixedSize(horizontal: true, vertical: false).keyboardShortcut(.cancelAction)
             if !typeSize.isAccessibilitySize { historyControls }
             if (embedded && editorWidth >= 700 || verticalSizeClass == .compact) && !typeSize.isAccessibilitySize {
               Text(asset?.name ?? "Photo").font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -223,7 +266,7 @@ struct OverlayEditor: View {
               .defaultAction
             ).disabled(
               !canApply)
-          }.padding(12).background(.bar)
+          }.padding(.horizontal,8).padding(.vertical,4).background(.bar)
         }
         #endif
         #if os(iOS)
@@ -244,8 +287,11 @@ struct OverlayEditor: View {
           }
         }
         #endif
+        .editorLayoutBoundary()
         .onAppear {
+          model.markEditorFeedback(model.editorFeedbackToken,stage:"viewAppeared")
           model.photoToolOptionsVisible = true
+          Task { await previewProcessor.setPrivateMode(model.privateEditing) }
           guard
             let source = session.flatMap({ draft in model.assets.first { $0.id == draft.sourceID } }
             ) ?? model.current
@@ -262,37 +308,49 @@ struct OverlayEditor: View {
         }
         .task(id: previewRequest) {
           let request = previewRequest
+          let feedbackToken=model.editorFeedbackToken
+          model.markEditorFeedback(feedbackToken,stage:"renderTaskStarted")
           guard let source = request.source, let configuration = request.configuration else { return }
-          if renderedRequest?.source != source { image = nil; renderedConfiguration = nil; renderedRequest = nil }
+          if renderedRequest?.source != source { image = model.editorPreview(for: source, configuration: configuration); renderedConfiguration = nil; renderedRequest = nil }
           previewError = nil
           do {
-            try await Task.sleep(for: .milliseconds(80))
-            // Keep automatic sample analysis at its established resolution. Display
-            // magnification must not silently choose a different persisted sample.
-            let canonical: CGImage
-            if samplingAsset == source, samplingConfiguration == configuration, let samplingImage {
-              canonical = samplingImage
-            } else {
-              canonical = try await model.processor.render(source.url, configuration: configuration, previewMaximum: 1000)
+            if !retouch { try await Task.sleep(for: .milliseconds(16)) }
+            if sourcePixelSize == nil || samplingAsset != source {
+              let dimensions = try await previewProcessor.identify(source.url)
               try Task.checkCancellation()
               guard previewRequest == request else { return }
-              samplingImage = canonical; samplingAsset = source; samplingConfiguration = configuration
+              sourcePixelSize = dimensions
             }
-            let rendered = request.maximum == 1000 ? canonical : try await model.processor.render(
-              source.url, configuration: configuration, previewMaximum: request.maximum, decodeMaximum: request.maximum)
+            // Render only the requested display size. Canonical automatic-sampling
+            // pixels are reused at Fit, or prepared on demand when a Heal stroke needs them.
+            let rendered: CGImage
+            model.markEditorFeedback(feedbackToken,stage:"imageRequested")
+            if let cached = model.editorPreview(for: source, configuration: configuration, minimum: request.maximum) { rendered = cached }
+            else { rendered = try await previewProcessor.render(source.url, configuration: configuration,
+              previewMaximum: request.maximum, decodeMaximum: max(1200, request.maximum)) }
+            if request.maximum == 1000 && max(rendered.width, rendered.height) <= 1000 {
+              try Task.checkCancellation()
+              guard previewRequest == request else { return }
+              samplingImage = rendered; samplingAsset = source; samplingConfiguration = configuration
+            }
             try Task.checkCancellation()
             guard previewRequest == request else { return }
             image = rendered
+            pendingBrush = []
             renderedConfiguration = configuration
             renderedRequest = request
+            model.finishEditorFeedback(feedbackToken,for:source,configuration:configuration)
             previewError = nil
           } catch is CancellationError {} catch {
             guard previewRequest == request else { return }
-            image = nil; renderedRequest = nil
+            image = nil; pendingBrush = []; renderedRequest = nil
             previewError = error.localizedDescription
           }
         }
+        .editorLayoutBoundary()
+        .onChange(of: model.privateEditing) { _, value in Task { await previewProcessor.setPrivateMode(value) } }
         .onChange(of: comparingRetouch) { _, _ in drawing = [] }
+        .onChange(of: retouchMode) { _, _ in samplingSource = false; retouchSource = nil; destinationAnchor = nil; drawing = []; brushMessage = nil }
         .onChange(of: model.overlayRetouch) { _, value in comparingRetouch = false; retouch = value; drawing = []; brushMessage = nil }
         .onChange(of: model.overlayStartsWithMasks) { _, value in masking = value }
         .onChange(of: masking) { _, value in model.overlayStartsWithMasks = value }
@@ -313,13 +371,18 @@ struct OverlayEditor: View {
           drawing = []
           addingArea = selected == nil
         }
-        .onDisappear { pendingStrokeTask?.cancel(); image = nil; samplingImage = nil; samplingAsset = nil; samplingConfiguration = nil; renderedRequest = nil }
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for:UIApplication.didReceiveMemoryWarningNotification)) { _ in
+          samplingImage=nil; Task { await previewProcessor.clearInteractiveCaches() }
+        }
+        #endif
+        .onDisappear { Task { await previewProcessor.clearInteractiveCaches() }; pendingStrokeTask?.cancel(); pendingBrush = []; brushHover = nil; image = nil; samplingImage = nil; samplingAsset = nil; samplingConfiguration = nil; renderedRequest = nil }
         .onChange(of: scenePhase) { _, phase in
           // Hosted native windows may have no active SwiftUI Scene. Suspend only
           // on an observed background transition, not the initial environment value.
           if phase == .active { previewSuspended = false }
           if phase == .background { previewSuspended = true; comparingRetouch = false }
-          if phase == .background { pendingStrokeTask?.cancel(); drawing = []; image = nil; samplingImage = nil; samplingAsset = nil; samplingConfiguration = nil; renderedRequest = nil; renderedConfiguration = nil }
+          if phase == .background { Task { await previewProcessor.clearInteractiveCaches() }; pendingStrokeTask?.cancel(); drawing = []; pendingBrush = []; brushHover = nil; spacePanning = false; image = nil; samplingImage = nil; samplingAsset = nil; samplingConfiguration = nil; renderedRequest = nil; renderedConfiguration = nil }
         }
         .interactiveDismissDisabled()
         #if os(macOS)
@@ -336,7 +399,8 @@ struct OverlayEditor: View {
         }.navigationTitle(retouch ? "Retouch Brush" : (masking ? "Privacy Options" : "Annotation Options")).compactNavigationTitle()
           .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { compactOptions = false } } }
       }.presentationDetents([.medium, .large])
-    }.onChange(of: samplingSource) { _, sampling in
+    }.editorLayoutBoundary().sheet(isPresented: $stickerPicker) { StickerPicker(choose: addSticker) }
+      .onChange(of: samplingSource) { _, sampling in
       if sampling && !embedded { compactOptions = false }
     }.confirmationDialog("Apply tool edits before switching?", isPresented: Binding(
       get: { pendingTool != nil }, set: { if !$0 { pendingTool = nil } }
@@ -382,7 +446,7 @@ struct OverlayEditor: View {
         #if os(iOS)
         showInspector = false
         #else
-        showInspector = usesSideInspector(editorWidth)
+        showInspector = false
         #endif
       }
     } else { pendingTool = tool }
@@ -426,7 +490,7 @@ struct OverlayEditor: View {
       } else {
         if retouch {
           Picker("Retouch mode", selection: $retouchMode) {
-            ForEach(RetouchMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            ForEach(availableRetouchModes, id: \.self) { Text($0.rawValue).tag($0) }
           }.pickerStyle(.menu)
           brushSizeControl
         } else { ScrollView(.horizontal) { primaryOptions }.scrollIndicators(.visible).frame(minHeight: 52) }
@@ -451,7 +515,7 @@ struct OverlayEditor: View {
     HStack(spacing: 12) {
       if retouch {
         Picker("Retouch mode", selection: $retouchMode) {
-          ForEach(RetouchMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+          ForEach(availableRetouchModes, id: \.self) { Text($0.rawValue).tag($0) }
         }.pickerStyle(.segmented).labelsHidden().frame(width: 150)
         brushSizeControl.frame(minWidth: 120, maxWidth: .infinity)
       } else {
@@ -468,9 +532,12 @@ struct OverlayEditor: View {
           }.labelsHidden().fixedSize()
         } else if addingArea {
           Picker("Annotation", selection: $kind) {
-            ForEach(AnnotationKind.allCases, id: \.self) { Text($0 == .freehand ? "Freeform" : $0.rawValue.capitalized).tag($0) }
+            ForEach(AnnotationKind.allCases.filter { $0 != .sticker }, id: \.self) { Text($0.title).tag($0) }
           }.labelsHidden().fixedSize()
         }
+      }
+      if !retouch && !masking {
+        Button("Stickers", systemImage: "face.smiling") { stickerPicker = true }.comfortableHitTarget()
       }
     }.padding(.horizontal, 4)
   }
@@ -487,7 +554,7 @@ struct OverlayEditor: View {
   }
   @ViewBuilder var secondaryOptionButtons: some View {
     Group {
-      if retouch {
+      if retouch && retouchMode != .remove {
         Button { samplingSource.toggle() } label: {
           Image(systemName: "scope")
           if !typeSize.isAccessibilitySize { Text(samplingSource ? "Tap source" : retouchSource == nil ? (retouchMode == .heal ? "Auto Sample" : "Set Source") : "Sampled").fixedSize(horizontal: true, vertical: false) }
@@ -542,6 +609,14 @@ struct OverlayEditor: View {
         Menu { historyControls } label: { Image(systemName: "clock.arrow.circlepath") }
           .comfortableHitTarget().accessibilityLabel("Draft history and delete")
       }
+      if !retouch && !masking, let selected, config.wrappedValue.annotations.contains(where: { $0.id == selected && $0.kind == .sticker }) {
+        Button("Delete Sticker", systemImage: "trash", role: .destructive) { deleteSelected() }.comfortableHitTarget()
+        Button("Flip Sticker", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right") {
+          var value = config.wrappedValue
+          if let index = value.annotations.firstIndex(where: { $0.id == selected }) { value.annotations[index].flipHorizontal.toggle(); config.wrappedValue = value }
+        }.comfortableHitTarget()
+        Button("Duplicate Sticker", systemImage: "plus.square.on.square") { duplicateSticker(selected) }.comfortableHitTarget()
+      }
       if masking {
         Button { apply(crop: true) } label: { Image(systemName: "crop") }
           .comfortableHitTarget().disabled(!canApply).accessibilityLabel("Apply changes and crop to hide")
@@ -572,40 +647,52 @@ struct OverlayEditor: View {
       point[keyPath: key] = min(1, max(0, value)); retouchSource = point; destinationAnchor = nil
     })
   }
+  var fullCanvasSize: CGSize {
+    guard let sourcePixelSize, let configuration = session?.current else { return CGSize(width: 1000, height: 1000) }
+    return ImageProcessor.outputSize(source: ImageProcessor.transformedSize(sourcePixelSize, configuration: configuration), configuration: configuration)
+  }
+  var brushPixelEdge: Double { max(1, min(fullCanvasSize.width, fullCanvasSize.height)) }
+  var brushPixelRange: ClosedRange<Double> { 1...max(1, min(5000, (brushPixelEdge * 0.4).rounded(.down))) }
+  var brushPixels: Binding<Double> {
+    Binding(get: { brushDiameter * brushPixelEdge }, set: { value in
+      guard value.isFinite else { return }
+      brushDiameter = min(brushPixelRange.upperBound, max(1, value.rounded())) / brushPixelEdge
+    })
+  }
   var brushSizeControl: some View {
     VStack(alignment: .leading, spacing: 2) {
       HStack {
         Text("Size").font(.caption)
         Spacer(minLength: 4)
-        TextField("Brush size percent", value: Binding(get: { brushDiameter * 100 }, set: { value in
-          guard value.isFinite else { return }
-          brushDiameter = min(0.25, max(0.005, value / 100))
-        }), format: .number.precision(.fractionLength(0...1)))
+        TextField("Brush diameter in pixels", value: brushPixels, format: .number.precision(.fractionLength(0)))
+          .focused($brushSizeFocused).onSubmit { brushSizeFocused = false }
           .textFieldStyle(.roundedBorder).multilineTextAlignment(.trailing).monospacedDigit().frame(width: 64)
-        Text("%").font(.caption)
+        Text("px").font(.caption)
       }
-      Slider(value: $brushDiameter, in: 0.005...0.25)
-        .accessibilityLabel("Brush diameter as percentage of shorter image edge")
-    }
+      // Square-root travel gives fine control of small brushes without losing large sizes.
+      Slider(value: Binding(get: { sqrt(min(brushPixelRange.upperBound, max(1, brushPixels.wrappedValue))) },
+        set: { brushPixels.wrappedValue = $0 * $0 }), in: 1...max(1.001, sqrt(brushPixelRange.upperBound)), onEditingChanged: { resizingBrush = $0 })
+        .accessibilityLabel("Brush diameter")
+        .accessibilityValue("\(Int(brushPixels.wrappedValue.rounded())) pixels")
+    }.disabled(sourcePixelSize == nil)
   }
   var retouchControls: some View {
     VStack(alignment: .leading, spacing: 10) {
       Picker("Retouch mode", selection: $retouchMode) {
-        ForEach(RetouchMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+        ForEach(availableRetouchModes, id: \.self) { Text($0.rawValue).tag($0) }
       }.pickerStyle(.segmented)
-      HStack {
-        Button(samplingSource ? "Tap a source on the photo" : "Set Source", systemImage: "scope") { samplingSource.toggle() }
+      if retouchMode != .remove { HStack {
+        Button(samplingSource ? "Tap a source on the photo" : (retouchMode == .heal && retouchSource == nil ? "Source: Auto · Change…" : "Set Source"), systemImage: "scope") { samplingSource.toggle() }
         if retouchMode == .heal && retouchSource != nil { Button("Auto") { retouchSource = nil; destinationAnchor = nil } }
-      }
+      } }
       if retouchMode == .clone && retouchSource == nil { Text("Set a source, then paint over the destination.").font(.caption).foregroundStyle(.secondary) }
       if let brushMessage { Text(brushMessage).font(.caption).foregroundStyle(.orange) }
       brushSizeControl
-      HStack { Text("Hardness"); Spacer(); Text("\(Int(brushHardness * 100))%").monospacedDigit() }.font(.caption)
-      Slider(value: $brushHardness, in: 0...1).accessibilityLabel("Brush hardness")
-      HStack { Text("Opacity"); Spacer(); Text("\(Int(brushOpacity * 100))%").monospacedDigit() }.font(.caption)
-      Slider(value: $brushOpacity, in: 0.05...1).accessibilityLabel("Brush opacity")
-      Toggle("Aligned source", isOn: $alignedSource).disabled(retouchSource == nil).onChange(of: alignedSource) { _, _ in destinationAnchor = nil }
-      if retouchSource != nil {
+      InspectorSlider(title: "Hardness", value: $brushHardness, range: 0...1, percentage: true)
+      InspectorSlider(title: "Opacity", value: $brushOpacity, range: 0...1, percentage: true)
+      if retouchMode != .remove && retouchSource != nil { Toggle("Aligned source", isOn: $alignedSource).onChange(of: alignedSource) { _, _ in destinationAnchor = nil } }
+      if retouchMode == .remove { Text("Paint over the whole distraction, including its edges. Remove rebuilds surrounding texture; inspect complex boundaries before applying.").font(.caption).foregroundStyle(.secondary) }
+      if retouchMode != .remove && retouchSource != nil {
         Text(alignedSource ? "Source set · samples move with your brush" : "Source set · each stroke starts from this sample").font(.caption).foregroundStyle(.secondary)
         DisclosureGroup("Source Position") {
           HStack {
@@ -639,32 +726,48 @@ struct OverlayEditor: View {
     }
   }
   func commitRetouch() {
-    guard !comparingRetouch, !drawing.isEmpty, let image = samplingImage, samplingConfiguration == session?.current, samplingAsset == previewRequest.source, let current = session?.current else { drawing = []; return }
+    guard !comparingRetouch, !drawing.isEmpty, let current = session?.current,
+      renderedConfiguration == current, renderedRequest?.source == previewRequest.source,
+      let currentAsset = previewRequest.source else { drawing = []; return }
+    let cachedSample = samplingAsset == currentAsset && samplingConfiguration == current ? samplingImage : nil
     guard current.retouchStrokes.count < 200 else { brushMessage = "This photo has reached the 200-stroke limit. Remove an earlier stroke to continue."; drawing = []; return }
     if retouchMode == .clone && retouchSource == nil { brushMessage = "Set a source on the photo first."; drawing = []; return }
-    var stroke = RetouchStroke(); stroke.mode = retouchMode; stroke.points = drawing
+    var stroke = RetouchStroke(); stroke.samplingVersion = retouchMode == .remove ? 1 : 3; stroke.mode = retouchMode; stroke.points = drawing
     stroke.diameter = brushDiameter; stroke.hardness = brushHardness; stroke.opacity = brushOpacity
     let source = retouchSource, anchor = destinationAnchor, aligned = alignedSource
     let sourceID = session?.sourceID
-    let sampledAsset = samplingAsset
-    drawing = []; preparingStroke = true
+    let sampledAsset = currentAsset
+    pendingBrush = drawing; drawing = []; preparingStroke = true
+    let feedbackToken=model.beginEditorFeedback(.strokePreview,for:currentAsset,configuration:nil)
     pendingStrokeTask = Task {
-      defer { preparingStroke = false; pendingStrokeTask = nil }
+      defer { preparingStroke = false; pendingStrokeTask = nil; if renderedConfiguration == session?.current { pendingBrush = [] } }
       do {
         guard let first = stroke.points.first else { return }
-        if let source {
+        if stroke.mode == .remove {
+          stroke.source = nil
+        } else if let source {
           let x = source.x + (aligned ? first.x - (anchor?.x ?? first.x) : 0)
           let y = source.y + (aligned ? first.y - (anchor?.y ?? first.y) : 0)
           guard (0...1).contains(x), (0...1).contains(y) else { brushMessage = "Source moved outside the photo. Set another source."; return }
           stroke.source = NormalizedPoint(x, y)
-        } else { stroke.source = try await model.processor.retouchSource(image, at: first, diameter: stroke.diameter) }
+        } else {
+          let analysisImage: CGImage
+          if let cachedSample { analysisImage = cachedSample }
+          else { analysisImage = try await previewProcessor.render(currentAsset.url, configuration: current, previewMaximum: 1000) }
+          try Task.checkCancellation()
+          stroke.source = try await previewProcessor.retouchSource(analysisImage, points: stroke.points, diameter: stroke.diameter)
+        }
         try Task.checkCancellation()
         guard session?.sourceID == sourceID, session?.current == current, previewRequest.source == sampledAsset, !previewSuspended, model.overlayEditor || !embedded else { return }
-        var next = current; next.retouchStrokes.append(stroke); config.wrappedValue = next
+        var next = current; next.retouchStrokes.append(stroke)
+        model.updateEditorFeedback(feedbackToken,configuration:next)
+        config.wrappedValue = next
         if destinationAnchor == nil && source != nil { destinationAnchor = first }
         brushMessage = nil
-      } catch is CancellationError { }
+      } catch is CancellationError { model.cancelEditorFeedback(feedbackToken) }
       catch {
+        model.cancelEditorFeedback(feedbackToken)
+        pendingBrush = []
         brushMessage = source == nil ? "Couldn’t find a nearby sample. Set a source manually or use a smaller brush." : error.localizedDescription
       }
     }
@@ -701,17 +804,29 @@ struct OverlayEditor: View {
       }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
     }
   }
-  var canvasInset: CGFloat { retouch ? 12 : 35 }
+  var canvasInset: CGFloat { embedded ? 0 : 35 }
   var canvasWorkspace: some View {
     VStack(spacing: 0) {
       GeometryReader { viewport in
         let ratio = image.map { CGFloat($0.width) / CGFloat($0.height) } ?? 1
         let width = max(1, min(viewport.size.width - canvasInset * 2, (viewport.size.height - canvasInset * 2) * ratio))
         ScrollView([.horizontal, .vertical]) {
-          canvas.allowsHitTesting(canvasInteraction == .edit && !comparingRetouch)
+          canvas.allowsHitTesting(canvasInteraction == .edit && !spacePanning && !comparingRetouch)
             .frame(width: width * canvasZoom + canvasInset * 2, height: width / ratio * canvasZoom + canvasInset * 2)
             .frame(minWidth: viewport.size.width, minHeight: viewport.size.height)
-        }.highPriorityGesture(MagnifyGesture().onChanged { value in
+        }
+        #if os(macOS)
+        .background(MacZoomCapture { delta in canvasZoom = min(4, max(1, canvasZoom * exp(-delta * 0.015))) })
+        #endif
+        .modifier(PhotoViewportContinuity(model:model,assetID:asset?.id ?? model.sourceSessionID,position:$canvasPosition))
+        .onScrollGeometryChange(for: CGPoint.self) { $0.contentOffset } action: { _, offset in canvasOffset = offset }
+        .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { value in
+          guard spacePanning || canvasInteraction == .pan else { return }
+          if panOrigin == nil { panOrigin = canvasOffset }
+          guard let origin = panOrigin else { return }
+          canvasPosition.scrollTo(x: max(0, origin.x - value.translation.width), y: max(0, origin.y - value.translation.height))
+        }.onEnded { _ in panOrigin = nil }, including: spacePanning || canvasInteraction == .pan ? .all : .none)
+        .highPriorityGesture(MagnifyGesture().onChanged { value in
           if pinchStart == nil { pinchStart = canvasZoom }
           drawing = []
           canvasZoom = min(4, max(1, (pinchStart ?? 1) * value.magnification))
@@ -720,6 +835,28 @@ struct OverlayEditor: View {
           .onChange(of: samplingSource) { _, sampling in if sampling { canvasInteraction = .edit } }
       }
     }.background { EditorCanvasBackground() }
+      .overlay {
+        if retouch && (brushSizePreview || resizingBrush || brushSizeFocused), let image {
+          GeometryReader { viewport in
+            let ratio = CGFloat(image.width) / CGFloat(image.height)
+            let width = max(1, min(viewport.size.width - canvasInset * 2, (viewport.size.height - canvasInset * 2) * ratio))
+            let diameter = min(width, width / ratio) * canvasZoom * brushDiameter
+            VStack(spacing: 6) {
+              Circle().fill(Color.blue.opacity(0.2)).overlay(Circle().stroke(.white, lineWidth: 2))
+                .overlay(Circle().stroke(.black.opacity(0.7), lineWidth: 0.75))
+                .frame(width: diameter, height: diameter)
+              Text("\(Int(brushPixels.wrappedValue.rounded())) px").font(.caption.monospacedDigit())
+                .padding(5).background(.regularMaterial, in: Capsule())
+            }.position(x: viewport.size.width / 2, y: viewport.size.height / 2)
+          }.allowsHitTesting(false)
+        }
+      }
+      .task(id: brushDiameter) {
+        guard retouch else { return }
+        brushSizePreview = true
+        do { try await Task.sleep(for: .milliseconds(1400)); brushSizePreview = false }
+        catch { }
+      }
       .overlay(alignment: .topLeading) {
         VStack(alignment: .leading, spacing: 4) {
           #if os(iOS)
@@ -746,7 +883,7 @@ struct OverlayEditor: View {
         }
       }
       ForEach(Array(config.wrappedValue.annotations.enumerated()), id: \.element.id) { index, item in
-        objectRow("Annotation \(index + 1) · \(item.kind.rawValue.capitalized)", icon: "textformat", id: item.id) {
+        objectRow(item.kind == .callout ? "Callout \(AnnotationRenderer.calloutNumbers(config.wrappedValue.annotations)[item.id] ?? 1)" : item.kind.title + (item.kind == .text || item.kind == .speechBubble ? " · " + item.text : ""), icon: item.kind == .callout ? "number.circle" : "textformat", id: item.id) {
           masking = false; selected = item.id; addingArea = false
         }
       }
@@ -754,7 +891,7 @@ struct OverlayEditor: View {
   }
   func objectRow(_ title: String, icon: String, id: UUID, action: @escaping () -> Void) -> some View {
     Button(action: action) {
-      Label(title, systemImage: icon).frame(maxWidth: .infinity, alignment: .leading).padding(8)
+      Label(title, systemImage: icon).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading).padding(8)
         .background(selected == id ? Color.accentColor.opacity(0.18) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
     }.buttonStyle(.plain).contextMenu {
       Button("Delete", role: .destructive) { session?.removeArea(id); reconcileSelection() }
@@ -773,11 +910,37 @@ struct OverlayEditor: View {
         }
       } else if addingArea {
         Picker("Annotation", selection: $kind) {
-          ForEach(AnnotationKind.allCases, id: \.self) { Text($0 == .freehand ? "Freeform" : $0.rawValue.capitalized).tag($0) }
+          ForEach(AnnotationKind.allCases.filter { $0 != .sticker }, id: \.self) { Text($0.title).tag($0) }
         }
       }
       }
     }
+  }
+  var nativeRetouch: Bool {
+    #if os(macOS)
+    retouch
+    #else
+    false
+    #endif
+  }
+  func brushPoint(_ point: CGPoint, size: CGSize) -> NormalizedPoint {
+    NormalizedPoint(min(1, max(0, point.x / max(1, size.width))), min(1, max(0, point.y / max(1, size.height))))
+  }
+  func beginNativeBrush(_ point: CGPoint, size: CGSize, option: Bool) {
+    canvasFocused = true
+    guard !preparingStroke, !comparingRetouch, renderedConfiguration == session?.current else { brushMessage = "Finishing the previous stroke…"; return }
+    nativeSamplingStroke = retouchMode != .remove && (samplingSource || option)
+    if !nativeSamplingStroke { drawing = [brushPoint(point, size: size)]; brushMessage = nil }
+  }
+  func moveNativeBrush(_ point: CGPoint, size: CGSize) {
+    guard !nativeSamplingStroke, !drawing.isEmpty else { return }
+    drawing = RetouchGesturePath.appending(brushPoint(point, size: size), to: drawing, size: size)
+  }
+  func endNativeBrush(_ point: CGPoint, size: CGSize) {
+    if nativeSamplingStroke {
+      retouchSource = brushPoint(point, size: size); destinationAnchor = nil
+      samplingSource = false; nativeSamplingStroke = false; brushMessage = nil; drawing = []
+    } else if !drawing.isEmpty { moveNativeBrush(point, size: size); commitRetouch() }
   }
   @ViewBuilder var canvas: some View {
     if let image {
@@ -786,7 +949,7 @@ struct OverlayEditor: View {
           Image(decorative: image, scale: 1).resizable().frame(
             width: proxy.size.width, height: proxy.size.height)
             .contentShape(Rectangle())
-            .onTapGesture { resumeDrawingOnEmptyCanvas() }
+            .onTapGesture { deselectOnEmptyCanvas() }
           if !addingArea && !retouch {
             if masking {
               ForEach(config.wrappedValue.masks) { mask in
@@ -803,26 +966,62 @@ struct OverlayEditor: View {
               }
             }
           }
+          if retouch || (masking ? shape == .freehand : kind == .freehand) {
           Path { p in
-            for (i, point) in drawing.enumerated() {
+            for (i, point) in (drawing.isEmpty && retouch ? pendingBrush : drawing).enumerated() {
               let q = CGPoint(x: point.x * proxy.size.width, y: point.y * proxy.size.height)
               if i == 0 { p.move(to: q) } else { p.addLine(to: q) }
             }
-          }.stroke(.blue.opacity(retouch ? 0.35 : 1), style: StrokeStyle(lineWidth: retouch ? min(proxy.size.width, proxy.size.height) * brushDiameter : 2, lineCap: .round, lineJoin: .round))
-          if retouch, let cursor = drawing.last {
+          }.stroke(.blue.opacity(retouch ? 0.35 : 1), style: StrokeStyle(lineWidth: retouch ? min(proxy.size.width, proxy.size.height) * brushDiameter : 2, lineCap: .round, lineJoin: .round)).allowsHitTesting(false)
+          } else { drawingAreaPreview(size: proxy.size).allowsHitTesting(false) }
+          if retouch, let dab = (drawing.isEmpty ? pendingBrush : drawing).first {
+            Circle().fill(Color.blue.opacity(0.35))
+              .frame(width: min(proxy.size.width, proxy.size.height) * brushDiameter, height: min(proxy.size.width, proxy.size.height) * brushDiameter)
+              .position(x: dab.x * proxy.size.width, y: dab.y * proxy.size.height).allowsHitTesting(false)
+          }
+          if retouch, let cursor = drawing.last ?? pendingBrush.last {
             Circle().stroke(.white, lineWidth: 1.5).shadow(color: .black, radius: 1)
               .frame(width: min(proxy.size.width, proxy.size.height) * brushDiameter, height: min(proxy.size.width, proxy.size.height) * brushDiameter)
               .position(x: cursor.x * proxy.size.width, y: cursor.y * proxy.size.height).allowsHitTesting(false)
           }
+          if retouch, drawing.isEmpty, let hover = brushHover, !spacePanning, canvasInteraction == .edit {
+            Circle().fill(Color.blue.opacity(0.16))
+              .overlay(Circle().stroke(.white, lineWidth: 2))
+              .overlay(Circle().stroke(.black.opacity(0.8), lineWidth: 0.75))
+              .frame(width: min(proxy.size.width, proxy.size.height) * brushDiameter, height: min(proxy.size.width, proxy.size.height) * brushDiameter)
+              .position(hover).allowsHitTesting(false)
+          }
           if retouch, let source = samplingIndicator {
-            Image(systemName: "scope").foregroundStyle(.white).shadow(color: .black, radius: 1)
+            Image(systemName: "scope").foregroundStyle(.cyan).shadow(color: .black, radius: 1)
+              .overlay(alignment: .bottom) {
+                Text("Source").font(.caption2).padding(.horizontal, 4).padding(.vertical, 2)
+                  .background(.regularMaterial, in: Capsule()).fixedSize().offset(y: 20)
+              }
               .position(x: source.x * proxy.size.width, y: source.y * proxy.size.height).allowsHitTesting(false)
           }
+        }
+        #if os(macOS)
+        .background(MacRetouchCursor(active: retouch && !spacePanning && canvasInteraction == .edit))
+        #endif
+        .overlay {
+          #if os(macOS)
+          if retouch {
+            MacRetouchInput(active: canvasInteraction == .edit && !spacePanning && !comparingRetouch,
+              began: { point, option in beginNativeBrush(point, size: proxy.size, option: option) },
+              moved: { moveNativeBrush($0, size: proxy.size) },
+              ended: { endNativeBrush($0, size: proxy.size) },
+              hovered: { brushHover = $0 })
+          }
+          #endif
+        }
+        .editorLayoutBoundary()
+        .onContinuousHover { phase in
+          switch phase { case .active(let location): brushHover = location; case .ended: brushHover = nil }
         }.coordinateSpace(name: "overlayCanvas").contentShape(Rectangle()).gesture(
           DragGesture(minimumDistance: 0).onChanged { value in
             guard canvasInteraction == .edit, !comparingRetouch, !preparingStroke, !retouch || renderedConfiguration == session?.current else { return }
             canvasFocused = true
-            if retouch && (samplingSource || optionSampling) { return }
+            if retouch && retouchMode != .remove && (samplingSource || optionSampling) { return }
             let p = NormalizedPoint(
               min(1, max(0, value.location.x / proxy.size.width)),
               min(1, max(0, value.location.y / proxy.size.height)))
@@ -833,18 +1032,19 @@ struct OverlayEditor: View {
                   min(1, max(0, value.startLocation.y / proxy.size.height)))
               ]
             }
-            if drawing.count < 2000 { drawing.append(p) }
+            drawing = RetouchGesturePath.appending(p, to: drawing, size: proxy.size)
           }.onEnded { value in
             guard canvasInteraction == .edit, !comparingRetouch, !preparingStroke, !retouch || renderedConfiguration == session?.current else { return }
             if retouch {
-              if samplingSource || optionSampling {
+              if retouchMode != .remove && (samplingSource || optionSampling) {
                 retouchSource = NormalizedPoint(min(1, max(0, value.location.x / proxy.size.width)), min(1, max(0, value.location.y / proxy.size.height)))
                 destinationAnchor = nil; samplingSource = false; brushMessage = nil; drawing = []
               } else { commitRetouch() }
             } else { addDrawn(); drawing = [] }
-          }, including: addingArea || retouch ? .all : .subviews)
+          }, including: nativeRetouch ? .none : (addingArea || retouch ? .all : .subviews))
       }.overlayCanvasSizing(aspect: CGFloat(image.width) / CGFloat(image.height), standalone: false)
         .padding(canvasInset).frame(maxWidth: .infinity)
+        .editorLayoutBoundary()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(retouch ? "Retouch canvas. Set a source or paint over the photo." : "Edited output. Use Draw to create areas and Select to move or resize them.")
         .accessibilityAction(named: retouch ? "Retouch centre" : "Draw centred area") {
@@ -862,6 +1062,20 @@ struct OverlayEditor: View {
         .accessibilityAction(named: "Move selected area down") { nudgeSelected(dx: 0, dy: 0.001) }
         #if os(macOS)
           .focusable().focused($canvasFocused)
+          .onKeyPress(keys: [.space], phases: [.down, .up]) { key in
+            spacePanning = key.phase == .down; drawing = []; return .handled
+          }
+          .onKeyPress(characters: CharacterSet(charactersIn: "+=-0[]")) { key in
+            switch key.characters {
+            case "+", "=": canvasZoom = min(4, canvasZoom * 1.25)
+            case "-": canvasZoom = max(1, canvasZoom / 1.25)
+            case "0": canvasZoom = 1
+            case "[": brushPixels.wrappedValue -= max(1, (brushPixels.wrappedValue * 0.1).rounded())
+            case "]": brushPixels.wrappedValue += max(1, (brushPixels.wrappedValue * 0.1).rounded())
+            default: return .ignored
+            }
+            return .handled
+          }
           .onModifierKeysChanged(mask: .option) { _, modifiers in optionSampling = modifiers.contains(.option) }
           .onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow], phases: [.down, .repeat, .up]) { key in
             guard canvasInteraction == .edit, !retouch, selected != nil, !addingArea, key.modifiers.intersection([.command, .control, .option]).isEmpty else { return .ignored }
@@ -874,9 +1088,9 @@ struct OverlayEditor: View {
             return .handled
           }
           .onChange(of: canvasFocused) { _, focused in
-            if !focused { session?.endInteraction() }
+            if !focused { spacePanning = false; brushHover = nil; session?.endInteraction() }
           }
-          .help("Arrow keys move the selected area. Hold Shift for larger steps.")
+          .help("Retouch: [ and ] change brush size. + and − zoom; 0 fits. Option-scroll zooms. Hold Space to pan. Option-click sets a source.")
         #endif
     } else if let previewError {
       VStack(spacing: 12) {
@@ -913,9 +1127,7 @@ struct OverlayEditor: View {
           }
           let b = maskBinding(mask.id)
           if mask.effect != .cover {
-            Text("Effect strength")
-            Slider(value: b.strength, in: 0...1, onEditingChanged: draftInteraction)
-              .accessibilityLabel("Effect strength")
+            InspectorSlider(title: "Effect strength", value: b.strength, range: 0...1, percentage: true, interaction: draftInteraction)
           }
           DisclosureGroup("Precise Transform") { geometry(b.x, b.y, b.width, b.height, b.rotation) }
           Button("Remove mask", role: .destructive) {
@@ -929,7 +1141,7 @@ struct OverlayEditor: View {
         position, annotation in
         if selected == annotation.id && !addingArea {
         DisclosureGroup(
-          "Annotation \(position + 1) · \(annotation.kind.rawValue.capitalized)",
+          "Annotation \(position + 1) · \(annotation.kind.title)",
           isExpanded: Binding(
             get: { selected == annotation.id },
             set: { expanded in
@@ -941,7 +1153,7 @@ struct OverlayEditor: View {
             Button("Select & move") { selected = annotation.id; addingArea = false }
           }
           let b = annotationBinding(annotation.id)
-          if annotation.kind == .text {
+          if annotation.kind == .text || annotation.kind == .speechBubble {
             TextField("Text", text: b.text)
             Picker("Font", selection: b.fontName) {
               Text("Helvetica").tag("HelveticaNeue-Medium")
@@ -956,20 +1168,27 @@ struct OverlayEditor: View {
             }
           }
           DisclosureGroup("Precise Transform") { geometry(b.x, b.y, b.width, b.height, b.rotation) }
-          Text("Opacity")
-          Slider(value: b.opacity, in: 0...1, onEditingChanged: draftInteraction)
-            .accessibilityLabel("Opacity")
-          if annotation.kind != .text {
-            Text("Stroke width")
-            Slider(value: b.lineWidth, in: 0.001...0.05, onEditingChanged: draftInteraction)
-              .accessibilityLabel("Stroke width")
+          InspectorSlider(title: "Opacity", value: b.opacity, range: 0...1, percentage: true, interaction: draftInteraction)
+          if ![AnnotationKind.text, .sticker, .highlight, .callout].contains(annotation.kind) {
+            InspectorSlider(title: "Stroke width (px)", value: Binding(get: { b.lineWidth.wrappedValue * brushPixelEdge }, set: { b.lineWidth.wrappedValue = $0 / brushPixelEdge }), range: (0.001 * brushPixelEdge)...(0.05 * brushPixelEdge), interaction: draftInteraction)
           }
+          if annotation.kind != .sticker {
           Picker("Colour", selection: b.colour) {
             Text("White").tag(RGBAColour(1, 1, 1, 1))
             Text("Black").tag(RGBAColour(0, 0, 0, 1))
             Text("Blue").tag(RGBAColour(0, 0.3, 1, 1))
             Text("Red").tag(RGBAColour(1, 0, 0, 1))
+            Text("Yellow").tag(RGBAColour(1, 0.85, 0, 1))
           }
+          }
+          if annotation.kind == .callout {
+            Text("Callout \(AnnotationRenderer.calloutNumbers(config.wrappedValue.annotations)[annotation.id] ?? 1) · numbers follow object order")
+              .font(.caption).foregroundStyle(.secondary)
+          }
+          HStack {
+            Button("Earlier") { moveAnnotation(annotation.id, by: -1) }.disabled(position == 0)
+            Button("Later") { moveAnnotation(annotation.id, by: 1) }.disabled(position == config.wrappedValue.annotations.count - 1)
+          }.help("Change stacking order and automatic callout numbering")
           Button("Remove annotation", role: .destructive) {
             session?.removeArea(annotation.id)
             if selected == annotation.id { selected = nil }
@@ -1005,6 +1224,7 @@ struct OverlayEditor: View {
       previewError = "The photo changed while editing. Cancel and reopen to keep newer edits."
       return
     }
+    if let image, let asset { model.rememberEditorPreview(image, source: asset, configuration: draft.current, maximum: previewRequest.maximum) }
     if crop { model.pendingOverlayDestination = .framing }
     session = nil
     closeEditor()
@@ -1234,6 +1454,23 @@ struct OverlayEditor: View {
         config.wrappedValue = c
       })
   }
+  @ViewBuilder func drawingAreaPreview(size: CGSize) -> some View {
+    if drawing.count >= 2 {
+      let xs = drawing.map(\.x), ys = drawing.map(\.y)
+      let left = (xs.min() ?? 0) * size.width, top = (ys.min() ?? 0) * size.height
+      let width = max(1, ((xs.max() ?? 0) - (xs.min() ?? 0)) * size.width)
+      let height = max(1, ((ys.max() ?? 0) - (ys.min() ?? 0)) * size.height)
+      if !masking && (kind == .arrow || kind == .line), let first = drawing.first, let last = drawing.last {
+        Path { path in path.move(to: CGPoint(x:first.x*size.width,y:first.y*size.height));path.addLine(to:CGPoint(x:last.x*size.width,y:last.y*size.height)) }.stroke(.blue,lineWidth:2)
+      } else if masking && shape == .ellipse || !masking && (kind == .ellipse || kind == .callout) {
+        Ellipse().fill(.blue.opacity(0.15)).overlay(Ellipse().stroke(.blue,lineWidth:2))
+          .frame(width:width,height:height).position(x:left+width/2,y:top+height/2)
+      } else {
+        Rectangle().fill((kind == .highlight && !masking ? Color.yellow : Color.blue).opacity(0.2))
+          .overlay(Rectangle().stroke(.blue,lineWidth:2)).frame(width:width,height:height).position(x:left+width/2,y:top+height/2)
+      }
+    }
+  }
   func annotationBinding(_ id: UUID) -> Binding<Annotation> {
     Binding(
       get: { config.wrappedValue.annotations.first { $0.id == id } ?? Annotation() },
@@ -1242,6 +1479,13 @@ struct OverlayEditor: View {
         if let i = c.annotations.firstIndex(where: { $0.id == id }) { c.annotations[i] = value }
         config.wrappedValue = c
       })
+  }
+  func moveAnnotation(_ id: UUID, by offset: Int) {
+    var value = config.wrappedValue
+    guard let index = value.annotations.firstIndex(where: { $0.id == id }),
+      value.annotations.indices.contains(index + offset) else { return }
+    value.annotations.swapAt(index, index + offset)
+    config.wrappedValue = value
   }
   func addDrawn() {
     guard drawing.count >= 2 else { return }
@@ -1260,6 +1504,10 @@ struct OverlayEditor: View {
     } else {
       var a = Annotation()
       a.kind = kind
+      if kind == .arrow || kind == .line { a.directionVersion = 1 }
+      if kind == .highlight { a.colour = RGBAColour(1, 0.85, 0, 1); a.opacity = 0.3 }
+      if kind == .callout { a.colour = RGBAColour(0.1, 0.35, 0.95, 1); a.fontName = "HelveticaNeue-Bold" }
+      if kind == .sticker { a.stickerID = StickerCatalog.stickers.first?.id }
       a.x = x
       a.y = y
       a.width = w
@@ -1272,19 +1520,35 @@ struct OverlayEditor: View {
     addingArea = false
     canvasFocused = true
   }
-  func resumeDrawingOnEmptyCanvas() {
-    guard !addingArea else { return }
+  func addSticker(_ sticker: Sticker) {
+    var value = config.wrappedValue
+    var annotation = Annotation(); annotation.kind = .sticker; annotation.stickerID = sticker.id
+    let ratio = Double(image?.width ?? 1) / Double(max(1, image?.height ?? 1))
+    annotation.width = 0.4; annotation.height = min(0.65, annotation.width * ratio / sticker.aspectRatio)
+    annotation.width = annotation.height * sticker.aspectRatio / ratio
+    annotation.x = (1 - annotation.width) / 2; annotation.y = (1 - annotation.height) / 2
+    value.annotations.append(annotation); config.wrappedValue = value
+    selected = annotation.id; addingArea = false; keepProportions = true; canvasFocused = true
+  }
+  func duplicateSticker(_ id: UUID) {
+    var value = config.wrappedValue
+    guard var copy = value.annotations.first(where: { $0.id == id && $0.kind == .sticker }) else { return }
+    copy.id = UUID(); copy.x = min(1-copy.width, copy.x+0.03); copy.y = min(1-copy.height, copy.y+0.03)
+    value.annotations.append(copy); config.wrappedValue = value; selected = copy.id
+  }
+  func deselectOnEmptyCanvas() {
+    guard !retouch, !addingArea else { return }
     // Carry the last selected tool settings into the next area without changing the existing edit.
     if let selected, let mask = config.wrappedValue.masks.first(where: { $0.id == selected }) {
       effect = mask.effect
       shape = mask.shape
     }
     if let selected, let annotation = config.wrappedValue.annotations.first(where: { $0.id == selected }) {
-      kind = annotation.kind
+      kind = annotation.kind == .sticker ? .text : annotation.kind
     }
     selected = nil
     drawing = []
-    addingArea = true
+    // Empty-canvas clicks deselect; only an explicit Draw action changes tools.
     canvasFocused = true
   }
 }
@@ -1307,4 +1571,11 @@ extension View {
       self.frame(minWidth: 320)
     #endif
   }
+}
+
+
+private extension View {
+  /// Bound the editor's deeply nested generic layout/observer graph. The editor owns
+  /// interaction state; these stable boundaries do not reset a draft or its viewport.
+  func editorLayoutBoundary() -> AnyView { AnyView(self) }
 }

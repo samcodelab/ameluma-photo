@@ -1,0 +1,145 @@
+{
+  "date": "2026-10-17",
+  "base_commit": "62ba1af plus preserved working tree, including new EditorDocument implementation",
+  "mode": "Assessment only. No application/test/project/signing changes for this review.",
+  "positioning": "Everyday image workspace and productivity utility; not Photoshop parity or photo management.",
+  "assessment": [
+    {
+      "area": "Workspace and action scope",
+      "status": "Substantially implemented; usability work remains",
+      "findings": "Managed imports, thumbnails, filters, selection persistence, captured batch inputs, per-photo editing, contextual GIF selection and source retention exist. Editor actions can use explicit IDs. Layered compositions are mostly entered from File commands; the user must still understand which workflow/selection a command refers to. Scope controls and terminology vary across screens.",
+      "evidence": "Apps/Shared/Workspace+Workflows.swift; SharedUI/WorkspaceActions.swift; SharedUI/LibraryViews.swift"
+    },
+    {
+      "area": "Batch processing",
+      "status": "Implemented core; flagship experience incomplete",
+      "findings": "Resize/crop/orientation, conversion, compression, naming, watermark, adjustments, filters and metadata share ProcessingConfiguration. plannedRequests freezes jobs; export is serial, reports results/progress, supports cancellation/retry and collision-safe publication. Review throughput/latency and make override inheritance understandable. This is a fixed processing pipeline, not user-reorderable steps.",
+      "evidence": "Apps/Shared/Workspace.swift: export; Workspace+Workflows.swift: plannedRequests/exportConfiguration; ImageProcessor.swift"
+    },
+    {
+      "area": "Quick photo editing",
+      "status": "Implemented/partial quality validation",
+      "findings": "Crop/straighten/rotation/flips/resize; exposure, brightness, contrast, saturation, warmth, tint, highlights, shadows, vibrance and colour-family HSL. Filters/Auto Enhance, zoom/pan/detail view, compare and Undo exist. No general sharpen control found. Live input responsiveness and retouch quality are not fully accepted.",
+      "evidence": "SharedUI/WorkflowViews.swift; FramingViews.swift; Inspectors.swift; Adjustments/PhotoAdjustments.swift"
+    },
+    {
+      "area": "Screenshot annotation",
+      "status": "Partial",
+      "findings": "Persistent editable arrows, lines, rectangles, ellipses, text, speech bubbles, freehand and stickers; direct transform/property controls. No first-class highlight/callout tools or automatic numbering/reordering logic. Photo annotations use width-scaled text, while document text has real size/traits: two related authoring models need shared primitives without changing old rendering.",
+      "evidence": "Annotations/Annotation.swift; SharedUI/OverlayEditor.swift; Editor/EditorDocument.swift"
+    },
+    {
+      "area": "Redaction and privacy",
+      "status": "Partial; stronger export claim needs acceptance gate",
+      "findings": "Opaque cover, blur, pixelate and frosted masks exist; masks flatten through the image renderer and suppress copied source metadata. Editable documents deliberately contain original resources. Blur/pixelation are not secure redaction. Opaque export coverage and metadata/container checks must be verified across formats and creations before using the stronger product claim.",
+      "evidence": "Privacy/PrivacyMask.swift; ImageProcessor.swift: metadata/render; Editor/EditorDocument.swift; ShareReviewSession.swift"
+    },
+    {
+      "area": "Editable composition and layers",
+      "status": "Initial working Mac implementation",
+      "findings": "Version-1 .ameluma packages, image/text/shape layers, reorder/duplicate/visibility/locks/opacity, eight blend modes, handles/numeric transforms, source ownership, recovery and document-local history exist. No drawing layer, group/merge UI, align/distribute/snap, editable per-layer photo-adjustment inspector or direct GIF/workspace handoff. Real interaction QA remains open.",
+      "evidence": "Editor/EditorDocument.swift; EditorDocumentRenderer.swift; EditorDocumentStore.swift; Apps/Shared/EditorDocumentSession.swift; SharedUI/DocumentEditorWorkspace.swift"
+    },
+    {
+      "area": "Composition layouts/templates",
+      "status": "Implemented separately; consolidate entry and presentation",
+      "findings": "The collage catalog generates 74 layouts across aspect ratios, columns, feature layouts, brick/pinboard and strips. Collages have independent placements, captions/style, histories and saved tabs. These are not EditorDocument layers. Reuse/curate existing patterns for six everyday tasks instead of adding another layout engine or more mosaic work.",
+      "evidence": "Collages/CollageDesign.swift; Collage.swift; Apps/Shared/Workspace+Collages.swift; SharedUI/CollageEditor.swift"
+    },
+    {
+      "area": "GIF creation",
+      "status": "Substantially implemented; optimisation/branding partial",
+      "findings": "Both entry routes, captured per-frame settings/IDs, reorder/duplicate/remove/add, per-frame/multi timing, speed, loop count, canvas/fitting, preview, annotations, persistence and validated export exist. Photo watermarks can be captured inside frames; no equivalent dedicated animation-wide watermark design control. Presets mainly change dimensions, not palette/quantisation strategy.",
+      "evidence": "GIF/GIFProject.swift; GIFRenderer.swift; GIFPreview.swift; Apps/Shared/Workspace+GIF.swift; SharedUI/GIFEditor.swift"
+    },
+    {
+      "area": "Photographic filters",
+      "status": "Implemented curated base; custom saving/QA incomplete",
+      "findings": "24 original recipes in Essentials, Film, Cinema and Monochrome; versions, intensity, Original, Auto Enhance, previews/compare and explicit batch application. No dedicated named user filter-preset library. Existing output-profile saving is broader than saving a look. Do not confuse quantity or existing tests with visual approval across skin tones/materials.",
+      "evidence": "Adjustments/CreativeFilter.swift; AutoEnhanceEdit.swift; FilterPreviewService.swift; SharedUI/Inspectors.swift; WorkspaceActions.swift"
+    },
+    {
+      "area": "Watermark application",
+      "status": "Implemented",
+      "findings": "Text OR image mark; font picker currently offers four text fonts; relative width, nine-position anchors, custom offsets, margin, opacity, rotation, tiling, direct handles and saved preset values. Shared final-stage renderer and batch/profile integration. Single-content model cannot author an editable text+logo design with multiple elements.",
+      "evidence": "Models.swift: WatermarkConfiguration; Watermarking/WatermarkRenderer.swift; SharedUI/Inspectors.swift: watermarkControls; FramingViews.swift: watermark canvas"
+    },
+    {
+      "area": "Watermark designer/management",
+      "status": "Missing as requested",
+      "findings": "No dedicated multi-element authoring, named/versioned app-wide design library, curated template set, monogram/social/studio design workflow, outline/shadow element styling or design preview backgrounds. Current watermarkPresets is an array of single watermark configurations, with text-derived labels or numbered image names. Existing layers are useful groundwork, not a finished designer.",
+      "evidence": "Apps/Shared/Workspace.swift: saveWatermarkPreset; SharedUI/Inspectors.swift: Presets; Editor/EditorDocument.swift"
+    },
+    {
+      "area": "Reusable processing recipes",
+      "status": "Partial precursors; new user recipe flow missing",
+      "findings": "ExportProfile can retain a configuration/naming/destination. AutomationRecipe supports enabled action groups and watched folders, but deliberately uses fixed order. Neither is a general named sequence with faithful reorder/enable/preview semantics. Current saveProfile retains traced recolouring and resolved Auto Enhance, so it is not a safe generic recipe capture mechanism.",
+      "evidence": "Models.swift: ExportProfile; Apps/Shared/Workspace.swift: saveProfile; Automations/AutomationModels.swift; Apps/macOS/Automations.swift"
+    },
+    {
+      "area": "Command palette",
+      "status": "Missing",
+      "findings": "No Command-K registration or searchable action palette found. Existing scoped command methods and menu actions can be reused. A deterministic action search/parser is sufficient; an AI/NLU service is unnecessary.",
+      "evidence": "Apps/macOS/FramepebbleMacApp.swift; SharedUI/WorkspaceActions.swift; Workspace+Workflows.swift"
+    },
+    {
+      "area": "Background removal",
+      "status": "Missing user workflow; native groundwork exists",
+      "findings": "Foreground masks are already requested in recolouring, followed by colour restriction and polygon extraction. No persistent foreground-alpha edit, one-click cutout, edge refinement or background replacement workflow. The recolour polygon is not an adequate soft-alpha subject matte.",
+      "evidence": "Adjustments/ColourReplacement.swift; AutoFraming/VisionAnalyzer.swift; Models.swift"
+    },
+    {
+      "area": "Conversion and export",
+      "status": "Implemented/partial workflow coverage",
+      "findings": "Native capability-checked JPEG/PNG/HEIC/TIFF and conditional WebP; quality/target-size, colour/metadata policy, flattened output, naming and collision safety. Encoded proof reports measured bytes using the export encoder. New Convert preserves dimensions unless resize is requested. New document export lacks export-time resizing, proof and profile parity with photo export.",
+      "evidence": "ImageProcessor.swift: encode/encodedPreview/publish; Workspace+Workflows.swift; SharedUI/WorkflowViews.swift; DocumentEditorWorkspace.swift"
+    },
+    {
+      "area": "History and persistence",
+      "status": "Implemented with explicit boundaries",
+      "findings": "Workspace schema 4 with legacy migration and sparse patches; lightweight local instructions, per-creation state and sessions; portable .ameluma version 1 owns resources. Photo/batch timeline is shared; document history is separate; creation histories differ. Saved content restores, session Undo does not. New designs/recipes must protect sources required by saved work, pending jobs and history.",
+      "evidence": "Persistence/ProjectDocument.swift; SourceStorageCleanup.swift; FramingState.swift; Editor/EditorDocumentStore.swift; Apps/Shared/Workspace+ProjectCleanup.swift"
+    },
+    {
+      "area": "UI consistency and performance",
+      "status": "Partial; release gates remain",
+      "findings": "Native SwiftUI/AppKit inputs, adaptive panels, explicit Cancel/Apply, context menus and shared viewport state exist. Photo uses a different toolbox/options arrangement from the new left-toolbar document editor. Core image previews are bounded, but source/UI pathways still need measured input-to-feedback and stroke-to-result testing. Whole-canvas composition materialisation is not a tiled paint engine.",
+      "evidence": "SharedUI/PanelComponents.swift; WorkflowViews.swift; OverlayEditor.swift; DocumentEditorWorkspace.swift; ImageProcessor.swift"
+    },
+    {
+      "area": "Documentation and product direction",
+      "status": "Needs reconciliation",
+      "findings": "The latest utility/workspace vision supersedes earlier Photoshop-alternative language. Help has accumulated multiple workflow sections and some legacy library terminology. Filtering now correctly documents retained hidden selections; do not reintroduce the old finding as if still present. Distinguish local workspace instructions, portable documents, presets, recipes and watched-folder automations.",
+      "evidence": "AGENTS.md; README.md; Resources/Legal/Help.md; docs/EDITOR_DOCUMENT_IMPLEMENTATION_2026-10-17.json"
+    }
+  ],
+  "checks": [
+    {
+      "check": "Core regression baseline",
+      "outcome": "161 tests, 3 opt-in skips, 0 failures; 27.8 s",
+      "log": "/tmp/ameluma-expansion-assessment-core.log"
+    },
+    {
+      "check": "Mac output/creation/document app-state baseline",
+      "outcome": "21 tests, 0 failures; native app/test target builds",
+      "log": "/tmp/ameluma-expansion-assessment-mac.log"
+    },
+    {
+      "check": "iOS/iPadOS shared target",
+      "outcome": "Debug Simulator build succeeded",
+      "log": "/tmp/ameluma-expansion-assessment-ios.log"
+    }
+  ],
+  "recommended_order": [
+    "0 Baseline, product vocabulary, compatibility and scope contracts",
+    "1 P0 workflow cohesion and explicit action routing",
+    "2 P0 annotation/redaction and quick-edit polish",
+    "3 P1 watermark designer and reusable design library",
+    "4 P1 processing recipes and parameter-aware Command-K",
+    "5 P1 GIF/composition/export bridges and filter curation",
+    "6 P2 native background removal, quality gated",
+    "7 P2 advanced layers/selections only where everyday tasks justify them"
+  ],
+  "approval_required": true,
+  "code_changes_made": false
+}

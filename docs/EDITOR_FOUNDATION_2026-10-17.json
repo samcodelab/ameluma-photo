@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-17",
+  "status": "Partial completion: editor continuity and performance foundation implemented; complex removal quality and live-input QA remain open",
+  "hardware": {
+    "model": "Mac17,8",
+    "processor": "Apple M5 Pro",
+    "memory_bytes": 68719476736,
+    "os": "macOS 27.0.1 (26A434)"
+  },
+  "performance": {
+    "build": "Swift Package release",
+    "fixture": "Synthetic 6000 \u00d7 4000 sRGB PNG with spatial colour gradient",
+    "preview_long_edge": 1600,
+    "measurements": [
+      {
+        "operation": "cached",
+        "count": 30,
+        "median_ms": 0.006458329153247178,
+        "p95_ms": 0.01320833689533174
+      },
+      {
+        "operation": "clone_append",
+        "count": 12,
+        "median_ms": 7.959583337651566,
+        "p95_ms": 17.877541671623476
+      },
+      {
+        "operation": "cold",
+        "count": 1,
+        "median_ms": 55.852625009720214,
+        "p95_ms": 55.852625009720214
+      },
+      {
+        "operation": "slider",
+        "count": 30,
+        "median_ms": 3.1095833401195705,
+        "p95_ms": 5.162958332221024
+      }
+    ],
+    "limits": [
+      "Engine calls including materialized output; not GPU frame presentation or pointer-to-screen latency",
+      "Cold is one fresh-processor sample in a running test process, not app launch p95",
+      "Clone append has 12 samples; slider and cached each have 30",
+      "Not an M1/8 GB or physical-iOS benchmark; no matched competitor measurements"
+    ],
+    "native_preparation": {
+      "scope": "Model-driven hosted tool activation to validated image handoff, not display presentation or input-driven stroke latency",
+      "mac_release": {
+        "samples": 11,
+        "median_ms": 30.73725001013372,
+        "p95_ms": 217.67758333589882,
+        "first_retouch_ms": 217.67758333589882,
+        "later_retouch_ms": 60.11029166984372,
+        "baseline_first_retouch_ms": 603.4447499987436,
+        "baseline_log": "/tmp/ameluma-editor5-mac-stages.log",
+        "final_log": "/tmp/ameluma-editor5-mac-canvascost.log"
+      },
+      "iphone_debug_simulator": {
+        "samples": 11,
+        "median_ms": 39.25529166008346,
+        "p95_ms": 319.51933333766647,
+        "first_retouch_ms": 319.51933333766647,
+        "later_retouch_ms": 19.5592916716123
+      },
+      "limits": [
+        "Small sample across heterogeneous tools and accessibility states, not per-tool latency p95",
+        "First Retouch setup still exceeds the desired instantaneous feel",
+        "The capture helper prints hosted_debug_count even for the explicitly configured Release Mac run; the build configuration, not that field name, establishes optimization"
+      ],
+      "ipad_debug_simulator": {
+        "samples": 11,
+        "median_ms": 51.425208323053084,
+        "p95_ms": 438.284833333455,
+        "first_retouch_ms": 305.6953750055982,
+        "later_retouch_ms": 57.01433333160821,
+        "slowest": "Initial Adjust/source preparation, about 438 ms"
+      }
+    }
+  },
+  "implemented": [
+    "Shared per-photo/session view magnification and normalized centre",
+    "Embedded mobile tools without a nested editor NavigationStack",
+    "Shared view zoom for Crop and Watermark",
+    "Consistent floating default and pinning for overlay/recolour tools",
+    "Recolour tool switching with explicit pending-edit resolution",
+    "Interactive Core worker independent of full-resolution export work",
+    "16 ms editing coalescing and lower-resolution adjustment-gesture previews",
+    "Source/edit/resolution-keyed preview cache and append-only retouch checkpoints, 16 MiB each",
+    "Private-mode/background/memory-pressure cache cleanup",
+    "Core and editor timing signposts, 64-record local preparation history, superseded-input guards",
+    "Measured first-entry generic layout cost reduced with focused stable layout boundaries",
+    "Requested tool/session and cached image initialized before presentation; no default Privacy layout on Retouch entry",
+    "Source-independent diagnostic timings include view appearance, task start and image-request stages"
+  ],
+  "object_removal": {
+    "status": "Rejected for normal UI",
+    "prototype": "Deterministic, bounded 768px local exemplar reconstruction with structure-directed front ordering",
+    "recipe": 1,
+    "debug_opt_in": "--experimental-removal",
+    "findings": "Synthetic branch continuation passes. Bird claw/tail diagnostics retain unacceptable patch seams and texture choices. No claim of content-aware/generative parity.",
+    "compatibility": "Existing Heal/Clone and their nil/1/2/3 sampling recipes remain unchanged. Remove records require their own version 1."
+  },
+  "verification": {
+    "core_log": "/tmp/ameluma-editor5-core-delivery.log",
+    "mac_log": "/tmp/ameluma-editor5-mac-canvascost.log",
+    "iphone_log": "/tmp/ameluma-editor5-iphone-polishfinal.log",
+    "ipad_log": "/tmp/ameluma-editor5-ipad-delivery.log",
+    "release_benchmark_log": "/tmp/ameluma-editor-release-verified.log",
+    "release_tool_tests": "2 passed",
+    "static_preflight": "No static failures. Public support/privacy URLs and signed distribution artifacts remain submission blockers.",
+    "capture_scope": "Model-driven native hosted screenshots of ten tools plus Retouch, Replace Colour and Filters at accessibility3. These are not mouse/touch-driven action tests.",
+    "environment_warnings": [
+      "Computer-control native pipe fails to start: live mouse/touch interaction review unavailable",
+      "Mac app-hosted tests emit MDB_MAP_FULL framework/runtime diagnostics before tests. Tests and captured renders pass; warning origin is not established. No system caches were deleted."
+    ],
+    "core_result": "151 tests, 3 opt-in skips, 0 failures",
+    "mac_result": "Release app-hosted tests: 16 tests, 0 failures; macOS arm64/x86_64 targets built",
+    "iphone_result": "Debug Simulator: 16 tests, 0 failures; target built",
+    "mac_final_state_log": "/tmp/ameluma-editor5-mac-finalchecks.log",
+    "ios_final_state_log": "/tmp/ameluma-editor5-ios-finalchecks.log",
+    "mac_final_build_log": "/tmp/ameluma-editor5-mac-build.log",
+    "ipad_result": "Debug Simulator: 16 tests, 0 failures; target built",
+    "privacy_manifest": {
+      "category": "NSPrivacyAccessedAPICategorySystemBootTime",
+      "reason": "35F9.1",
+      "purpose": "Local elapsed-time measurement only; no telemetry or off-device reporting",
+      "source": "https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype"
+    },
+    "local_visual_report": "/tmp/ameluma-editor5-review/index.html",
+    "final_artifacts": "Mac Release and iOS Simulator builds succeeded; bundled timing privacy declaration verified in both.",
+    "final_state_checks": "15 editor state tests each on final Mac Release and iPhone Simulator source, 0 failures."
+  },
+  "remaining": [
+    "Photographically acceptable structural removal, currently quality-gated",
+    "Live mouse/keyboard/touch/Pencil interaction and GPU presentation timing",
+    "Physical-device memory/thermal/performance checks and M1/8 GB baseline",
+    "Matched competitor workflow and performance measurements",
+    "Cross-platform human accessibility testing; snapshots alone do not prove accessibility",
+    "First-use tool layout cost is reduced, not eliminated (Mac Release first Retouch about 218 ms)"
+  ],
+  "commands": {
+    "core": "swift test --package-path Packages/FramepebbleCore",
+    "release": "AMELUMA_BENCHMARK=1 AMELUMA_REMOVAL_CORPUS=1 swift test -c release --package-path Packages/FramepebbleCore --filter \"InteractiveRenderingTests|RemovalTests\"",
+    "app_tests": "xcodebuild -project Framepebble.xcodeproj -scheme <FramepebbleMacTests|FramepebbleCoreiOSTests> -destination <device> -only-testing:<target>/EditorUsabilityTests -only-testing:<target>/CreativeToolsCaptureTests/testEditorToolContinuityCaptures test",
+    "release_tools": "python3 -m unittest discover -s tools/tests",
+    "preflight": "python3 tools/review_release.py"
+  },
+  "publication": "No commit, push, distribution or signing change performed.",
+  "selection_followup": {
+    "changes": [
+      "Mac recolour lasso uses native mouse input; drag feedback updates without rendering or Vision",
+      "Subpixel screen-space point sampling, final endpoint capture, and immediate provisional manual outline",
+      "Tap object detection has canvas-local progress; newer gestures cancel and invalidate previous work; late failures are ignored",
+      "Pinching cancels an unfinished trace; backgrounding and exit invalidate selection tasks",
+      "Preparation records the requested resolution budget to avoid repeatedly preparing small sources"
+    ],
+    "workflow": "Trace immediately, sample inside; optionally Refine Edges and tap inside. Tap Select Object uses local Vision foreground-instance and colour-guided contours. Manual selection remains available when detection fails.",
+    "validation": {
+      "core": "151 tests, 3 opt-in skips, 0 failures; /tmp/ameluma-selection-core.log",
+      "mac": "Build succeeded; 17 editor tests passed including native mouse-drag event delivery; /tmp/ameluma-selection-macfinal.log",
+      "iphone": "Build and 16 editor tests passed; /tmp/ameluma-selection-ios.log",
+      "ipad": "Final build and 16 editor tests passed; /tmp/ameluma-selection-ipad.log"
+    },
+    "limitations": [
+      "Live physical mouse/touch usability not verified: Cua native pipe startup failed",
+      "Vision foreground detection is not guaranteed to separate every object or preserve fine hair/transparency",
+      "No new claim of Photoshop-equivalent object selection or measured end-to-end latency"
+    ]
+  }
+}

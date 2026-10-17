@@ -1,0 +1,54 @@
+#include <metal_stdlib>
+#include <CoreImage/CoreImage.h>
+using namespace metal;
+extern "C" { namespace coreimage {
+float3 amelumaHSL(float3 c) {
+ float hi=max(c.r,max(c.g,c.b)),lo=min(c.r,min(c.g,c.b)),d=hi-lo,l=(hi+lo)*.5f;
+ if(d<.000001f) return float3(0,0,l);
+ float h=hi==c.r ? fmod((c.g-c.b)/d+6.0f,6.0f) : hi==c.g ? (c.b-c.r)/d+2.0f : (c.r-c.g)/d+4.0f;
+ return float3(h/6.0f,d/max(.000001f,1.0f-abs(2.0f*l-1.0f)),l);
+}
+float3 amelumaRGB(float3 hsl) {
+ float3 k=fmod(float3(0,8,4)+hsl.x*12.0f,12.0f);
+ float a=hsl.y*min(hsl.z,1.0f-hsl.z);
+ return hsl.z-a*clamp(min(k-3.0f,9.0f-k),-1.0f,1.0f);
+}
+[[ stitchable ]] float4 colourMix(sample_t sample,float3 red,float3 orange,float3 yellow,float3 green,float3 aqua,float3 blue,float3 purple,float3 magenta) {
+ float4 p=sample; if(p.a<=0) return float4(0);
+ float3 hsl=amelumaHSL(clamp(p.rgb/p.a,0.0f,1.0f));
+ float centres[8]={0,.0833333f,.1666667f,.3333333f,.5f,.6666667f,.75f,.8333333f};
+ float3 shifts[8]={red,orange,yellow,green,aqua,blue,purple,magenta};
+ float3 shift=float3(0);
+ for(int i=0;i<8;i++) { float d=abs(hsl.x-centres[i]); d=min(d,1-d); float w=1-smoothstep(.035f,.125f,d); shift+=shifts[i]*w; }
+ shift*=smoothstep(.015f,.08f,hsl.y);
+ hsl.x=fract(hsl.x+shift.x/6.0f+1.0f);
+ hsl.y=clamp(hsl.y*(1+shift.y),0.0f,1.0f);
+ hsl.z=clamp(hsl.z+shift.z*.5f,0.0f,1.0f);
+ return float4(amelumaRGB(hsl)*p.a,p.a);
+}
+// Conservative colour guidance for local object-boundary refinement, never a saved look.
+[[ stitchable ]] float4 colourSelection(sample_t sample, float3 source) {
+ float3 rgb=sample.a>0 ? clamp(sample.rgb/sample.a,0.0f,1.0f) : float3(0);
+ float3 hsl=amelumaHSL(rgb), seed=amelumaHSL(source);
+ float d=abs(hsl.x-seed.x); d=min(d,1-d);
+ float selected;
+ if(seed.y>.12f) {
+  selected=(1-smoothstep(.065f,.115f,d))*smoothstep(max(.08f,seed.y*.55f),max(.13f,seed.y*.72f),hsl.y);
+ } else {
+  selected=(1-smoothstep(.12f,.28f,abs(hsl.z-seed.z)))*(1-smoothstep(.12f,.30f,hsl.y));
+ }
+ return float4(selected,selected,selected,1);
+}
+[[ stitchable ]] float4 replaceColour(sample_t sample,sample_t coverage,float3 source,float3 destinationColour,float range,float intensity) {
+ float4 p=sample; if(p.a<=0) return float4(0);
+ float3 rgb=clamp(p.rgb/p.a,0.0f,1.0f);
+ float3 hsl=amelumaHSL(rgb),from=amelumaHSL(source),to=amelumaHSL(destinationColour);
+ float hueDistance=abs(hsl.x-from.x);hueDistance=min(hueDistance,1-hueDistance);
+ // Match the colour family across folds instead of treating shadow as another colour.
+ float distance=from.y>.08f ? hueDistance*2.0f+abs(hsl.y-from.y)*.15f+(1-smoothstep(.02f,.10f,hsl.y))*.5f : abs(hsl.y-from.y)*.75f+abs(hsl.z-from.z)*.25f;
+ float weight=(1-smoothstep(range*.5f,range,distance))*coverage.r*intensity;
+ if(weight<=0.0f) return p;
+ float3 replaced=amelumaRGB(float3(to.x,to.y,clamp(hsl.z+to.z-from.z,0.0f,1.0f)));
+ return float4(mix(p.rgb/p.a,replaced,weight)*p.a,p.a);
+}
+}}

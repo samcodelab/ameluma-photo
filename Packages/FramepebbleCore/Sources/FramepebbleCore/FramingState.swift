@@ -144,6 +144,14 @@ public struct EditingHistory: Sendable {
         state = State(title: label, snapshot: snapshot)
         redoStack = []
     }
+    /// Import is outside edit history. Give a new finished source the same
+    /// independent baseline in every existing state, preserving prior Undo/Redo.
+    public mutating func registerSource(_ id: UUID, configuration: ProcessingConfiguration) {
+        let patch = ConfigurationPatch(values: configuration, fields: Set(ConfigurationField.allCases))
+        state.snapshot.apply(patch, to: id)
+        for index in undoStack.indices { undoStack[index].snapshot.apply(patch, to: id) }
+        for index in redoStack.indices { redoStack[index].snapshot.apply(patch, to: id) }
+    }
     public mutating func undo() {
         guard let previous = undoStack.popLast() else { return }
         redoStack.append(state); state = previous

@@ -53,6 +53,8 @@ struct GIFEditor: View {
   @Bindable var model: Workspace
   var importAction: () -> Void
   enum Inspector: String, CaseIterable { case timing = "Timing", canvas = "Canvas", text = "Text" }
+  @State private var stickerPicker = false
+  @State private var stickerFrameID: UUID?
   @State private var inspector = Inspector.timing
   @State private var exportingOptions = false
   @State private var expandedControls = false
@@ -168,6 +170,11 @@ struct GIFEditor: View {
           Button("Cancel Export") { model.gifExportTask?.cancel() }
         }.padding().background(.bar)
       }
+    }
+    .onChange(of:model.creationActionRequest?.id) {_,_ in
+      guard let request=model.creationActionRequest, model.contextIsCurrent(request.context) else {return}
+      model.creationActionRequest=nil
+      if request.intent == .export {export()}
     }
     .onChange(of: project.id, initial: true) { _, _ in
       finishFieldEditing(); focusedField = nil
@@ -468,6 +475,19 @@ struct GIFEditor: View {
   }
   var annotationControls: some View {
     VStack(alignment: .leading, spacing: 8) {
+      Button("Add Sticker", systemImage: "face.smiling") { stickerFrameID = activeFrame?.id; stickerPicker = true }
+        .disabled(activeFrame == nil)
+        .sheet(isPresented: $stickerPicker) {
+          StickerPicker { sticker in
+            guard let frameID = stickerFrameID, project.frames.contains(where: { $0.id == frameID }) else { return }
+            var annotation = Annotation(); annotation.kind = .sticker; annotation.stickerID = sticker.id
+            annotation.width = 0.4; annotation.height = min(0.7, 0.4 * Double(project.width) / Double(max(1, project.height)) / sticker.aspectRatio)
+            annotation.x = (1-annotation.width)/2; annotation.y = (1-annotation.height)/2
+            let item = GIFAnnotation(annotation: annotation, frameIDs: [frameID]); annotationID = item.id
+            change { $0.annotations.append(item) }
+          }
+        }
+
       Text("Captions & Annotations").font(.headline)
       Menu("Add Annotation") {
         ForEach([AnnotationKind.text, .arrow, .rectangle, .ellipse, .speechBubble], id: \.self) { kind in
@@ -482,7 +502,7 @@ struct GIFEditor: View {
       ForEach(project.annotations) { item in
         Button { annotationID = item.id } label: {
           VStack(alignment: .leading) {
-            Label(item.annotation.kind.rawValue.capitalized + (item.annotation.kind == .text ? ": " + item.annotation.text : ""), systemImage: annotationID == item.id ? "checkmark.circle.fill" : "circle").lineLimit(1)
+            Label((item.annotation.kind == .sticker ? (StickerCatalog.sticker(item.annotation.stickerID ?? "")?.name ?? "Unavailable Sticker") : item.annotation.kind.title) + (item.annotation.kind == .text ? ": " + item.annotation.text : ""), systemImage: annotationID == item.id ? "checkmark.circle.fill" : "circle").lineLimit(1)
             Text(GIFControlSummary.coverage(item, frames: project.frames)).font(.caption).foregroundStyle(.secondary).lineLimit(2)
           }
         }
@@ -511,9 +531,11 @@ struct GIFEditor: View {
           } }
         }
         .disabled(!visibleIndices.contains(where: { $0 < frameIndex }) || !visibleIndices.contains(where: { $0 >= frameIndex }))
+        if item.annotation.kind != .sticker {
         ColorPicker("Colour", selection: Binding(get: { Color(cgColor: item.annotation.colour.cgColor) }, set: { color in
           if let rgba = colourComponents(color) { change { p in if let i = p.annotations.firstIndex(where: { $0.id == id }) { p.annotations[i].annotation.colour = rgba } } }
         }), supportsOpacity: false)
+        }
         Text("Drag the selected annotation to move it. Drag its corner to resize.").font(.caption).foregroundStyle(.secondary)
         Button("Remove Annotation", role: .destructive) { change { $0.annotations.removeAll { $0.id == id } }; annotationID = nil }
       }

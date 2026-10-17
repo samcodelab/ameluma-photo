@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ameluma — phases 0–2 delivery</title><style>body{font:16px/1.6 system-ui;margin:40px auto;padding:0 24px;max-width:1120px;color:#20232a;background:#f5f6f8}h1,h2,h3{line-height:1.2}section,figure{background:white;padding:24px;border:1px solid #dfe3e9;border-radius:10px;margin:24px 0}img{max-width:100%;max-height:650px;object-fit:contain}figcaption{font-size:14px;color:#58616f}li{margin:8px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}code{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%}td,th{text-align:left;border-bottom:1px solid #dfe3e9;padding:10px}</style><h1>Workflow cohesion → annotation → watermark designer</h1><p>17 October 2026 · Implementation and verification for the approved first three phases. Existing work was preserved; no commit or push was made.</p>
+<section><h2>Phase 0 · Workflow cohesion</h2><h3>Implemented</h3><ul>
+<li>Validate and deduplicate explicit workspace action IDs; exclude retained hidden sources without excluding filtered selections.</li>
+<li>Prevent blocked conversion entry from clearing profiles or conversion state.</li>
+<li>Expose Annotate Photo and Open Photos as Layers in workspace actions.</li>
+<li>Preserve independent workspace selection, batch inputs and document state.</li>
+</ul><h3>Verification</h3><ul>
+<li>12 native Mac output/scope regression tests passed at phase checkpoint.</li>
+<li>iOS Simulator app build succeeded.</li>
+</ul><h3>Outstanding</h3><ul>
+<li>Further recipe, command palette and creation/export bridges follow these phases.</li>
+</ul></section>
+<section><h2>Phase 1 · Editable annotation</h2><h3>Implemented</h3><ul>
+<li>Translucent editable highlights and semantic numbered callouts in existing annotation pipeline.</li>
+<li>Automatic callout renumbering after order changes or deletion, persisted identities, Undo/Redo.</li>
+<li>Editable speech-bubble text controls; annotation order controls and consistent labels.</li>
+<li>Preview/export parity tests and source-byte preservation.</li>
+</ul><h3>Verification</h3><ul>
+<li>Phase checkpoint: 163 Core tests, 3 opt-in skips, 0 failures.</li>
+<li>Phase checkpoint: 29 native Mac tests, 0 failures; iOS build succeeded.</li>
+<li>Final Core and mobile suites include annotation export, blending, round-trip and undo tests.</li>
+</ul><h3>Outstanding</h3><ul>
+<li>Live mouse/touch/Pencil, VoiceOver and dense overlapping-object interaction checks remain manual.</li>
+</ul></section>
+<section><h2>Phase 2 · Watermark designer</h2><h3>Implemented</h3><ul>
+<li>12 original editable templates using existing EditorDocument text, shape and image layers.</li>
+<li>Installed-font editing, transforms, opacity, ordering, visibility, locking, duplication and editable text outlines/shadows.</li>
+<li>Local named version-2 design packages with embedded resources, import, edit and deletion.</li>
+<li>Dark/light/checkerboard authoring previews; backgrounds excluded from design output.</li>
+<li>Explicit captured photo targets; one grouped undoable application preserving placement and unrelated edits.</li>
+<li>Immutable applied image snapshots rendered through the existing layer and watermark engines.</li>
+<li>High-resolution vector stamp rendering, bounded to 16 MP per application; no competing composition renderer.</li>
+<li>Import/application on iPhone and iPad, compact and accessibility layouts.</li>
+</ul><h3>Verification</h3><ul>
+<li>Final Core: 167 tests, 3 opt-in skips, 0 failures.</li>
+<li>Final Mac: 43 tests, 0 failures.</li>
+<li>Final iPhone: 57 tests, 0 failures; successful complete Xcode result.</li>
+<li>Final iPad: 57 tests, 0 failures; successful complete Xcode result.</li>
+<li>Final optimized macOS build succeeded.</li>
+<li>Release-tool tests: 2 passed. Static preflight: 0 failures, existing submission blockers.</li>
+<li>Native hosted Mac designer/template and mobile library normal/large-text captures inspected.</li>
+</ul><h3>Outstanding</h3><ul>
+<li>Full multi-element authoring currently requires Mac.</li>
+<li>No real-device or VoiceOver/Pencil validation; native UI automation pipe cannot start.</li>
+<li>Photograph background preview currently uses reversible application in the photo editor; designer offers solid/checkerboard backgrounds.</li>
+<li>Template art direction is an original first collection and still needs broader photographic/print review.</li>
+<li>No M1/8 GB performance target or hundreds-of-images physical-device acceptance claim.</li>
+</ul></section>
+<section><h2>Rendering, ownership and compatibility</h2><p>Legacy text/image watermarks and document version 1 remain supported. New designer metadata and text treatments require version 2 to prevent older editors silently dropping them. Internal Framepebble modules/storage/bundle identities are retained.</p><p>Watermark designs are ordinary editable documents. At application time, their content and resources are frozen, rendered once at the required stamp size and imported into managed source storage. The existing watermark configuration controls relative placement, rotation, tiling and opacity. Editing or deleting a library design never changes prior applied stamps. Saved designs own their logo resources independently of workspace cleanup. Target IDs and prior edits are captured before asynchronous work; changed, removed or relinked targets are skipped.</p><p>Tests cover saving/reopening, cancelled application, failed replacement, imported copies, resource ownership, saved-project cleanup protection, exact original bytes, grouped Undo/Redo, unrelated edits and explicit scope. Existing Core collision, alpha, opaque-mask and export validation tests also ran.</p></section><h2>Native visual evidence</h2><p>These are current app-hosted captures. They validate rendered layouts with programmatically populated state; they do not prove native pointer, touch, Pencil or VoiceOver behavior.</p>
+<figure><img src="phase-0-2-captures/mac-designer.png" alt="Mac layered watermark designer, shared document canvas"><figcaption>Mac layered watermark designer, shared document canvas</figcaption></figure>
+<figure><img src="phase-0-2-captures/mac-templates.png" alt="Mac original template collection, scrollable library"><figcaption>Mac original template collection, scrollable library</figcaption></figure>
+<div class="grid">
+<figure><img src="phase-0-2-captures/iphone-library.png" alt="iPhone saved design library"><figcaption>iPhone saved design library</figcaption></figure>
+<figure><img src="phase-0-2-captures/iphone-library-large-text.png" alt="iPhone accessibility text, content remains scrollable"><figcaption>iPhone accessibility text, content remains scrollable</figcaption></figure>
+<figure><img src="phase-0-2-captures/ipad-library.png" alt="iPad saved design library"><figcaption>iPad saved design library</figcaption></figure>
+<figure><img src="phase-0-2-captures/ipad-library-large-text.png" alt="iPad accessibility layout"><figcaption>iPad accessibility layout</figcaption></figure>
+</div><section><h2>Environment and release limits</h2><ul>
+<li>Native computer control fails with Sky Computer Use native pipe startup failed. Captures populate hosted native views programmatically, not by simulated user input.</li>
+<li>Mac test host continues logging MDB_MAP_FULL; origin is unresolved.</li>
+<li>An initial iPhone run completed all assertions but stalled finalizing its result bundle. Complete iPhone and iPad retries succeeded with automatic diagnostic collection disabled.</li>
+<li>Existing public privacy/support URLs and signed distribution artifacts remain submission blockers.</li>
+</ul><p>Testing used this Apple M5 Pro Mac and iOS 26.5 iPhone 17 Pro / iPad Pro 13-inch (M5) Simulators. Deployment targets remain macOS 15 and iOS/iPadOS 18. Simulator success does not establish physical-device performance or accessibility acceptance.</p><h3>Exact final logs</h3><ul>
+<li>core: <code>/tmp/ameluma-phases-core.log</code></li>
+<li>mac: <code>/tmp/ameluma-phases-mac.log</code></li>
+<li>iphone: <code>/tmp/ameluma-phases-iphone.log</code></li>
+<li>ipad: <code>/tmp/ameluma-phases-ipad.log</code></li>
+<li>macRelease: <code>/tmp/ameluma-phases-mac-release.log</code></li>
+<li>releaseTools: <code>/tmp/ameluma-phases-release-tests.log</code></li>
+<li>preflight: <code>/tmp/ameluma-phases-preflight.log</code></li>
+</ul></section><section><h2>Next approved sequence</h2><ol>
+<li>Reusable recipes with source-specific geometry/Auto Enhance handling.</li>
+<li>Command-K routing to existing explicitly scoped actions.</li>
+<li>Creation/export integration and further watermark preview/application refinements.</li>
+</ol><p>The 24-filter collection was not expanded. Recipes, Command-K and the remaining creation/export bridges are subsequent milestones, not claimed as delivered by these phases.</p></section></html>

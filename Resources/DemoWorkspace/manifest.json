@@ -1,16 +1,36 @@
 {
   "version": 1,
-  "hero": "27-coastal-hero-landscape.jpg",
+  "hero": "30-lorikeet-hero-clean.jpg",
   "photos": [
     {
-      "filename": "01-coastal-hero.jpg",
-      "title": "Coastal Hero",
-      "category": "Hero portrait",
-      "exercise": "Portrait colour, skin detail and subject framing",
-      "width": 1024,
-      "height": 1536,
-      "sha256": "395f2bb603653f059c216f497f56c2e788a4e979635c0004c9cd32497cf1657e",
-      "generatedOriginalSHA256": "5dff646012e33fdbeb3829b5a32cf36012c3a12239627b1dc05ca965f34e6366"
+      "filename": "30-lorikeet-hero-clean.jpg",
+      "title": "Lorikeet Hero Clean",
+      "category": "Wildlife hero",
+      "exercise": "Central subject, fine feather detail, vivid colours and portrait or landscape crops",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "df531ee2177e0b189475b3a3da20e31e0e94e3be6cd69175ac4e6c5cd617e9cf",
+      "generatedOriginalSHA256": "38022f426f963d09dfbcc9ee33c337f09c985cebfc7cdf384c2e6573ab176624"
+    },
+    {
+      "filename": "28-rainbow-bird-hero.jpg",
+      "title": "Rainbow Bird Hero",
+      "category": "Wildlife hero",
+      "exercise": "Vivid feather colour, fine detail, subject selection and landscape framing",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "a645bd6bff1a50723187e3222fa0887fd3a1d3273523f1ef16dcc0b5a91dda6f",
+      "generatedOriginalSHA256": "cc3521133552aa72e66ebb4b4644c1e94fec93aee1321bce7fd5248139dd6667"
+    },
+    {
+      "filename": "29-golden-light-portrait.jpg",
+      "title": "Golden Light Portrait",
+      "category": "Featured portrait",
+      "exercise": "Beautifully lit dark skin, natural hair detail and environmental portrait crops",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "6c2e4461a09dafb00799d33739628433526ae4bd4a5dae9790287e2a907b389c",
+      "generatedOriginalSHA256": "d19370be16fa611a2f189af26f92dbb0a803de6f7f060fb7df60c1dc77c055cf"
     },
     {
       "filename": "27-coastal-hero-landscape.jpg",
@@ -21,6 +41,16 @@
       "height": 1024,
       "sha256": "6e6cee66bf3c035f6cdc436337350bd72dd28f1fc16c7814d26fedbd94e73213",
       "generatedOriginalSHA256": "04312fb4edeb5159ab0ebbf09fcd445c2b6f9a9cf0fdb841241028b2a1a24167"
+    },
+    {
+      "filename": "01-coastal-hero.jpg",
+      "title": "Coastal Hero",
+      "category": "Hero portrait",
+      "exercise": "Portrait colour, skin detail and subject framing",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "395f2bb603653f059c216f497f56c2e788a4e979635c0004c9cd32497cf1657e",
+      "generatedOriginalSHA256": "5dff646012e33fdbeb3829b5a32cf36012c3a12239627b1dc05ca965f34e6366"
     },
     {
       "filename": "02-tidal-rocks.jpg",
@@ -275,6 +305,11 @@
   ],
   "portraitHero": "01-coastal-hero.jpg",
   "additions": [
-    "27-coastal-hero-landscape.jpg"
-  ]
+    "27-coastal-hero-landscape.jpg",
+    "28-rainbow-bird-hero.jpg",
+    "29-golden-light-portrait.jpg",
+    "30-lorikeet-hero-clean.jpg"
+  ],
+  "landscapePortrait": "27-coastal-hero-landscape.jpg",
+  "featuredPortrait": "29-golden-light-portrait.jpg"
 }

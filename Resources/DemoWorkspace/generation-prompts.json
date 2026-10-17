@@ -141,6 +141,35 @@
       "tool": "OpenAI built-in image_gen",
       "useCase": "identity-preserve",
       "generatedOn": "2026-10-16"
+    },
+    {
+      "name": "28-rainbow-bird-hero",
+      "category": "Wildlife hero",
+      "prompt": "Use case: photorealistic-natural. Asset: main hero photograph for Ameluma Photo's editing demo and App Store screenshots. One breathtaking colourful wild rainbow lorikeet perched on a slender weathered eucalyptus branch in coastal Australian woodland, three-quarter side view with head turned slightly toward the camera. Brilliant blue head, orange-red breast, golden yellow details and emerald wings, exquisite individual feather detail, sharp natural eye with tiny catchlight, correct believable bird anatomy, feet gripping branch. Premium wildlife magazine photography, patient field photographer aesthetic, authentic and intimate rather than artificial or overly saturated. Warm early morning sunlight gently illuminating feathers, rich softly blurred green and gold foliage with a little atmospheric depth. Landscape 3:2 composition at highest resolution, bird fully visible around centre-left with tail intact and breathing space, branch diagonal through lower third, graceful natural negative space on right, background calm enough for crop and colour demonstrations. Telephoto optics and shallow depth of field; detailed subject with believable soft background. ONE clean edge-to-edge photograph only. No text, borders, magazine cover, logos, watermark, collage or UI. Original synthetic scene, no imitation of a specific existing photograph.",
+      "tool": "OpenAI built-in image_gen",
+      "useCase": "photorealistic-natural",
+      "generatedOn": "2026-10-17",
+      "generatedOriginalPath": "/Users/sam/.codex/generated_images/01a143a6-ec3c-7681-8636-796f1722c535/exec-4e19a94c-80f4-481b-a357-15fb559ea251.png"
+    },
+    {
+      "name": "29-golden-light-portrait",
+      "category": "Featured portrait",
+      "prompt": "Use case: photorealistic-natural. Asset: polished lead portrait in Ameluma Photo's editing demo and promotional screenshots. One beautiful editorial environmental portrait of a fictional adult Black woman with deep dark-brown skin, natural tightly curled hair styled in a rounded short afro, confident warm smile, relaxed pose, wearing a rich teal linen blouse. Soft golden late-afternoon side light flatters and accurately exposes her face, with delicate luminous highlights and rich detailed shadow tones, authentic skin texture and fine hair, no over-smoothing. Quiet coastal garden with soft grasses and pale stone softly blurred behind her. Landscape 3:2 composition, waist-up, subject around left third with room to crop; contemporary natural photographic aesthetic, premium camera detail, warm restrained colour, beautifully finished in-camera look. This is an excellent fully realised portrait, NOT an underexposed/problem example. Anatomically believable. No celebrity likeness, text, UI, borders, collage, watermark or logos. Highest available resolution.",
+      "tool": "OpenAI built-in image_gen",
+      "useCase": "photorealistic-natural",
+      "generatedOn": "2026-10-17",
+      "generatedOriginalPath": "/Users/sam/.codex/generated_images/01a143a6-ec3c-7681-8636-796f1722c535/exec-0a8e3c48-1aa2-4787-95d7-23bebbe77162.png"
+    },
+    {
+      "name": "30-lorikeet-hero-clean",
+      "category": "Wildlife hero",
+      "prompt": "Use case: compositing. Edit the supplied synthetic rainbow lorikeet photograph to produce a much cleaner, more centrally composed wildlife hero. Landscape 3:2 photograph at highest available resolution. Recompose the bird so the bird's BODY is centred horizontally at x=50%, its sharp eye near the upper centre, with entire long tail and both feet visible and comfortable margins. Make the bird the unmistakable dominant focal point, occupying roughly 75% of image height. Keep the species-faithful blue-violet head, red-orange bill, golden-orange breast and emerald wings, authentic fine feather texture, lively sharp eye and believable anatomy. A natural three-quarter side pose, gently alert rather than leaning deep into flowers. One simple narrow weathered branch crossing lower third as perch, feet gripping it naturally. Remove ALL flowers, hanging leaves, framing twigs, background tree trunks and clutter from around the bird. Background should be an exceptionally smooth, deeply defocused dark forest-green backdrop, with just subtle soft tonal variation and a faint warm glow, no busy circular highlights or competing shapes. Beautiful gentle dawn side lighting illuminates the face and colourful feathers, subtle rim light and a few tiny dew droplets for atmosphere, rich realistic colours and natural shadows, camera-like microtexture and a restrained professional wildlife editorial finish. It should feel like an exquisite patient field photograph, not a studio cutout, illustration, CGI or heavily saturated HDR image. The visual story is the bird alone. No text, magazine border, logo, watermark, panels or UI. Do not imitate a specific published image.",
+      "tool": "OpenAI built-in image_gen",
+      "useCase": "compositing",
+      "generatedOn": "2026-10-17",
+      "generatedOriginalPath": "/Users/sam/.codex/generated_images/01a143a6-ec3c-7681-8636-796f1722c535/exec-c565ba55-2a6c-4671-971d-72658278e0f4.png",
+      "referenceImage": "/Users/sam/.codex/generated_images/01a143a6-ec3c-7681-8636-796f1722c535/exec-181b9db1-1adc-4687-9863-4623a8eab519.png",
+      "referenceDescription": "Unselected generated lorikeet-with-blossoms concept based on the first generated bird hero; simplified and centred at user request."
     }
   ]
 }

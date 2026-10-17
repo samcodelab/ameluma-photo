@@ -321,7 +321,7 @@ extension Workspace {
     if let current, inputs.contains(where: { $0.id == current.id }) { return current }
     return inputs.first
   }
-  static func planSummary(photos: Int, files: Int, profiles: Int) -> String {
+  nonisolated static func planSummary(photos: Int, files: Int, profiles: Int) -> String {
     "\(photos) \(photos == 1 ? "photo" : "photos") → \(files) \(files == 1 ? "file" : "files") · \(profiles) \(profiles == 1 ? "profile" : "profiles")"
   }
   var exportPlanSummary: String {
@@ -345,7 +345,7 @@ extension Workspace {
     !configuration(forID: id).masks.isEmpty && privacyCoverageReviewIDs.contains(id)
   }
   func markPrivacyCoverageChanges(from previous: EditingSnapshot, to next: EditingSnapshot) {
-    let spatial: Set<ConfigurationField> = [.retouchStrokes, .width, .height, .resizeBasis, .percentage, .canvasAlignment, .preventUpscaling, .quarterTurns, .flipHorizontal, .flipVertical, .straighten, .crop_mode, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .crop_quarterTurns, .crop_flipHorizontal, .crop_flipVertical, .crop_straighten]
+    let spatial: Set<ConfigurationField> = [.nativeOutputSizing, .retouchStrokes, .width, .height, .resizeBasis, .percentage, .canvasAlignment, .preventUpscaling, .quarterTurns, .flipHorizontal, .flipVertical, .straighten, .crop_mode, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .crop_quarterTurns, .crop_flipHorizontal, .crop_flipVertical, .crop_straighten]
     let candidates: Set<UUID>
     if !previous.settings.masks.isEmpty || !next.settings.masks.isEmpty { candidates = Set(assets.map(\.id)) }
     else { candidates = Set(previous.overrides.keys).union(next.overrides.keys).union(privacyCoverageReviewIDs) }

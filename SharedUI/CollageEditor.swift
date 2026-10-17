@@ -220,6 +220,11 @@ struct CollageEditor: View {
         if previewFailure != nil || missingReferenceID != nil { previewRecovery.padding(12).background(.bar) }
       }
       .onDisappear { model.collageTask?.cancel() }
+    .onChange(of:model.creationActionRequest?.id) {_,_ in
+      guard let request=model.creationActionRequest, model.contextIsCurrent(request.context) else {return}
+      model.creationActionRequest=nil
+      if request.intent == .export {export()}
+    }
       .onChange(of: renderIdentity) { _, _ in reviewSession = nil; detailImage = nil; compositionByteCount = nil }
       .onAppear { model.ensureCollageDocument(); titleExpanded = !model.collage.title.isEmpty }
       .onChange(of: selected) { _, value in if value != nil { inspector = .photo } }
@@ -342,7 +347,7 @@ struct CollageEditor: View {
     propertyRow(title) {
       HStack(spacing: 8) {
         Slider(value: value, in: range, onEditingChanged: sliderInteraction).accessibilityLabel(title)
-        Text(percentage ? value.wrappedValue.formatted(.percent.precision(.fractionLength(0))) : value.wrappedValue.formatted(.number.precision(.fractionLength(1))) + "×")
+        Text(percentage ? value.wrappedValue.formatted(.percent.precision(.fractionLength(0))) : (value.wrappedValue * 100).formatted(.number.precision(.fractionLength(0))) + "%")
           .font(.caption).monospacedDigit().foregroundStyle(.secondary).frame(width: 36, alignment: .trailing)
       }
     }
@@ -841,16 +846,11 @@ struct CollageEditor: View {
             propertySlider("Horizontal", value: b.crop.centerX, range: 0...1, percentage: true)
             propertySlider("Vertical", value: b.crop.centerY, range: 0...1, percentage: true)
             if model.collage.layout == .freeform {
-              Text("Position X")
-              Slider(value: b.x, in: 0...0.9, onEditingChanged: sliderInteraction)
-              Text("Position Y")
-              Slider(value: b.y, in: 0...0.9, onEditingChanged: sliderInteraction)
-              Text("Width")
-              Slider(value: b.width, in: 0.1...1, onEditingChanged: sliderInteraction)
-              Text("Height")
-              Slider(value: b.height, in: 0.1...1, onEditingChanged: sliderInteraction)
-              Text("Rotation")
-              Slider(value: b.rotation, in: -180...180, onEditingChanged: sliderInteraction)
+              propertySlider("Position X", value: b.x, range: 0...0.9, percentage: true)
+              propertySlider("Position Y", value: b.y, range: 0...0.9, percentage: true)
+              propertySlider("Width", value: b.width, range: 0.1...1, percentage: true)
+              propertySlider("Height", value: b.height, range: 0.1...1, percentage: true)
+              InspectorSlider(title: "Rotation", value: b.rotation, range: -180...180, interaction: sliderInteraction)
             }
             Button("Swap Photos with Next · Keep Frame Crops") {
               var p = model.collage
