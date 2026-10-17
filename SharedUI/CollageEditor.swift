@@ -7,6 +7,14 @@ import SwiftUI
 struct CollageEditor: View {
   @Bindable var model: Workspace
   var embedded = false
+  enum Inspector: String, CaseIterable { case composition = "Canvas", photo = "Photo", output = "Output Settings" }
+  @State private var inspector = Inspector.composition
+  @State private var titleExpanded = false
+  @State private var canvasScale = 1.0
+  @State private var expandedControls = false
+  @State private var exportingOptions = false
+  @State private var layoutViewport = EditorPanelViewport()
+  @Environment(\.dynamicTypeSize) private var typeSize
   @State private var gallery = false
   @State private var artMode = "Shape"
   @State private var artShape: CollageShape = .heart
@@ -21,12 +29,13 @@ struct CollageEditor: View {
   @State private var renderedID: UUID?
   @State private var renderedIdentity: CollageRenderIdentity?
   @State private var previewFailure: String?
+  @State private var previewRetry = 0
+  @State private var unavailableSourceIDs: Set<UUID> = []
   @State private var renderingPreview = false
   @State private var interactionStart: CollageProject?
   @State private var choosingSources = false
   @State private var choosingReference = false
   @State private var referenceSelection: Set<UUID> = []
-  @State private var artExpanded = false
   @State private var artPresented = false
   @State private var selectedTileNumber = 1
   @State private var moveFrames = true
@@ -39,6 +48,7 @@ struct CollageEditor: View {
   @State private var proofComposition = false
   @State private var compositionByteCount: Int?
   @Environment(\.horizontalSizeClass) private var sizeClass
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
   @State private var sourceSelection: Set<UUID> = []
   @State private var image: CGImage?
   @State private var selected: UUID?
@@ -52,92 +62,77 @@ struct CollageEditor: View {
   var project: Binding<CollageProject> {
     Binding(get: { model.collage }, set: { if interactionStart != nil { model.collage = $0 } else { model.changeCollage($0) } })
   }
+  struct PreviewRequest: Equatable { var identity: CollageRenderIdentity; var retry: Int }
+  struct SourceRequest: Equatable { var sources: [SourceAsset]; var retry: Int }
   var renderIdentity: CollageRenderIdentity { CollageRenderIdentity(project: model.collage, sources: model.assets, edits: model.edits) }
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(spacing: 16) {
-          collageTabs
+      GeometryReader { geometry in
+        let viewportHeight = layoutViewport.height(fallback: geometry.size.height)
+        VStack(spacing: 0) {
+          workspaceHeader(width: geometry.size.width)
           if model.activeCollageID != nil {
-          creationChoices
-          if model.collage.requiresFramingReview {
-            Label("Source replaced · review this composition’s framing", systemImage: "exclamationmark.triangle")
-            Button("I’ve Reviewed This Composition’s Framing") { var value = model.collage; value.requiresFramingReview = false; model.changeCollage(value) }.disabled(renderedIdentity != renderIdentity)
-          }
-          if model.collage.requiresPrivacyReview {
-            VStack(alignment: .leading, spacing: 6) {
-              Label("Review masks after changing this composition", systemImage: "exclamationmark.shield").font(.headline)
-              Text("Cell framing, layout or shape changes can expose a previously covered detail. Inspect the final composition.").font(.caption)
-              Button("I’ve Checked This Composition’s Mask Coverage") {
-                var value = model.collage; value.requiresPrivacyReview = false; model.changeCollage(value)
-              }.disabled(renderedIdentity != renderIdentity)
-            }.padding(10).background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-          }
-          Text("Composition · \(model.collage.cells.count) photo \(model.collage.cells.count == 1 ? "cell" : "cells") → 1 \(model.collage.outputFormat.rawValue.uppercased()) file").font(.headline)
-          Button(model.collage.cells.isEmpty ? "Choose Photos from Workspace…" : "Add Photos from Workspace…") { model.selectPhotos(for: .collageAdd) }.disabled(model.running || model.collageGenerating)
-          Picker(
-            "Layout",
-            selection: Binding(
-              get: { model.collage.layout },
-              set: { layout in
-                var p = model.collage
-                p.arrange(p.cells.map(\.sourceID), layout: layout)
-                model.changeCollage(p)
-              })
-          ) { ForEach(CollageLayout.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
-          .pickerStyle(.segmented).disabled(model.running || model.collageGenerating)
-          ViewThatFits(in:.horizontal) {
-            HStack {collageActions}.fixedSize(horizontal:true,vertical:false)
-            Menu("Collage Actions") {collageActions}
-          }.disabled(model.running || model.collageGenerating)
-          if let template=CollageTemplate.catalog.first(where:{$0.id==model.collage.templateID}) {
-            Text("Layout: " + template.name).font(.caption).foregroundStyle(.secondary)
-          }
-          if model.collage.layout == .freeform {
-            Picker("Canvas interaction", selection: $moveFrames) {
-              Text("Move Frames").tag(true); Text("Reframe Photos").tag(false)
-            }.pickerStyle(.segmented)
-          }
-          ViewThatFits(in: .horizontal) {
-            HStack {
-              Button("Inspect Pixels", systemImage: "plus.magnifyingglass") { proofComposition = false; inspectingComposition = true }
-              Button("Preview Encoded Output") { proofComposition = true; inspectingComposition = true }
-            }
-            Menu("Composition Preview") {
-              Button("Inspect Pixels") { proofComposition = false; inspectingComposition = true }
-              Button("Preview Encoded Output") { proofComposition = true; inspectingComposition = true }
-            }
-          }
-            .disabled(renderedIdentity != renderIdentity || model.collage.cells.isEmpty)
-          if embedded {
-            ViewThatFits(in:.horizontal) {
-              HStack(alignment:.top,spacing:20) {
-                compositionCanvas.frame(maxWidth:.infinity).frame(height:520)
-                ScrollView {compositionControls}.frame(width:320,height:520)
-              }.frame(minWidth:760)
-              VStack {compositionCanvas;compositionControls}
+            reviewNotices
+            if EditorPanelLayout.supportsInspector(geometry.size.width) {
+              HStack(spacing: 0) {
+                canvasWorkspace
+                Divider()
+                VStack(spacing: 0) {
+                  inspectorPicker.padding(12)
+                  Divider()
+                  ScrollView { compositionControls }
+                }.frame(width: EditorPanelLayout.inspectorWidth).editorInspectorSurface()
+              }
+            } else {
+              compositionCanvas.frame(maxWidth: .infinity, maxHeight: .infinity)
+              if sizeClass == .compact || EditorPanelLayout.expandedControls(height: viewportHeight, accessibility: typeSize.isAccessibilitySize) {
+                ViewThatFits(in: .horizontal) {
+                  HStack {
+                    ForEach(Inspector.allCases, id: \.self) { tool in
+                      Button(tool == .output ? "Output" : tool.rawValue) { inspector = tool; expandedControls = true }
+                        .accessibilityLabel(tool.rawValue).comfortableHitTarget().frame(maxWidth: .infinity)
+                        .editorSelectionSurface(selected: inspector == tool)
+                    }
+                  }
+                  Menu("Collage Tools", systemImage: "slider.horizontal.3") {
+                    ForEach(Inspector.allCases, id: \.self) { tool in Button(tool.rawValue) { inspector = tool; expandedControls = true } }
+                  }
+                }
+              } else {
+                inspectorPicker
+                ScrollView { compositionControls }.frame(height: min(220, viewportHeight * 0.3))
+              }
             }
           } else {
-            compositionCanvas
-            compositionControls
-          }
-          } else {
-            ContentUnavailableView("Your Collages",systemImage:"rectangle.split.2x2",description:Text("Create a collage or reopen a saved composition. Closing a tab keeps its editable project."))
-            Button("Open Layout Gallery…") { gallery=true }.buttonStyle(.borderedProminent)
+            ContentUnavailableView("Your Collages", systemImage: "rectangle.split.2x2", description: Text("Create a collage or reopen a saved composition."))
+            Button("Saved Collages & Layouts…") { gallery = true }.buttonStyle(.borderedProminent)
             creationChoices
           }
-        }.padding()
-      }.safeAreaInset(edge:.top,spacing:0) {activityBar}
-      .navigationTitle(model.activeCollageName).compactNavigationTitle().toolbar {
-        if !embedded { Button("Done") { dismiss() } }
-        else { Button("Export & Share This Collage") { export() }.disabled(exporting || model.collageGenerating || model.activeCollageID == nil || model.collage.cells.isEmpty) }
+        }.padding(workspacePadding)
+          .onAppear { layoutViewport.observe(geometry.size) }
+          .onChange(of: geometry.size.width) { _, _ in layoutViewport.observe(geometry.size) }
+      }.safeAreaInset(edge: .top, spacing: 0) { activityBar }
+      .navigationTitle(model.activeCollageName).compactNavigationTitle()
+      .sheet(isPresented: $expandedControls) {
+        NavigationStack { ScrollView { compositionControls }.navigationTitle(inspector.rawValue)
+          .toolbar { Button("Done") { expandedControls = false } } }
+      }
+      .sheet(isPresented: $exportingOptions) {
+        NavigationStack {
+          ScrollView { outputControls.padding() }
+            .navigationTitle("Output Settings").compactNavigationTitle()
+            .toolbar { Button("Done") { exportingOptions = false } }
+        }
       }
       .sheet(isPresented: $artPresented) {
         NavigationStack {
           ScrollView { artControls.padding() }
             .navigationTitle(artMode == "Photomosaic" ? "Photo Mosaic" : artMode + " Collage")
             .toolbar { Button("Done") { artPresented = false } }
-        }.frame(minWidth: 320, minHeight: 440)
+        }.frame(minWidth: 320)
+        #if os(macOS)
+        .frame(minHeight: 440)
+        #endif
       }
       .sheet(isPresented: $replacingCell) {
         CollagePhotoPicker(model: model, selection: $replacementSelection, single: true, title: "Replace Collage Photo") {
@@ -169,7 +164,10 @@ struct CollageEditor: View {
                 } else { detailImage = detail; compositionByteCount = nil }
               } catch is CancellationError {} catch { model.issues.append(error.localizedDescription); inspectingComposition = false }
             }
-        }.frame(minWidth: 320, minHeight: 500)
+        }.frame(minWidth: 320)
+        #if os(macOS)
+        .frame(minHeight: 500)
+        #endif
       }
       .sheet(isPresented:$gallery) { CollageGallery(model:model) }
       .alert("Name this collage",isPresented:$rename) {
@@ -186,18 +184,21 @@ struct CollageEditor: View {
           model.changeCollage(value);choosingSources=false
         }
       }
-      .task(id: renderIdentity.sources) {
-        sizes = [:]
-        let ids=Set(model.collage.cells.map(\.sourceID))
+      .task(id: SourceRequest(sources: renderIdentity.sources, retry: previewRetry)) {
+        sizes = [:]; unavailableSourceIDs = []
+        let ids=Set(model.collage.cells.map(\.sourceID)).union(model.collage.mosaicReferenceID.map { [$0] } ?? [])
         for asset in model.assets where ids.contains(asset.id) {
           do {
             let raw=try await model.processor.identify(asset.url)
             try Task.checkCancellation()
             sizes[asset.id]=raw
-          } catch is CancellationError { return } catch { model.issues.append("A collage photo could not be read for framing: " + error.localizedDescription) }
+          } catch is CancellationError { return } catch {
+            guard !Task.isCancelled else { return }
+            unavailableSourceIDs.insert(asset.id)
+          }
         }
       }
-      .task(id:renderIdentity) {
+      .task(id: PreviewRequest(identity: renderIdentity, retry: previewRetry)) {
         let identity = renderIdentity
         renderingPreview = true; previewFailure = nil
         let project=model.collage, edits=model.edits, id=model.activeCollageID, sources=model.assets
@@ -207,19 +208,196 @@ struct CollageEditor: View {
           try Task.checkCancellation()
           guard id == model.activeCollageID else { return }
           image=preview; renderedID=id; renderedIdentity=identity; renderingPreview=false
-        } catch is CancellationError { } catch { renderingPreview=false; previewFailure=error.localizedDescription }
+        } catch is CancellationError { } catch {
+          guard !Task.isCancelled, identity == renderIdentity else { return }
+          renderingPreview=false; previewFailure=error.localizedDescription
+        }
       }
       .sheet(item: $reviewSession) { session in
         ShareReview(urls: session.outputs, summary: session.summary).privacyCurtain(model: model)
       }
+      .safeAreaInset(edge: .bottom) {
+        if previewFailure != nil || missingReferenceID != nil { previewRecovery.padding(12).background(.bar) }
+      }
       .onDisappear { model.collageTask?.cancel() }
       .onChange(of: renderIdentity) { _, _ in reviewSession = nil; detailImage = nil; compositionByteCount = nil }
-      .onAppear { model.ensureCollageDocument() }
-      .onChange(of:model.activeCollageID) { _,_ in selected=nil; start=nil; interactionStart=nil }
+      .onAppear { model.ensureCollageDocument(); titleExpanded = !model.collage.title.isEmpty }
+      .onChange(of: selected) { _, value in if value != nil { inspector = .photo } }
+      .onChange(of: model.collage.title) { _, value in if !value.isEmpty { titleExpanded = true } }
+      .onChange(of:model.activeCollageID) { _,_ in selected=nil; start=nil; interactionStart=nil; titleExpanded = !model.collage.title.isEmpty; canvasScale = 1 }
 
-    }.background(.background).frame(minWidth: 320, minHeight: 500).overlay {
+    }.background(.background).frame(minWidth: 320)
+    #if os(macOS)
+    .frame(minHeight: 500)
+    #endif
+    .overlay {
       SensitivePreviewCover(model: model, ids: Set(model.collage.cells.map(\.sourceID)).union(model.collage.mosaicReferenceID.map { [$0] } ?? []))
     }
+  }
+  @ViewBuilder var reviewNotices: some View {
+          if model.collage.requiresFramingReview {
+            Label("Source replaced · review this composition’s framing", systemImage: "exclamationmark.triangle")
+            Button("I’ve Reviewed This Composition’s Framing") { var value = model.collage; value.requiresFramingReview = false; model.changeCollage(value) }.disabled(renderedIdentity != renderIdentity)
+          }
+          if model.collage.requiresPrivacyReview {
+            VStack(alignment: .leading, spacing: 6) {
+              Label("Review masks after changing this composition", systemImage: "exclamationmark.shield").font(.headline)
+              Text("Cell framing, layout or shape changes can expose a previously covered detail. Inspect the final composition.").font(.caption)
+              Button("I’ve Checked This Composition’s Mask Coverage") {
+                var value = model.collage; value.requiresPrivacyReview = false; model.changeCollage(value)
+              }.disabled(renderedIdentity != renderIdentity)
+            }.padding(10).background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+          }
+  }
+  var workspacePadding: CGFloat {
+    #if os(macOS)
+    0
+    #else
+    12
+    #endif
+  }
+  @ViewBuilder func workspaceHeader(width: CGFloat) -> some View {
+    #if os(macOS)
+    HStack(spacing: 10) {
+      collageTabs.frame(minWidth: 120, maxWidth: .infinity).frame(height: 34)
+      Divider().frame(height: 18)
+      headerActions(showsHistory: true)
+    }.controlSize(.small).padding(.horizontal, 12).padding(.vertical, 8)
+    Divider()
+    #else
+    if model.activeCollageID != nil { headerActions(showsHistory: true).padding(.bottom, 4) }
+    #endif
+  }
+  func headerActions(showsHistory: Bool) -> some View {
+    HStack(spacing: 6) {
+      Button { model.selectPhotos(for: .collageAdd) } label: {
+        Label("Add Photos", systemImage: "photo.badge.plus").font(.callout).fixedSize(horizontal: true, vertical: false)
+      }.foregroundStyle(.primary).comfortableHitTarget().accessibilityLabel("Add photos to collage").help("Add Photos")
+      Menu { collageActions } label: { Image(systemName: "ellipsis.circle") }
+        .foregroundStyle(.primary).comfortableHitTarget().accessibilityLabel("Collage actions and saved compositions").help("Collage actions and saved compositions")
+      #if os(iOS)
+      Spacer(minLength: 8)
+      #endif
+      if showsHistory {
+        #if os(macOS)
+        Divider().frame(height: 18)
+        #endif
+        Button { model.undoCollage() } label: { Image(systemName: "arrow.uturn.backward") }
+          .foregroundStyle(.primary).comfortableHitTarget().disabled(model.collageUndo.isEmpty).accessibilityLabel("Undo collage edit").help("Undo")
+        Button { model.redoCollage() } label: { Image(systemName: "arrow.uturn.forward") }
+          .foregroundStyle(.primary).comfortableHitTarget().disabled(model.collageRedo.isEmpty).accessibilityLabel("Redo collage edit").help("Redo")
+      }
+      Group {
+        Button("Export…") { exportingOptions = true }.buttonStyle(.borderedProminent)
+          .fixedSize(horizontal: true, vertical: false).comfortableHitTarget()
+          .disabled(exporting || model.collageGenerating || model.collage.cells.isEmpty)
+      }
+    }.buttonStyle(.borderless)
+  }
+  @ViewBuilder var canvasWorkspace: some View {
+    #if os(macOS)
+    VStack(spacing: 0) {
+      GeometryReader { geometry in
+        let ratio = Double(max(1, model.collage.width)) / Double(max(1, model.collage.height))
+        let width = min(max(1, geometry.size.width - 32), max(1, geometry.size.height - 32) * ratio)
+        ScrollView([.horizontal, .vertical]) {
+          compositionCanvas.frame(width: width * canvasScale, height: width / ratio * canvasScale)
+            .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
+            .padding(16)
+            .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
+        }.defaultScrollAnchor(.center)
+      }.background { EditorCanvasBackground() }
+      Divider()
+      HStack(spacing: 10) {
+        Text("\(model.collage.width) × \(model.collage.height) px")
+        Text("·").foregroundStyle(.tertiary)
+        Text("\(model.collage.cells.count) \(model.collage.cells.count == 1 ? "photo" : "photos")")
+        Spacer()
+        Button { canvasScale = max(0.5, canvasScale - 0.25) } label: { Image(systemName: "minus.magnifyingglass") }
+          .disabled(canvasScale <= 0.5).accessibilityLabel("Zoom out canvas")
+        Button(canvasScale == 1 ? "Fit" : canvasScale.formatted(.number.precision(.fractionLength(2))) + "× Fit") { canvasScale = 1 }
+          .frame(minWidth: 48).help("Fit canvas to window; viewing zoom does not change output dimensions")
+        Button { canvasScale = min(3, canvasScale + 0.25) } label: { Image(systemName: "plus.magnifyingglass") }
+          .disabled(canvasScale >= 3).accessibilityLabel("Zoom in canvas")
+      }.font(.caption).monospacedDigit().foregroundStyle(.secondary).buttonStyle(.borderless)
+        .padding(.horizontal, 12).frame(height: 30)
+    }
+    #else
+    compositionCanvas.frame(maxWidth: .infinity, maxHeight: .infinity).padding(12)
+    #endif
+  }
+  func propertyRow<Control: View>(_ title: String, @ViewBuilder control: () -> Control) -> some View {
+    Group {
+      if typeSize.isAccessibilitySize {
+        VStack(alignment: .leading, spacing: 6) { Text(title).foregroundStyle(.secondary); control() }
+      } else {
+        HStack(spacing: 10) {
+          Text(title).foregroundStyle(.secondary).fixedSize(horizontal: true, vertical: false).frame(minWidth: 88, alignment: .leading).layoutPriority(1)
+          control().comfortableHitTarget().frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+    }.frame(maxWidth: .infinity, alignment: .leading)
+  }
+  func propertySlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, percentage: Bool = false) -> some View {
+    propertyRow(title) {
+      HStack(spacing: 8) {
+        Slider(value: value, in: range, onEditingChanged: sliderInteraction).accessibilityLabel(title)
+        Text(percentage ? value.wrappedValue.formatted(.percent.precision(.fractionLength(0))) : value.wrappedValue.formatted(.number.precision(.fractionLength(1))) + "×")
+          .font(.caption).monospacedDigit().foregroundStyle(.secondary).frame(width: 36, alignment: .trailing)
+      }
+    }
+  }
+  var canvasControls: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      Text("Canvas").font(.subheadline.weight(.semibold))
+      propertyRow("Layout") {
+        Picker("Layout", selection: Binding(get: { model.collage.layout }, set: { layout in
+          var value = model.collage; value.arrange(value.cells.map(\.sourceID), layout: layout); model.changeCollage(value)
+        })) { ForEach(CollageLayout.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.labelsHidden()
+      }
+      propertyRow("Size") {
+        HStack(spacing: 5) {
+          TextField("Width", value: project.width, format: .number).accessibilityLabel("Canvas width in pixels")
+          Text("×").foregroundStyle(.tertiary).accessibilityHidden(true)
+          TextField("Height", value: project.height, format: .number).accessibilityLabel("Canvas height in pixels")
+          Text("px").font(.caption).foregroundStyle(.secondary)
+        }.textFieldStyle(.roundedBorder).multilineTextAlignment(.trailing).monospacedDigit()
+      }
+      propertyRow("Background") {
+        Picker("Background", selection: project.background) {
+          Text("White").tag(RGBAColour(1, 1, 1, 1)); Text("Black").tag(RGBAColour(0, 0, 0, 1)); Text("Transparent").tag(RGBAColour(0, 0, 0, 0))
+        }.labelsHidden()
+      }
+      if model.collage.layout == .freeform {
+        propertyRow("Interaction") { Picker("Canvas interaction", selection: $moveFrames) { Text("Move Frames").tag(true); Text("Reframe Photos").tag(false) }.labelsHidden() }
+        Toggle("Snap frames to canvas", isOn: $snapFrames)
+      }
+      Divider().padding(.vertical, 2)
+      Text("Appearance").font(.subheadline.weight(.semibold))
+      propertySlider("Spacing", value: project.spacing, range: 0...0.08, percentage: true)
+      propertySlider("Border", value: project.canvas.border, range: 0...0.05, percentage: true)
+      propertySlider("Corners", value: project.canvas.cornerRadius, range: 0...0.3, percentage: true)
+      propertyRow("Shadow") { Toggle("Shadow", isOn: project.shadow).labelsHidden().toggleStyle(.switch) }
+      Divider().padding(.vertical, 2)
+      DisclosureGroup("Title", isExpanded: $titleExpanded) {
+        VStack(alignment: .leading, spacing: 12) {
+          TextField("Add a title", text: project.title).textFieldStyle(.roundedBorder).accessibilityLabel("Collage title")
+          propertyRow("Colour") {
+            Picker("Title colour", selection: project.titleColour) {
+              Text("Dark").tag(RGBAColour(0, 0, 0, 1)); Text("Light").tag(RGBAColour(1, 1, 1, 1)); Text("Blue").tag(RGBAColour(0, 0.3, 1, 1))
+            }.labelsHidden()
+          }
+        }.padding(.top, 8)
+      }
+    }
+    #if os(macOS)
+    .controlSize(.small)
+    #endif
+  }
+  var inspectorPicker: some View {
+    Picker("Collage tool", selection: $inspector) {
+      ForEach(Inspector.allCases, id: \.self) { Text($0 == .output ? "Output" : $0.rawValue).accessibilityLabel($0.rawValue).tag($0) }
+    }.pickerStyle(.segmented).labelsHidden().accessibilityIdentifier("collage.toolPicker")
   }
   @ViewBuilder var creationChoices: some View {
     if sizeClass == .compact {
@@ -236,19 +414,7 @@ struct CollageEditor: View {
   }
   func creationChoice(_ title: String, _ symbol: String, _ detail: String, mode: String?) -> some View {
     Button {
-      if model.activeCollageID == nil { model.newCollage() }
-      if let mode {
-        artMode = mode; artExpanded = true; artPresented = true
-        if model.collage.cells.isEmpty { useAllSources = true }
-        referenceID = model.collage.mosaicReferenceID
-        artFont = model.collage.silhouetteFontName
-        if mode == "Text", model.collage.silhouette == .text {
-          artText = model.collage.silhouetteText; tileCount = model.collage.cells.count
-        } else if mode == "Shape", let shape = model.collage.silhouette, shape != .text {
-          artShape = shape; tileCount = model.collage.cells.count
-        } else if mode == "Photomosaic", model.collage.mosaicReferenceID != nil { tileCount = model.collage.cells.count }
-      }
-      else { gallery = true }
+      activateCreation(mode)
     } label: {
       Group {
         if sizeClass == .compact {
@@ -266,6 +432,21 @@ struct CollageEditor: View {
     }.buttonStyle(.plain).accessibilityLabel(title + ". " + detail)
       .disabled(model.running || model.collageGenerating)
   }
+  func activateCreation(_ mode: String?) {
+      if model.activeCollageID == nil { model.newCollage() }
+      if let mode {
+        artMode = mode; artPresented = true
+        if model.collage.cells.isEmpty { useAllSources = true }
+        referenceID = model.collage.mosaicReferenceID
+        artFont = model.collage.silhouetteFontName
+        if mode == "Text", model.collage.silhouette == .text {
+          artText = model.collage.silhouetteText; tileCount = model.collage.cells.count
+        } else if mode == "Shape", let shape = model.collage.silhouette, shape != .text {
+          artShape = shape; tileCount = model.collage.cells.count
+        } else if mode == "Photomosaic", model.collage.mosaicReferenceID != nil { tileCount = model.collage.cells.count }
+      }
+      else { gallery = true }
+  }
   @ViewBuilder var activityBar: some View {
     if model.collageGenerating || exporting {
       VStack(alignment:.leading,spacing:6) {
@@ -281,9 +462,28 @@ struct CollageEditor: View {
   }
   struct PreviewKey: Equatable { var project:CollageProject; var edits:EditingSnapshot; var id:UUID? }
   @ViewBuilder var collageActions: some View {
-    Button("Layout Gallery…",systemImage:"square.grid.3x3") {gallery=true}
+    #if os(iOS)
+      Menu("Open Collages") {
+        ForEach(model.openCollageIDs, id: \.self) { id in
+          Button(model.collageDocuments.first { $0.id == id }?.name ?? "Collage") { model.activateCollage(id) }
+        }
+        if let id = model.activeCollageID { Button("Close This Collage; Keep Composition") { model.closeCollageTab(id) } }
+      }
+    #endif
+    Divider()
+    Button("Output Settings…", systemImage: "slider.horizontal.3") { exportingOptions = true }
+    Button("Layouts & Saved Collages…",systemImage:"square.grid.3x3") {gallery=true}
     Button("New Collage",systemImage:"plus") {model.newCollage()}
     Button("Rename…") {collageName=model.activeCollageName;rename=true}
+    Menu("Create") {
+      Button("Shape Collage") { activateCreation("Shape") }
+      Button("Text Collage") { activateCreation("Text") }
+      Button("Photo Mosaic") { activateCreation("Photomosaic") }
+    }
+    Button("Inspect Pixels") { proofComposition = false; inspectingComposition = true }
+      .disabled(renderedIdentity != renderIdentity)
+    Button("Preview Encoded Output") { proofComposition = true; inspectingComposition = true }
+      .disabled(renderedIdentity != renderIdentity)
   }
   @ViewBuilder var collageTabs: some View {
     if sizeClass == .compact {
@@ -309,7 +509,7 @@ struct CollageEditor: View {
               Button { model.closeCollageTab(id) } label: { Image(systemName:"xmark") }
                 .comfortableHitTarget().accessibilityLabel("Close collage tab; keep composition")
             }.buttonStyle(.plain).padding(10)
-              .background(model.activeCollageID == id ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08),in:RoundedRectangle(cornerRadius:8))
+              .editorSelectionSurface(selected: model.activeCollageID == id, idleOpacity: 0.04)
               .draggable("ameluma-collage:" + id.uuidString)
               .dropDestination(for: String.self) { values, _ in
                 guard let value = values.first, value.hasPrefix("ameluma-collage:"), let source = UUID(uuidString: String(value.dropFirst(16))) else { return false }
@@ -327,7 +527,17 @@ struct CollageEditor: View {
     }
   }
   @ViewBuilder var compositionCanvas: some View {
-    if let image, renderedID == model.activeCollageID {
+    if model.collage.cells.isEmpty {
+      ScrollView {
+        VStack(spacing: 12) {
+          Image(systemName: "photo.on.rectangle").font(.largeTitle).foregroundStyle(.secondary)
+          Text("Add photos to your collage").font(.headline)
+          Text("Choose photos from your workspace to start arranging.").foregroundStyle(.secondary)
+          Button("Select Photos") { model.selectPhotos(for: .collageAdd) }.buttonStyle(.borderedProminent)
+            .disabled(model.collageGenerating || model.running)
+        }.multilineTextAlignment(.center).frame(maxWidth: .infinity).padding()
+      }
+    } else if let image, renderedID == model.activeCollageID {
       GeometryReader { proxy in
         ZStack(alignment:.topLeading) {
           Image(decorative:image,scale:1).resizable()
@@ -397,10 +607,78 @@ struct CollageEditor: View {
             return false
           }
           .accessibilityLabel("Collage canvas, \(model.collage.cells.count) photo tiles. Select a tile to reframe, or use Selected photo controls.")
-      }.aspectRatio(CGFloat(image.width)/CGFloat(image.height),contentMode:.fit).frame(maxWidth:1000)
+      }.aspectRatio(CGFloat(image.width)/CGFloat(image.height),contentMode:.fit)
+        .overlay(alignment: .bottomLeading) {
+          if selected != nil {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(model.collage.layout == .freeform && moveFrames ? "Move Frames · pinch resizes frame" : "Reframe Photo · pinch changes crop").font(.caption)
+              Button("View Zoom…", systemImage: "plus.magnifyingglass") { proofComposition = false; inspectingComposition = true }
+                .disabled(renderedIdentity != renderIdentity)
+                .accessibilityHint("Inspect the composition without changing its crop or dimensions")
+            }.padding(8).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8)).padding(8)
+          }
+        }
     } else if let previewFailure {
       ContentUnavailableView("Composition preview failed", systemImage: "exclamationmark.triangle", description: Text(previewFailure))
     } else { ProgressView("Rendering composition…").frame(height:240) }
+  }
+  var missingSourceCells: [CollageCell] {
+    model.collage.cells.filter { cell in
+      !model.assets.contains(where: { $0.id == cell.sourceID }) || unavailableSourceIDs.contains(cell.sourceID)
+    }
+  }
+  var missingReferenceID: UUID? {
+    guard let id = model.collage.mosaicReferenceID,
+      !model.assets.contains(where: { $0.id == id }) || unavailableSourceIDs.contains(id) else { return nil }
+    return id
+  }
+  var recoverySourceIDs: [UUID] {
+    var seen: Set<UUID> = []
+    return missingSourceCells.map(\.sourceID).filter { seen.insert($0).inserted }
+  }
+  var previewRecovery: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      if !recoverySourceIDs.isEmpty || missingReferenceID != nil {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 12) {
+          ForEach(recoverySourceIDs, id: \.self) { id in
+            let cells = model.collage.cells.enumerated().filter { $0.element.sourceID == id }
+            let numbers = cells.map { String($0.offset + 1) }.joined(separator: ", ")
+            let name = model.assets.first(where: { $0.id == id })?.name ?? "Unavailable photo"
+            VStack(alignment: .leading, spacing: 4) {
+              Text(name).font(.caption.bold())
+              Text("Photo Cells " + numbers).font(.caption).lineLimit(2)
+              HStack {
+                if model.assets.contains(where: { $0.id == id }) {
+                  Button("Locate Photo…") { model.relinkSourceID = id }
+                }
+                Menu("Replace in Cell…") {
+                  ForEach(cells.map(\.element)) { cell in
+                    let number = model.collage.cells.firstIndex(where: { $0.id == cell.id }).map { $0 + 1 } ?? 1
+                    Button("Photo Cell \(number)…") { selected = cell.id; replacementSelection = []; replacingCell = true }
+                  }
+                }
+              }
+            }
+          }
+          if let id = missingReferenceID {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Mosaic Reference · " + (model.assets.first(where: { $0.id == id })?.name ?? "Unavailable photo")).font(.caption.bold())
+              if model.assets.contains(where: { $0.id == id }) {
+                Button("Locate Reference Photo…") { model.relinkSourceID = id }
+              }
+              Button("Choose Reference & Regenerate…") { activateCreation("Photomosaic") }
+              Text("Existing tiles stay unchanged until you generate the mosaic again.").font(.caption).foregroundStyle(.secondary)
+            }
+          }
+        }.frame(maxWidth: .infinity, alignment: .leading)
+      }.frame(maxHeight: sizeClass == .compact ? 160 : 220)
+      }
+      if previewFailure != nil {
+        Button("Retry Composition Preview", systemImage: "arrow.clockwise") { previewRetry += 1 }
+          .disabled(renderingPreview)
+      }
+    }
   }
   @ViewBuilder func transformHandles(_ cell: CollageCell, rect: CGRect, viewport: CGSize) -> some View {
     ForEach(OverlayResizeHandle.allCases, id: \.rawValue) { handle in
@@ -522,47 +800,20 @@ struct CollageEditor: View {
   }
   var compositionControls: some View {
     VStack(alignment: .leading, spacing: 12) {
-          DisclosureGroup("Shape, Text & Photo Mosaic",isExpanded:$artExpanded) {artControls}
-          Divider()
-          if model.collage.layout == .freeform { Toggle("Snap frames to canvas", isOn: $snapFrames) }
-          Picker("Output format", selection: project.outputFormat) {
-            ForEach(ImageProcessor.outputFormats, id: \.self) { Text($0.rawValue.uppercased()).tag($0) }
-          }
-          if model.collage.outputFormat.supportsQuality {
-            LabeledContent("Quality", value: model.collage.outputQuality, format: .percent)
-            Slider(value: project.outputQuality, in: 0.1...1, onEditingChanged: sliderInteraction)
-          }
-          if !model.collage.outputFormat.preservesAlpha {
-            Text("This format flattens transparent pixels onto white.").font(.caption).foregroundStyle(.secondary)
-          }
-          TextField("Collage title", text: project.title)
-          Picker("Title colour", selection: project.titleColour) {
-            Text("Dark").tag(RGBAColour(0, 0, 0, 1))
-            Text("Light").tag(RGBAColour(1, 1, 1, 1))
-            Text("Blue").tag(RGBAColour(0, 0.3, 1, 1))
-          }
-          HStack {
-            TextField("Width", value: project.width, format: .number)
-            Text("×")
-            TextField("Height", value: project.height, format: .number)
-          }
-          Text("Spacing")
-          Slider(value: project.spacing, in: 0...0.08, onEditingChanged: sliderInteraction)
-          Picker("Background", selection: project.background) {
-            Text("White").tag(RGBAColour(1, 1, 1, 1))
-            Text("Black").tag(RGBAColour(0, 0, 0, 1))
-            Text("Transparent").tag(RGBAColour(0, 0, 0, 0))
-          }
-          Toggle("Shadows", isOn: project.shadow)
-          Text("Borders")
-          Slider(value: project.canvas.border, in: 0...0.05, onEditingChanged: sliderInteraction)
-          Text("Corners")
-          Slider(value: project.canvas.cornerRadius, in: 0...0.3, onEditingChanged: sliderInteraction)
+          if inspector == .composition { canvasControls }
+          if inspector == .photo { InspectorHeading(title: selectedCellTitle) }
+          if inspector == .output { InspectorHeading(title: "Output Settings") }
+          if inspector == .photo {
           if let id = selected, let cell = model.collage.cells.first(where: { $0.id == id }) {
             let b = cellBinding(id)
-            Picker("Photo frame shape",selection:Binding(get:{ cell.shape ?? .rectangle },set:{ value in var p=model.collage; if let i=p.cells.firstIndex(where:{$0.id==id}) {p.cells[i].shape=value};model.changeCollage(p) })) {
-              ForEach(CollageShape.allCases.filter { $0 != .text },id:\.self) { Text($0.rawValue).tag($0) }
+            Text(model.collage.layout == .freeform && moveFrames ? "Move Frames · drag to move; pinch to resize the frame." : "Reframe Photo · drag to position; pinch to crop closer.")
+              .font(.caption).foregroundStyle(.secondary)
+            if model.collage.layout == .freeform {
+              Picker("Canvas interaction", selection: $moveFrames) { Text("Move Frames").tag(true); Text("Reframe Photos").tag(false) }.pickerStyle(.segmented)
             }
+            propertyRow("Shape") { Picker("Photo frame shape",selection:Binding(get:{ cell.shape ?? .rectangle },set:{ value in var p=model.collage; if let i=p.cells.firstIndex(where:{$0.id==id}) {p.cells[i].shape=value};model.changeCollage(p) })) {
+              ForEach(CollageShape.allCases.filter { $0 != .text },id:\.self) { Text($0.rawValue).tag($0) }
+            }.labelsHidden() }
             TextField(
               "Caption",
               text: Binding(
@@ -586,12 +837,9 @@ struct CollageEditor: View {
                 var p = model.collage; p.cells.removeAll { $0.id == id }; p.cells.insert(cell, at: 0); model.changeCollage(p)
               }
             }
-            Text("Zoom")
-            Slider(value: b.crop.zoom, in: 1...8, onEditingChanged: sliderInteraction)
-            Text("Horizontal framing")
-            Slider(value: b.crop.centerX, in: 0...1, onEditingChanged: sliderInteraction)
-            Text("Vertical framing")
-            Slider(value: b.crop.centerY, in: 0...1, onEditingChanged: sliderInteraction)
+            propertySlider("Zoom", value: b.crop.zoom, range: 1...8)
+            propertySlider("Horizontal", value: b.crop.centerX, range: 0...1, percentage: true)
+            propertySlider("Vertical", value: b.crop.centerY, range: 0...1, percentage: true)
             if model.collage.layout == .freeform {
               Text("Position X")
               Slider(value: b.x, in: 0...0.9, onEditingChanged: sliderInteraction)
@@ -604,7 +852,7 @@ struct CollageEditor: View {
               Text("Rotation")
               Slider(value: b.rotation, in: -180...180, onEditingChanged: sliderInteraction)
             }
-            Button("Swap with next") {
+            Button("Swap Photos with Next · Keep Frame Crops") {
               var p = model.collage
               if let i = p.cells.firstIndex(where: { $0.id == cell.id }), p.cells.count > 1 {
                 let j = (i + 1) % p.cells.count
@@ -620,32 +868,39 @@ struct CollageEditor: View {
               model.changeCollage(p)
             }
           }
-          Menu("Add photograph") {
-            ForEach(model.workspaceAssets) { asset in
-              Button(asset.name) {
-                var p = model.collage
-                let ids = p.cells.map(\.sourceID) + [asset.id]
-                p.arrange(ids, layout: p.layout)
-                model.changeCollage(p)
-              }
-            }
+          if selected == nil { Text("Select a photo on the canvas to crop, replace or remove it.").font(.callout).foregroundStyle(.secondary) }
           }
-          HStack {
-            Button("Undo") { model.undoCollage() }.disabled(model.collageUndo.isEmpty)
-            Button("Redo") { model.redoCollage() }.disabled(model.collageRedo.isEmpty)
+          if inspector == .output { outputControls }
+    }.padding(14).disabled(model.collageGenerating || model.running)
+  }
+  var outputControls: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      Text(CreationOutputSummary.collage(model.collage)).font(.callout).monospacedDigit()
+      Text("Destination: local Exports folder, then Review & Share.").font(.caption).foregroundStyle(.secondary)
+          propertyRow("Format") { Picker("Output format", selection: project.outputFormat) {
+            ForEach(ImageProcessor.outputFormats, id: \.self) { Text($0.rawValue.uppercased()).tag($0) }
+          }.labelsHidden() }
+          if model.collage.outputFormat.supportsQuality {
+            LabeledContent("Quality", value: model.collage.outputQuality, format: .percent)
+            Slider(value: project.outputQuality, in: 0.1...1, onEditingChanged: sliderInteraction)
           }
-          Button("Render & Share Collage") { export() }.buttonStyle(.borderedProminent).disabled(
-            exporting || model.collage.cells.isEmpty)
-
+          if !model.collage.outputFormat.preservesAlpha {
+            Text("This format flattens transparent pixels onto white.").font(.caption).foregroundStyle(.secondary)
+          }
+          Button("Export & Share") { export() }.buttonStyle(.borderedProminent).disabled(exporting || model.collage.cells.isEmpty)
           if let id=model.activeCollageID, let output=outputs[id] {
             if output.identity == renderIdentity {
-              Button("Review & Share Current Export") { reviewSession = ShareOutputSession(outputs: [output.url], summary: "Current composition · 1 " + model.collage.outputFormat.rawValue.uppercased() + " file") }
+              Button("Review & Share Current Export") { exportingOptions = false; reviewSession = ShareOutputSession(outputs: [output.url], summary: "Current composition · 1 " + model.collage.outputFormat.rawValue.uppercased() + " file") }
             } else {
               Label("Previous export is out of date", systemImage: "clock.badge.exclamationmark").font(.caption)
               Text("Export again to include your latest edits. The previous file is retained in export history.").font(.caption).foregroundStyle(.secondary)
             }
           }
-    }.padding(8).disabled(model.collageGenerating || model.running)
+    }.disabled(model.collageGenerating || model.running)
+  }
+  var selectedCellTitle: String {
+    guard let selected, let index = model.collage.cells.firstIndex(where: { $0.id == selected }) else { return "Photo Cell" }
+    return "Photo Cell \(index + 1)"
   }
   func cellBinding(_ id: UUID) -> Binding<CollageCell> {
     Binding(
@@ -664,6 +919,7 @@ struct CollageEditor: View {
     else { finishInteraction() }
   }
   func export() {
+    exportingOptions = false
     guard let collageID=model.activeCollageID else { return }
     let project=model.collage, sources=model.assets, edits=model.edits
     let identity = renderIdentity

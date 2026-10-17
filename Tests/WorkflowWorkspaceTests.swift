@@ -356,11 +356,14 @@ import XCTest
     XCTAssertEqual(session.outputs.count, 1)
     XCTAssertTrue(session.outputs[0].path.hasPrefix(folder.path))
     XCTAssertTrue(session.summary.contains("1 failed"))
+    XCTAssertEqual(model.latestExport?.outputs, session.outputs)
+    XCTAssertEqual(model.latestExport?.summary, session.summary)
     model.sharingSession = nil
     model.export(to: folder, targetIDs: [bad.id]) { model.beginSharing($0) }
     await model.task?.value
     XCTAssertNil(model.sharingSession)
     XCTAssertTrue(model.status.contains("0 exported"))
+    XCTAssertNil(model.latestExport, "A failed operation must not offer the previous files as its result")
     model.persistenceTask?.cancel()
   }
   func testMultipleProfilesPublishFifteenValidatedFilesAndContextPhotoProducesOne() async throws {
@@ -775,6 +778,7 @@ extension WorkflowWorkspaceTests {
   }
   func testHistoryJumpRestoresBatchAndPhotoStateAndKeepsRedoBranch() throws {
     let model = try makeModel()
+    let initial = model.edits
     let start = try XCTUnwrap(model.history.steps.first?.id)
     var settings = model.settings; settings.adjustments.exposure = 0.5
     model.settings = settings
@@ -784,7 +788,7 @@ extension WorkflowWorkspaceTests {
     let rotated = model.edits
     let rotation = try XCTUnwrap(model.history.steps.last?.id)
     model.moveEditingHistory(to: start)
-    XCTAssertEqual(model.edits, EditingSnapshot())
+    XCTAssertEqual(model.edits, initial)
     XCTAssertTrue(model.canRedo)
     model.moveEditingHistory(to: exposure)
     XCTAssertEqual(model.edits, exposureState)
@@ -861,6 +865,7 @@ extension WorkflowWorkspaceTests {
 extension WorkflowWorkspaceTests {
   func testCollageKeyboardUndoRoutingKeepsPhotoHistorySeparate() throws {
     let model=try makeModel()
+    let initial = model.edits
     model.rotatePhoto(model.assets[0].id)
     let photoEdits=model.edits
     model.switchWorkflow(.collages);model.ensureCollageDocument()
@@ -871,7 +876,7 @@ extension WorkflowWorkspaceTests {
     XCTAssertEqual(model.edits,photoEdits)
     model.redoActiveWorkspace();XCTAssertEqual(model.collage.title,"Title")
     model.showLibrary();model.undoActiveWorkspace()
-    XCTAssertEqual(model.edits,EditingSnapshot())
+    XCTAssertEqual(model.edits,initial)
     XCTAssertEqual(model.collage.title,"Title")
     model.persistenceTask?.cancel()
   }

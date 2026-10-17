@@ -63,7 +63,12 @@ struct FramingSurface: View {
   @State private var zoomStart: CropConfiguration?
   @State private var interacting = false
   @State private var renderedConfiguration: ProcessingConfiguration?
-  var configuration: ProcessingConfiguration { model.configuration(for: asset) }
+  @State private var renderedMaximum: Int?
+  var configuration: ProcessingConfiguration {
+    var c = model.configuration(for: asset)
+    if model.filterComparisonActive { c.filterEdit = nil; c.look = nil; c.autoEnhance = nil }
+    return c
+  }
   var displayedImage: CGImage? {
     if original { return loadedSourceKey == sourceKey ? source : nil }
     return processedSourceID == asset.id && processedSourceURL == asset.url ? processed : nil
@@ -92,7 +97,7 @@ struct FramingSurface: View {
         } else {
           ProgressView()
         }
-        if !original, displayedImage != nil, renderedConfiguration != configuration {
+        if !original, displayedImage != nil, (renderedConfiguration != configuration || renderedMaximum != renderMaximum) {
           Text("Updating processed preview…").font(.caption2).padding(5).background(.regularMaterial)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading).allowsHitTesting(false)
         }
@@ -111,7 +116,9 @@ struct FramingSurface: View {
           }.allowsHitTesting(false)
         }
         SensitivePreviewCover(model: model, ids: [asset.id])
-      }.frame(width: width, height: height).clipped().contentShape(Rectangle())
+      }.frame(width: width, height: height)
+        .overlay(Rectangle().stroke(Color.secondary.opacity(0.25), lineWidth: 0.5))
+        .clipped().contentShape(Rectangle())
         .gesture(
           drag(frame: CGSize(width: width, height: height)),
           including: interactive && !original ? .all : .none
@@ -128,6 +135,7 @@ struct FramingSurface: View {
               model.setCrop(CropGeometry.zoomed(start, factor: value.magnification), for: asset.id)
             }
           }.onEnded { _ in
+            guard interactive, zoomStart != nil else { return }
             zoomStart = nil
             interacting = false
             model.endInteraction()
@@ -150,41 +158,41 @@ struct FramingSurface: View {
       let requestedConfiguration = original ? ProcessingConfiguration() : configuration
       do {
         let dimensions = try await model.processor.identify(asset.url)
-        let image = try await model.processor.analysisThumbnail(
-          asset.url, configuration: requestedConfiguration,
-          maximum: maximum)
+        let image = (interactive || original) ? try await model.processor.analysisThumbnail(
+          asset.url, configuration: requestedConfiguration, maximum: min(3200, maximum)) : nil
         try Task.checkCancellation()
+        guard sourceKey == requestedKey else { return }
         source = image
         loadedSourceKey = requestedKey
         nominal = dimensions
         failure = nil
       } catch is CancellationError {} catch {
+        guard sourceKey == requestedKey else { return }
         failure = error.localizedDescription
         failureSourceURL = asset.url
       }
     }
-    .task(
-      id: RenderKey(
-        configuration: configuration, interacting: interacting, original: original,
-        maximum: maximum, url: asset.url)
-    ) {
+    .task(id: renderKey) {
       guard !original else { return }
-      let requestedConfiguration = configuration
+      let request = renderKey
       do {
-        try await Task.sleep(for: .milliseconds(interacting ? 16 : 60))
+        try await Task.sleep(for: .milliseconds(interacting ? 16 : 80))
         let image = try await model.processor.render(
-          asset.url, configuration: requestedConfiguration,
-          previewMaximum: min(maximum, interacting ? 500 : 1000))
+          request.url, configuration: request.configuration,
+          previewMaximum: request.maximum, decodeMaximum: max(1200, request.maximum))
         try Task.checkCancellation()
+        guard renderKey == request else { return }
         processed = image
-        processedSourceID = asset.id
-        processedSourceURL = asset.url
-        renderedConfiguration = requestedConfiguration
+        processedSourceID = request.assetID
+        processedSourceURL = request.url
+        renderedConfiguration = request.configuration
+        renderedMaximum = request.maximum
         failure = nil
       } catch is CancellationError {} catch {
+        guard renderKey == request else { return }
         processed = nil
         failure = error.localizedDescription
-        failureSourceURL = asset.url
+        failureSourceURL = request.url
       }
     }
     .onDisappear {
@@ -201,12 +209,18 @@ struct FramingSurface: View {
     return
       "\(maximum)-\(original)-\(asset.id)-\(asset.url.path)-\(c.quarterTurns)-\(c.flipHorizontal)-\(c.flipVertical)-\(c.straighten)-\(c.crop.quarterTurns)-\(c.crop.flipHorizontal)-\(c.crop.flipVertical)-\(c.crop.straighten)"
   }
+  var renderMaximum: Int { min(maximum, interacting ? 500 : interactive ? 1000 : 3200) }
+  var renderKey: RenderKey {
+    RenderKey(configuration: configuration, interacting: interacting, original: original,
+      maximum: renderMaximum, url: asset.url, assetID: asset.id)
+  }
   struct RenderKey: Equatable {
     var configuration: ProcessingConfiguration
     var interacting: Bool
     var original: Bool
     var maximum: Int
     var url: URL
+    var assetID: UUID
   }
   func drag(frame: CGSize) -> some Gesture {
     DragGesture(minimumDistance: 4).onChanged { value in
@@ -253,7 +267,7 @@ struct PrecisionEditor: View {
       })
   }
   var body: some View {
-    VStack(spacing: 12) {
+    VStack(alignment: .leading, spacing: 10) {
       if showsHeader {
         HStack {
           Text("Crop & Frame").font(.headline)
@@ -288,8 +302,9 @@ struct PrecisionEditor: View {
       }
       Toggle("Show original", isOn: $showOriginal).tint(.blue)
       } else {
-        Text("Drag crop edges or corners in the main canvas to resize; drag inside to move. Numeric controls adjust the same crop.")
-          .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+        DisclosureGroup("Crop Help") {
+          Text("Drag crop edges to resize and drag inside to move. Numeric controls adjust the same crop.").font(.caption).foregroundStyle(.secondary)
+        }
       }
       HStack {
         Toggle("Guides", isOn: $model.showGuides).tint(.blue)
@@ -325,7 +340,10 @@ struct PrecisionEditor: View {
         Button("4:3") { aspect(4.0 / 3) }
         Button("3:2") { aspect(1.5) }
         Button("16:9") { aspect(16.0 / 9) }
+        Button("4:5 · Portrait") { aspect(0.8) }
+        Button("9:16 · Portrait") { aspect(9.0 / 16) }
       }
+      DisclosureGroup("Precision") {
       LabeledContent("Image scale (%)") {
         TextField("Image scale percent", value: percent(crop.zoom), format: .number.precision(.fractionLength(0)))
           .textFieldStyle(.roundedBorder).frame(width: 80)
@@ -345,6 +363,7 @@ struct PrecisionEditor: View {
           TextField("Vertical position", value: percent(crop.centerY), format: .number.precision(.fractionLength(1))).textFieldStyle(
             .roundedBorder)
         }
+      }
       }
       LabeledContent(
         "Straighten", value: crop.straighten.wrappedValue,
@@ -376,7 +395,7 @@ struct PrecisionEditor: View {
         }
       }.buttonStyle(.bordered)
       Button("Use Batch Framing") { if let id = model.selected { model.reset([id]) } }
-        .buttonStyle(.bordered).frame(maxWidth: .infinity, alignment: .trailing)
+        .buttonStyle(.bordered).frame(maxWidth: .infinity, alignment: .leading)
         .help("Remove this photo’s framing override. Keep its other edits.")
       if let asset = model.current, let proposal = model.proposals[asset.id], proposal.needsReview {
         VStack(alignment: .leading) {
@@ -418,17 +437,10 @@ struct PhotoCropCanvas: View {
   var locked: Bool { model.cropKeepsOutputSize[asset.id] == true || (model.cropAspectLocks[asset.id] ?? (config.crop.aspectRatio != nil)) }
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      if sizeClass == .compact || typeSize.isAccessibilitySize {
-        HStack {
-          Button("Done") { model.precision = false }
-          Menu("Crop Options") { cropOptions }
-          Spacer(minLength: 0)
-        }
-      } else {
-        ViewThatFits(in: .horizontal) {
-          HStack { cropOptions }
-          VStack(alignment: .leading) { cropOptions }
-        }
+      HStack {
+        Menu("Crop Options", systemImage: "crop") { cropOptions }
+        Spacer()
+        Button("Done") { model.precision = false }
       }
       GeometryReader { geometry in
       let scale = min(geometry.size.width / sourceSize.width, geometry.size.height / sourceSize.height)
@@ -543,6 +555,41 @@ struct PhotoCropCanvas: View {
   }
 }
 
+/// View magnification is transient and never changes crop or export geometry.
+struct ZoomablePhotoViewport<Content: View>: View {
+  var inspectPixelsAction: (() -> Void)? = nil
+  @ViewBuilder var content: (Int) -> Content
+  @State private var zoom: CGFloat = 1
+  @State private var pinchStart: CGFloat?
+  var body: some View {
+    GeometryReader { geometry in
+      ScrollView([.horizontal, .vertical]) {
+        content(OverlayPreviewRequest.maximum(zoom: Double(zoom), retouch: true)).frame(width: geometry.size.width * zoom, height: geometry.size.height * zoom)
+      }.scrollDisabled(zoom <= 1)
+        .simultaneousGesture(MagnifyGesture().onChanged { value in
+          if pinchStart == nil { pinchStart = zoom }
+          zoom = min(8, max(1, (pinchStart ?? 1) * value.magnification))
+        }.onEnded { _ in pinchStart = nil })
+        .onTapGesture(count: 2) { zoom = zoom > 1 ? 1 : 2 }
+        .accessibilityAction(named: "Zoom in") { zoom = min(8, zoom * 1.5) }
+        .accessibilityAction(named: "Fit photo to view") { zoom = 1 }
+        .overlay(alignment: .bottomLeading) {
+          Menu {
+            Button("Fit to View") { zoom = 1 }
+            Button("Zoom In") { zoom = min(8, zoom * 1.5) }.disabled(zoom >= 8)
+            Button("Zoom Out") { zoom = max(1, zoom / 1.5) }.disabled(zoom <= 1)
+            if let inspectPixelsAction { Button("Inspect Full-resolution Pixels", action: inspectPixelsAction) }
+          } label: {
+            Label(zoom == 1 ? "Fit" : String(format: "%.1f× Fit", Double(zoom)), systemImage: "magnifyingglass")
+              .font(.caption.monospacedDigit())
+          }.comfortableHitTarget().foregroundStyle(.primary).accessibilityLabel("View Zoom")
+            .accessibilityValue(zoom == 1 ? "Fit" : String(format: "%.1f times Fit", Double(zoom)))
+            .padding(.horizontal, 8).background(.regularMaterial, in: Capsule()).padding(8)
+        }
+    }.clipped()
+  }
+}
+
 /// A real pixel viewer: at 100%, one image pixel maps to one display pixel.
 /// The caller supplies full-resolution pixels, never an enlarged thumbnail.
 struct PixelZoomViewer: View {
@@ -565,14 +612,15 @@ struct PixelZoomViewer: View {
           zoom = min(8, max(0.01, (pinchStart ?? factor) * value.magnification))
         }.onEnded { _ in pinchStart = nil })
         HStack {
-          Button("Fit") { zoom = nil }
-          Button("100%") { zoom = 1 }
+          Button("Fit") { zoom = nil }.accessibilityLabel("View Zoom · Fit to View")
           Button { zoom = max(0.01, factor / 1.25) } label: { Image(systemName: "minus.magnifyingglass") }.accessibilityLabel("Zoom out")
-          Text("\(Int(factor * 100))%").font(.caption.monospacedDigit()).frame(minWidth: 42)
+          Menu("\(Int(factor * 100))%") {
+            Button("Actual Pixels · 100%") { zoom = 1 }
+            Button("Fit to View") { zoom = nil }
+            Text("\(image.width) × \(image.height) pixels")
+          }.accessibilityLabel("View Zoom").accessibilityValue("\(Int(factor * 100)) percent of actual pixels")
           Button { zoom = min(8, factor * 1.25) } label: { Image(systemName: "plus.magnifyingglass") }.accessibilityLabel("Zoom in")
-          Spacer(minLength: 0)
-          Text("\(image.width) × \(image.height) px").font(.caption)
-        }.buttonStyle(.bordered).padding(.horizontal, 4)
+        }.buttonStyle(.bordered).padding(.horizontal, 4).frame(minHeight: 44)
       }
     }.accessibilityLabel("Full-resolution image. Scroll to pan, pinch or use zoom controls.")
   }
@@ -587,31 +635,33 @@ struct InspectablePhoto: View {
   @State private var image: CGImage?
   @State private var failure: String?
   var configuration: ProcessingConfiguration {
-    if !original { return model.configuration(for: asset) }
+    if !original {
+      var c = model.configuration(for:asset)
+      if model.filterComparisonActive { c.filterEdit=nil; c.look=nil; c.autoEnhance=nil }
+      return c
+    }
     var value = ProcessingConfiguration()
     value.crop.mode = .preserveAspectRatio; value.resizeBasis = .percentage; value.percentage = 100
     return value
   }
   struct Key: Equatable { var asset: SourceAsset; var configuration: ProcessingConfiguration; var detail: Bool }
   var body: some View {
-    VStack(spacing: 6) {
+    VStack(spacing: 0) {
       if detail {
+        HStack {
+          Button("Done Inspecting", systemImage: "chevron.left") { detail = false }
+          Spacer()
+        }.padding(.horizontal, 12).padding(.vertical, 4)
         ZStack {
           if let image { PixelZoomViewer(image: image) }
           else if let failure { ContentUnavailableView("Detail preview failed", systemImage: "exclamationmark.triangle", description: Text(failure)) }
           else { ProgressView("Rendering full-resolution detail…") }
           SensitivePreviewCover(model: model, ids: [asset.id])
         }
-      } else { FramingSurface(model: model, asset: asset, interactive: false, original: original) }
-      HStack {
-        if typeSize.isAccessibilitySize {
-          Menu("View", systemImage: "magnifyingglass") { Toggle("Inspect Full-resolution Pixels", isOn: $detail) }
-        } else {
-          Toggle("Inspect Pixels", isOn: $detail).toggleStyle(.button)
-            .help("Loads full-resolution pixels for 100% inspection and panning.")
-        }
-        if detail { Text("Full-resolution detail").font(.caption).foregroundStyle(.secondary) }
-        Spacer()
+      } else {
+        ZoomablePhotoViewport(inspectPixelsAction: { detail = true }) { maximum in
+          FramingSurface(model: model, asset: asset, interactive: false, original: original, maximum: maximum)
+        }.id(asset.id)
       }
     }.task(id: Key(asset: asset, configuration: configuration, detail: detail)) {
       image = nil; failure = nil
@@ -630,6 +680,9 @@ struct WatermarkCanvas: View {
   @Bindable var model: Workspace
   let asset: SourceAsset
   @State private var bounds: CGRect?
+  @State private var preview: CGImage?
+  @State private var previewKey: WatermarkKey?
+  @State private var previewFailure: String?
   @State private var output = CGSize(width: 1, height: 1)
   @State private var start: WatermarkConfiguration?
   @State private var startBounds: CGRect?
@@ -639,12 +692,37 @@ struct WatermarkCanvas: View {
       let scale = min(geometry.size.width / output.width, geometry.size.height / output.height)
       let size = CGSize(width: output.width * scale, height: output.height * scale)
       ZStack(alignment: .topLeading) {
-        FramingSurface(model: model, asset: asset, interactive: false)
-        if config.watermark.enabled, !config.watermark.tiled, let bounds {
+        Group {
+          if let preview, previewKey?.asset.id == asset.id, previewKey?.asset.url == asset.url {
+            Image(decorative: preview, scale: 1).resizable().scaledToFit()
+              .overlay(alignment: .topLeading) {
+                if previewKey?.configuration != config {
+                  Text("Updating preview…").font(.caption).padding(6).background(.regularMaterial)
+                }
+              }
+          } else if let previewFailure {
+            VStack {
+              Text(previewFailure).font(.caption)
+              Button("Locate or Replace Photo…") { model.relinkSourceID = asset.id }
+            }
+          } else { ProgressView("Preparing watermark preview…") }
+        }.frame(width: size.width, height: size.height)
+          .overlay(Rectangle().stroke(Color.secondary.opacity(0.25), lineWidth: 0.5))
+        if config.watermark.enabled, !config.watermark.tiled, let bounds,
+          previewKey?.asset.id == asset.id, previewKey?.asset.url == asset.url {
           Rectangle().stroke(.blue, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
             .background(.white.opacity(0.001)).contentShape(Rectangle())
             .frame(width: bounds.width * scale, height: bounds.height * scale)
             .position(x: bounds.midX * scale, y: bounds.midY * scale)
+            .contextMenu {
+              Button(role: .destructive) {
+                finish()
+                var mark = config.watermark; mark.enabled = false
+                update(mark, fields: [.watermark_enabled])
+              } label: {
+                Label("Remove Watermark", systemImage: "trash")
+              }
+            }
             .gesture(DragGesture().onChanged { value in
               begin()
               guard let start else { return }
@@ -686,13 +764,21 @@ struct WatermarkCanvas: View {
         SensitivePreviewCover(model: model, ids: [asset.id])
       }.coordinateSpace(name: "WatermarkCanvas").frame(width: size.width, height: size.height).position(x: geometry.size.width / 2, y: geometry.size.height / 2)
     }.task(id: WatermarkKey(asset: asset, configuration: config)) {
+      let key = WatermarkKey(asset: asset, configuration: config)
+      previewFailure = nil
       do {
-        let size = try await model.processor.identify(asset.url)
-        let transformed = ImageProcessor.transformedSize(size, configuration: config)
-        output = ImageProcessor.outputSize(source: transformed, configuration: config)
+        let rendered = try await model.processor.render(key.asset.url, configuration: key.configuration, previewMaximum: 1200)
+        let renderedSize = CGSize(width: rendered.width, height: rendered.height)
+        let renderedBounds = key.configuration.watermark.enabled
+          ? try await model.processor.watermarkBounds(key.configuration.watermark, output: renderedSize) : nil
         try Task.checkCancellation()
-        bounds = config.watermark.enabled ? try await model.processor.watermarkBounds(config.watermark, output: output) : nil
-      } catch { bounds = nil; model.issues.append("Watermark controls could not load: " + error.localizedDescription) }
+        guard key == WatermarkKey(asset: asset, configuration: config) else { return }
+        // Handles use the actual rendered output, including native sizing and rotation.
+        output = renderedSize; bounds = renderedBounds; preview = rendered; previewKey = key
+      } catch is CancellationError {} catch {
+        guard !Task.isCancelled, key == WatermarkKey(asset: asset, configuration: config) else { return }
+        bounds = nil; preview = nil; previewFailure = "Watermark preview could not load: " + error.localizedDescription
+      }
     }.onDisappear { finish() }
   }
   struct WatermarkKey: Equatable { var asset: SourceAsset; var configuration: ProcessingConfiguration }

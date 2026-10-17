@@ -265,6 +265,8 @@ import FramepebbleCore
     func testSavedNamingAndMultipleProfileFoldersUseExactDimensions() async throws {
         let model = try workspace(); let url = try source(at: model.directory); let original = try Data(contentsOf: url)
         let asset = SourceAsset(url: url, name: "source.png"); model.assets = [asset]; model.selected = asset.id
+        // This test requests fixed output dimensions, explicitly selecting a canvas from native-size defaults.
+        model.settings.crop.mode = .fit
         model.settings.width = 32; model.settings.height = 32; model.namingTemplate = "{name}-{id}{suffix}"; model.saveProfile(name: "Small")
         let small = try XCTUnwrap(model.profiles.last); XCTAssertEqual(small.namingTemplate, model.namingTemplate)
         model.settings.width = 64; model.settings.height = 40; model.saveProfile(name: "Wide"); let wide = try XCTUnwrap(model.profiles.last)

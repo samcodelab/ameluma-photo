@@ -8,10 +8,9 @@ struct ImportProgressView: View {
       HStack {
         Text(model.importMessage).font(.callout).lineLimit(1)
         Spacer()
-        if model.library != .all || !model.query.isEmpty {
+        if model.hasHiddenWorkspaceFilters {
           Button("Show arriving images") {
-            model.library = .all
-            model.query = ""
+            model.showAllWorkspacePhotos()
           }
         }
         Button("Cancel import") { model.cancelImport() }

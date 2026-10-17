@@ -1,7 +1,7 @@
 import Foundation
 import FramepebbleCore
 
-enum WorkspaceTask: String { case gif = "Create GIF", collage = "Create Collage", collageAdd = "Add Photos", edit = "Edit Photo", batch = "Batch Edit", convert = "Convert", censor = "Censor" }
+enum WorkspaceTask: String { case gif = "Create GIF", collage = "Create Collage", collageAdd = "Add Photos", edit = "Edit Photo", retouch = "Retouch Photo", batch = "Batch Edit", convert = "Convert", resize = "Resize Photos", censor = "Censor" }
 struct GIFSelectionContext {
   var task: WorkspaceTask = .gif
   var collageID: UUID?
@@ -87,8 +87,9 @@ extension Workspace {
     switch task {
     case .gif: startGIF(ids: ids)
     case .convert: beginConversion(ids: ids)
-    case .batch: beginBatch(ids: ids)
+    case .batch, .resize: beginBatch(ids: ids)
     case .edit: for id in ids { if let source = workspaceAssets.first(where: { $0.id == id }) { openPhoto(source) } }
+    case .retouch: if ids.count == 1, let source = workspaceAssets.first(where: { $0.id == ids[0] }) { openPhoto(source); activatePhotoTool(.retouch) }
     case .censor: if ids.count == 1, let source = workspaceAssets.first(where: { $0.id == ids[0] }) { openOverlayEditor(for: source) }
     case .collage: switchWorkflow(.collages); newCollage(sourceIDs: ids)
     case .collageAdd:
@@ -103,10 +104,11 @@ extension Workspace {
     guard let context = gifSelectionContext else { return false }
     let count = selection.count
     if count == 0 { return false }
-    if context.task == .censor || context.task == .edit || context.replacingFrame != nil { return count == 1 }
+    if context.task == .censor || context.task == .retouch || context.task == .edit || context.replacingFrame != nil { return count == 1 }
     if context.task == .gif { return count + (context.adding ? (gifProject?.frames.count ?? 0) : 0) <= 1000 }
     if context.task == .collageAdd { return count + collage.cells.count <= CollageProject.maximumCells }
-    return count <= CollageProject.maximumCells
+    if context.task == .collage { return count <= CollageProject.maximumCells }
+    return true
   }
   func finishGIFSelection(cancel: Bool) {
     guard let context = gifSelectionContext else { return }

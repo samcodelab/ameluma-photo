@@ -113,3 +113,9 @@ GIFs support 1–1,000 frames, 16–2,000 pixels per side, 0.1–60 seconds per 
 
 
 Current reliability work and verification: [review results](docs/RELIABILITY_REVIEW.md). Project instructions reference local files and are not self-contained cross-device packages. New Convert tasks preserve source dimensions unless Also Resize or an explicit output profile is selected; legacy projects retain their saved output. Workspace removal keeps creation dependencies, and Free Unused Working Copies is separate from clearing current work and creations. GIF missing-frame recovery, saved-creation access, relinking review flags and duplicate detection follow current project ownership.
+
+## Demo Workspace
+
+Choose **Open Demo Workspace** from the workspace sidebar, Projects, or iPhone home screen to try 27 generated sample photographs in a separate saved editing session. Use **Return to Your Workspace** to resume your own photos and edits. The collection includes a signature coastal portrait and five deliberately imperfect editing challenges. See [Demo Workspace behaviour and verification](docs/DEMO_WORKSPACE.md) and [asset provenance and usage](Resources/DemoWorkspace/README.md).
+
+Creative Filters uses a versioned catalog of 24 original SDR recipes, independent persisted Auto Enhance, scoped history and captured batch inputs. Native kernels and the shared renderer drive thumbnails, canvas and export; legacy six-look edits remain compatible. See the filter delivery report for measured hardware, validation evidence and release limitations.

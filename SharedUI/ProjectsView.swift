@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct ProjectsView: View {
   @Bindable var model: Workspace
+  @State private var section = "Projects"
   @State private var open = false
   @State private var relink = false
   @State private var projects: [URL] = []
@@ -15,10 +16,20 @@ struct ProjectsView: View {
   var body: some View {
     NavigationStack {
       List {
+        Picker("Manage", selection: $section) {
+          Text("Projects").tag("Projects"); Text("Sources").tag("Sources"); Text("Settings").tag("Settings")
+        }.pickerStyle(.segmented)
+        if section == "Projects" {
+        if !model.isDemoWorkspace {
+          Section("Try Ameluma") {
+            DemoWorkspaceButton(model: model)
+            Text("Practice with generated sample photos in a separate workspace. Your current photos and edits stay here.").font(.caption).foregroundStyle(.secondary)
+          }
+        }
         Section("Current Project") {
           TextField("Project name", text: $model.projectName)
           Text(
-            "\(model.assets.count) photos. Project files store editing instructions and source references, not embedded photographs."
+            "\(model.workspaceAssets.count) workspace photos · \(model.hiddenSourceIDs.count) retained working sources. Project instructions refer to local photos; they do not embed them."
           ).font(.caption)
           Button("Save project copy") {
             Task {
@@ -48,6 +59,8 @@ struct ProjectsView: View {
               .font(.caption)
           }
         }
+        }
+        if section == "Sources" {
         Section("Local Source Storage") {
           Text("Workspace photos: \(model.workspaceAssets.count). Retained creation sources: \(model.hiddenSourceIDs.count). Removing a workspace photo keeps sources needed by creations.").font(.caption)
           Button("Free Unused Working Copies") { Task { do { let count = try await model.freeUnusedWorkingCopies(); model.status = "Freed \(count) unused working copies."; await refreshStorage() } catch { storageError = error.localizedDescription } } }.disabled(model.clearingWorkspace || model.isImporting || model.sourceAcquisitions > 0 || model.running || model.gifExporting || model.collageGenerating)
@@ -61,12 +74,16 @@ struct ProjectsView: View {
           } else if let storageError { Text(storageError).font(.caption) }
           else { ProgressView("Checking owned storage…") }
         }
+        }
+        if section == "Settings" {
         Section("Privacy & Imports") {
           Toggle("Private Editing Mode", isOn: $model.privateEditing)
-          Toggle("Skip duplicate imports this session", isOn: $model.skipDuplicates)
+          Toggle("Skip duplicate imports", isOn: $model.skipDuplicates)
           Text("Private mode avoids persistent preview thumbnails and disables the app’s memory thumbnail cache. Saved sources and project recovery remain on disk. It does not control system screenshots, backups or user-selected cloud folders, and is not secure deletion or encryption.").font(.caption).foregroundStyle(.secondary)
           Button("Conceal Workspace", systemImage: "eye.slash") { model.concealed = true }
         }
+        }
+        if section == "Projects" {
         Section("Recent Projects") {
           ForEach(projects, id: \.self) { url in
             Button {
@@ -74,12 +91,14 @@ struct ProjectsView: View {
             } label: { SavedProjectLabel(url: url, store: model.store) }
           }
         }
-        Section {
+        }
+        if section == "Settings" { Section {
           Text(
             "Private Editing Mode uses text-only project listings. Saving projects preserves recovery data; sources and backups are not securely erased."
           ).font(.caption)
         }
-      }.navigationTitle("Projects").compactNavigationTitle().toolbar {
+        }
+      }.navigationTitle(section).compactNavigationTitle().toolbar {
         Button("Done") { dismiss() }
       }.onAppear { reload() }
         .task(id: [model.assets.count, projects.count, model.profiles.count, model.watermarkPresets.count]) { await refreshStorage() }
@@ -90,21 +109,24 @@ struct ProjectsView: View {
               await model.openProject(url)
               dismiss()
             }
-          case .failure(let error): model.issues.append(error.localizedDescription)
+          case .failure(let error): if !error.isUserCancellation { model.issues.append(error.localizedDescription) }
           }
         }
         .fileImporter(isPresented: $relink, allowedContentTypes: ImageProcessor.importTypes) {
           result in
           switch result {
           case .success(let url): Task { await model.relinkSource(url) }
-          case .failure(let error): model.issues.append(error.localizedDescription)
+          case .failure(let error): if !error.isUserCancellation { model.issues.append(error.localizedDescription) }
           }
         }
     }.alert("Clear imported photos and edits?", isPresented: $confirmClear) {
       Button("Clear Workspace & Creations", role: .destructive) { Task { await model.clearImportedPhotos(); reload(); await refreshStorage() } }
       Button("Cancel", role: .cancel) {}
     } message: { Text("This removes current workspace photos, photo edits, GIFs and collages. Saved project copies, originals and exported files remain. To remove photos while keeping creations, use Remove from Workspace. Save a project copy first to preserve this work.") }
-    .frame(minWidth: 320, minHeight: 440)
+    .frame(minWidth: 320)
+    #if os(macOS)
+    .frame(minHeight: 440)
+    #endif
   }
   func refreshStorage() async {
     do {

@@ -27,6 +27,45 @@ import XCTest
     controller.recipes = [recipe]
     return (controller, input, output, recipe.id)
   }
+  func testRecipeDraftCancelAndAtomicSavePreserveLiveJobState() async throws {
+    let (controller, _, _, id) = try setup()
+    controller.save()
+    let before = try Data(contentsOf: controller.ledger)
+    controller.beginEditing(id)
+    var draft = controller.recipes[0]
+    draft.name = "Changed name"; draft.configuration.width = 123
+    XCTAssertTrue(controller.recipes[0].enabled)
+    XCTAssertNotEqual(controller.recipes[0].name, draft.name)
+    await controller.reconcile(force: id)
+    XCTAssertEqual(controller.recipes[0].completed, 0)
+    controller.cancelEditing(id)
+    XCTAssertEqual(try Data(contentsOf: controller.ledger), before)
+    XCTAssertTrue(controller.recipes[0].enabled)
+    controller.beginEditing(id)
+    controller.recipes[0].completed = 4
+    controller.recipes[0].history.insert("finished-during-edit")
+    XCTAssertTrue(controller.commitEditedRecipe(draft))
+    XCTAssertEqual(controller.recipes[0].name, "Changed name")
+    XCTAssertEqual(controller.recipes[0].configuration.width, 123)
+    XCTAssertEqual(controller.recipes[0].completed, 4)
+    XCTAssertTrue(controller.recipes[0].history.contains("finished-during-edit"))
+    XCTAssertFalse(controller.recipes[0].enabled)
+    XCTAssertFalse(controller.editingRecipeIDs.contains(id))
+    let saved = try JSONDecoder().decode(AutomationLedger.self, from: Data(contentsOf: controller.ledger))
+    XCTAssertEqual(saved.recipes[0].name, "Changed name")
+    XCTAssertEqual(saved.recipes[0].completed, 4)
+  }
+
+  func testRecipeSaveFailureDoesNotPartiallyCommitDraft() throws {
+    let (controller, _, _, id) = try setup()
+    controller.beginEditing(id)
+    var draft = controller.recipes[0]; draft.name = "Must not commit"
+    try FileManager.default.removeItem(at: controller.root)
+    XCTAssertFalse(controller.commitEditedRecipe(draft))
+    XCTAssertNotEqual(controller.recipes[0].name, draft.name)
+    XCTAssertTrue(controller.editingRecipeIDs.contains(id))
+    controller.cancelEditing(id)
+  }
   func image(_ input: URL) throws -> URL {
     let url = input.appendingPathComponent("new.png")
     let ctx = try XCTUnwrap(

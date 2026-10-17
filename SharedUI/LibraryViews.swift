@@ -6,52 +6,45 @@ struct LibrarySidebar: View {
   var openAutomations: (() -> Void)? = nil
   var body: some View {
     List {
-      Section {
-        HStack(spacing: 10) {
-          PebbleMark()
-          VStack(alignment: .leading) {
-            Text("Ameluma Photo").font(.headline)
-            Text("Your photos. Your way.").font(.caption2).foregroundStyle(.secondary)
-          }
-        }.padding(.vertical, 8)
-      }
       Section("Workspace") {
         Text(model.projectName).font(.headline).lineLimit(2)
-        Button("Projects…", systemImage: "folder") { model.projectsView = true }
-        ForEach(LibraryScope.allCases.filter { $0 != .exceptions || !model.edits.overrides.isEmpty }, id: \.self) { category in
-          Button {
-            model.showLibrary(category, clearSearch: true)
-          } label: {
-            HStack {
-              Label(category.rawValue, systemImage: symbol(category))
-              Spacer()
-              Text("\(count(category))").font(.caption).foregroundStyle(.secondary)
-            }.foregroundStyle(model.browsingLibrary && model.library == category ? Color.accentColor : Color.primary)
+        Button { model.projectsView = true } label: {
+          Label { Text("Projects…") } icon: { Image(systemName: "folder").foregroundStyle(.primary) }
+        }
+        DemoWorkspaceButton(model: model)
+        scopeButton(.all)
+        scopeButton(.favourites)
+        ForEach([LibraryScope.edited, .exceptions].filter { prominent($0) }, id: \.self) { scopeButton($0) }
+        let secondary = [LibraryScope.edited, .exceptions, .review, .privacyReview].filter { !prominent($0) }
+        if !secondary.isEmpty {
+          DisclosureGroup("More Filters") {
+            ForEach(secondary, id: \.self) { scopeButton($0) }
           }
         }
+      }
+      let reviews = [LibraryScope.review, .privacyReview].filter { prominent($0) }
+      if !reviews.isEmpty {
+        Section("Review") { ForEach(reviews, id: \.self) { scopeButton($0) } }
       }
       Section("Tools") {
         ForEach(StudioWorkflow.allCases, id: \.self) { workflow in
           #if os(iOS)
           if workflow != .automations { workflowButton(workflow) }
           #else
-          workflowButton(workflow)
+          if !model.isDemoWorkspace || workflow != .automations { workflowButton(workflow) }
           #endif
         }
       }
       Section("Quick Tasks") {
-        Button("Convert Photos", systemImage: "arrow.triangle.2.circlepath") { model.selectPhotos(for: .convert) }
-        Button("Censor a Photo", systemImage: "eye.slash") { model.selectPhotos(for: .censor) }
-        Button("Choose Photos to Edit", systemImage: "slider.horizontal.3") { model.selectPhotos(for: .edit) }
-        Button("Choose Batch Inputs", systemImage: "square.stack") { model.selectPhotos(for: .batch) }
-        Button("Create Collage from Photos", systemImage: "rectangle.split.2x2") { model.selectPhotos(for: .collage) }
-      }.disabled(model.gifSelectionContext != nil || model.overlayEditor)
-      Section("Smart Search") {
-        TextField("Filename or recognised content", text: $model.query)
-          .onChange(of: model.query) { _, _ in model.showLibrary() }
-        if !model.query.isEmpty {
-          Button("Clear search", systemImage: "xmark.circle") { model.query = "" }
+        Button { model.selectPhotos(for: .convert) } label: {
+          Label { Text("Convert Photos") } icon: { Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.primary) }
         }
+        Button { model.selectPhotos(for: .resize) } label: {
+          Label { Text("Resize Photos") } icon: { Image(systemName: "arrow.up.left.and.arrow.down.right").foregroundStyle(.primary) }
+        }
+      }.disabled(model.gifSelectionContext != nil || model.overlayEditor)
+      if model.browsingLibrary {
+      DisclosureGroup("Categories") {
         ForEach(Array(model.index.suggestedCategories.prefix(10)), id: \.0) { name, count in
           Button {
             model.showLibrary()
@@ -69,15 +62,14 @@ struct LibrarySidebar: View {
         Text("\(model.index.records.count) / \(model.workspaceAssets.count) indexed locally").font(.caption2)
           .foregroundStyle(.secondary)
       }
-      Section {
-        Button("Help & Privacy", systemImage: "questionmark.circle") { model.helpPresented = true }
       }
-      Section {
+      DisclosureGroup("Help & Review") {
+        Button("Help & Privacy", systemImage: "questionmark.circle") { model.helpPresented = true }
         Button("Check photo privacy…", systemImage: "checkmark.shield") {
           model.sensitiveReviewPresented = true
         }
       }
-      Section("Presets") {
+      DisclosureGroup("Presets") {
         ForEach(model.profiles) { profile in
           Button {
             model.switchWorkflow(.batch)
@@ -88,10 +80,29 @@ struct LibrarySidebar: View {
         }
       }
     }.listStyle(.sidebar).buttonStyle(.plain)
+      #if os(macOS)
+      .environment(\.defaultMinListRowHeight, 28)
+      #endif
+  }
+  func prominent(_ category: LibraryScope) -> Bool {
+    count(category) > 0 || (model.browsingLibrary && model.library == category)
+  }
+  func scopeButton(_ category: LibraryScope) -> some View {
+    Button { model.showLibrary(category, clearSearch: true) } label: {
+      HStack {
+        Label(category == .exceptions ? "Photo-specific edits" : category.rawValue, systemImage: symbol(category))
+          .symbolRenderingMode(.monochrome)
+        Spacer()
+        Text("\(count(category))").font(.caption).foregroundStyle(.secondary)
+      }.foregroundStyle(model.browsingLibrary && model.library == category ? Color.accentColor : Color.primary)
+    }
   }
   func workflowButton(_ workflow: StudioWorkflow) -> some View {
     Button { model.switchWorkflow(workflow) } label: {
-      Label(workflow.rawValue, systemImage: workflow.symbol).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+      Label { Text(workflow.rawValue) } icon: {
+        Image(systemName: workflow.symbol).symbolRenderingMode(.monochrome)
+          .foregroundStyle(!model.browsingLibrary && model.workflow == workflow ? Color.accentColor : Color.primary)
+      }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
         .foregroundStyle(!model.browsingLibrary && model.workflow == workflow ? Color.accentColor : Color.primary)
     }
   }
@@ -109,15 +120,18 @@ struct LibrarySidebar: View {
     switch category {
     case .exceptions: model.workspaceAssets.filter { model.edits.overrides[$0.id] != nil }.count
     case .all: model.workspaceAssets.count
-    case .favourites: model.favourites.count
+    case .favourites: model.workspaceAssets.filter { model.favourites.contains($0.id) }.count
     case .edited: model.workspaceAssets.filter { model.isEdited($0.id) }.count
     case .review: model.workspaceAssets.filter { model.proposals[$0.id]?.needsReview == true || model.privacyCoverageNeedsReview($0.id) }.count
-    case .privacyReview: model.sensitivity.flagged.union(model.privacyCoverageReviewIDs).count
+    case .privacyReview: model.workspaceAssets.filter { model.sensitivity.flagged.contains($0.id) || model.privacyCoverageReviewIDs.contains($0.id) }.count
     }
   }
 }
 struct LibraryToolbar: View {
   @Bindable var model: Workspace
+  var operationOnly: Binding<Bool>? = nil
+  @AppStorage("workspace.showFilenames") private var showFilenames = true
+  @AppStorage("workspace.showFavouriteButtons") private var showFavouriteButtons = false
   @State private var confirmReset = false
   @State private var confirmResetAll = false
   @State private var resetPurpose = "Restore Original Appearance"
@@ -125,121 +139,43 @@ struct LibraryToolbar: View {
   @Environment(\.dynamicTypeSize) private var typeSize
   var galleryInstruction: String {
     #if os(macOS)
-    "Double-click a photo to edit. Right-click for privacy tools."
+    "Double-click a photo to edit. Right-click for photo actions."
     #else
     sizeClass == .compact
-      ? (typeSize.isAccessibilitySize ? "Tap to edit. Select for a batch." : "Tap a photo to edit. Long-press for privacy tools, or choose Select to build a batch.")
-      : "Double-tap a photo to edit. Long-press for privacy tools."
+      ? (typeSize.isAccessibilitySize ? "Tap to edit. Select for a batch." : "Tap a photo to edit. Long-press for photo actions, or choose Select to build a batch.")
+      : "Double-tap a photo to edit. Long-press for photo actions."
     #endif
   }
   @ViewBuilder var galleryHeading: some View {
     if model.browsingLibrary {
-      Text(model.library.rawValue).font(.title2.weight(.semibold))
-    } else { modePicker }
+      #if os(macOS)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(model.library.rawValue).font(.headline)
+        gallerySummary
+      }
+      #else
+      if sizeClass == .compact {
+        Text("\(model.filtered.count) \(model.filtered.count == 1 ? "photo" : "photos")").font(.subheadline).foregroundStyle(.secondary)
+      } else { gallerySummary }
+      #endif
+    } else if sizeClass == .compact {
+      OperationContextHeader(model: model)
+    } else {
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 16) { OperationContextHeader(model: model); modePicker }
+        OperationContextHeader(model: model)
+      }
+    }
   }
   var body: some View {
-    VStack(spacing: 10) {
-      if typeSize.isAccessibilitySize {
-        VStack(alignment: .leading, spacing: 8) {
-          galleryHeading
-          HStack { Spacer(); selectionControls }
-        }
-      } else {
+    VStack(spacing: 4) {
       ViewThatFits(in: .horizontal) {
-        HStack {
-          galleryHeading
-          Spacer()
-          selectionControls
-        }
-        VStack(alignment: .leading, spacing: 10) {
-          galleryHeading
-          HStack {
-            Spacer()
-            selectionControls
-          }
-        }
+        HStack(spacing: 8) { galleryHeading; Spacer(minLength: 4); selectionControls }
+        VStack(alignment: .leading, spacing: 4) { galleryHeading; HStack { Spacer(); selectionControls } }
       }
-      }
-      if !model.browsingLibrary && model.workflow == .batch {
-        VStack(alignment: .leading, spacing: 4) {
-          Label(model.editScopeHeading, systemImage: "person.2").font(.headline)
-          HStack {
-            if model.batchInputIDs == nil {
-              Button("Keep These Batch Inputs") { model.batchInputIDs = Set(model.targets.map(\.id)); model.scope = .selected; model.persist() }
-                .disabled(model.targets.isEmpty)
-            } else {
-              if model.conversionInputIDs == nil { Button("Use Live Selection Instead") { model.batchInputIDs = nil; model.scope = .selected; model.persist() } }
-              Text("Inputs stay fixed while browsing and filtering.").font(.caption).foregroundStyle(.secondary)
-            }
-          }
-          if !model.edits.overrides.isEmpty {
-            Button("Review Individual Exceptions") { model.showLibrary(.exceptions, clearSearch: true) }
-          }
-
-          if model.scope == .all && !model.selection.isEmpty {
-            Text("All imported photos are targeted, including photos outside this filter.").font(.caption).foregroundStyle(.secondary)
-            Button("Edit Only Selected Photos (\(model.selection.count))") { model.scope = .selected }
-          }
-        }.frame(maxWidth: .infinity, alignment: .leading)
-      }
-      if typeSize.isAccessibilitySize {
-        gallerySummary.frame(maxWidth: .infinity, alignment: .leading)
-      } else {
-        HStack {
-          gallerySummary
-          Spacer(minLength: 8)
-          previewSizeControl
-          undoRedoControls
-        }
-      }
-      if !model.browsingLibrary && model.workflow == .batch {
-        ViewThatFits(in: .horizontal) {
-          HStack {
-            Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
-            Spacer()
-            resetAllButton
-          }
-          VStack(alignment: .leading, spacing: 8) {
-            Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
-            resetAllButton
-          }
-        }.disabled(model.running || model.analysing)
-      }
-      if model.browsingLibrary && model.gifSelectionContext == nil && !typeSize.isAccessibilitySize {
-        ViewThatFits(in: .horizontal) {
-          HStack {
-            Button("Edit Photo", systemImage: "slider.horizontal.3") {
-              if let asset = model.current { model.openPhoto(asset) }
-            }.disabled(model.current == nil)
-            Button("Privacy", systemImage: "eye.slash") {
-              if let asset = model.current { model.openOverlayEditor(for: asset) }
-            }.disabled(model.current == nil)
-            Spacer()
-            Button("Batch Edit Selected (\(model.selection.count))") { model.editSelectedBatch() }
-              .disabled(model.selection.isEmpty)
-          }
-          Menu("Photo actions") {
-            Button("Edit Photo") { if let asset = model.current { model.openPhoto(asset) } }
-              .disabled(model.current == nil)
-            Button("Privacy") { if let asset = model.current { model.openOverlayEditor(for: asset) } }
-              .disabled(model.current == nil)
-            Button("Batch Edit Selected (\(model.selection.count))") { model.editSelectedBatch() }
-              .disabled(model.selection.isEmpty)
-          }
-        }
-        Text(galleryInstruction)
-          .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
-      }
-      #if os(iOS)
-        if sizeClass == .regular && model.mode == .frame && !model.selecting {
-          Button(model.thumbnailEditing ? "Done Reframing" : "Reframe thumbnails") {
-            model.thumbnailEditing.toggle()
-          }
-        }
-      #endif
-      if model.mode == .frame && !model.selecting {
-        Text(frameHint).font(.caption).foregroundStyle(.secondary).frame(
-          maxWidth: .infinity, alignment: .leading)
+      if (model.selecting || !model.selection.isEmpty) && (operationOnly == nil || model.batchSelectionNeedsExplanation) {
+        Text(operationOnly == nil ? model.workspaceSelectionStatus : model.batchSelectionExplanation).font(.caption).foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
       }
       if !model.sensitivity.flagged.isEmpty {
         HStack {
@@ -264,10 +200,10 @@ struct LibraryToolbar: View {
         Button("Cancel", role: .cancel) {}
       } message: {
         Text(resetPurpose == "Restore Original Appearance"
-          ? "Restore the original appearance and native size of every imported photo, including hidden photos and editor tabs. Masks, annotations and watermarks are removed. Format, quality and metadata protection are retained. Checked export profiles still transform exported files. Undo is available. Originals are untouched."
+          ? "Restore the original appearance and native size of every imported photo, including photos hidden by filters and editor tabs. Masks, annotations and watermarks are removed. Format, quality and metadata protection are retained. Checked export profiles still transform exported files. Undo is available. Originals are untouched."
           : resetPurpose == "Reset Batch Settings"
           ? "Return shared settings to 1600 × 1200 Fit and JPEG. Individual overrides are retained and may still change each photo. Checked export profiles remain active. Undo is available."
-          : "Remove every photo’s individual edits, including masks, so all photos inherit the current batch settings. This does not restore original appearance. Checked export profiles remain active. Undo is available.")
+          : "Remove every workspace photo’s individual edits, including masks, so all photos inherit the current batch settings. This does not restore original appearance. Checked export profiles remain active. Undo is available.")
       }
       .alert("Reset selected image edits?", isPresented: $confirmReset) {
         Button("Reset Edits", role: .destructive) { model.resetAllImageEdits(model.selection) }
@@ -328,10 +264,18 @@ struct LibraryToolbar: View {
   }
   var selectionControls: some View {
     HStack {
-      if model.gifSelectionContext == nil { Menu("Actions") { WorkspaceActions(model: model, ids: model.orderedSelection) } }
+      if model.gifSelectionContext == nil && sizeClass != .compact {
+        Menu {
+          WorkspaceActions(model: model, ids: model.selection.isEmpty ? model.current.map { [$0.id] } ?? [] : model.orderedSelection)
+        } label: { Text("Actions") }.comfortableHitTarget().accessibilityLabel("Photo actions")
+      }
       Button(model.selecting ? "Done" : "Select") { model.toggleSelectionMode() }.disabled(
         model.workspaceAssets.isEmpty || model.gifSelectionContext != nil)
       Menu {
+        if sizeClass == .compact && model.gifSelectionContext == nil {
+          WorkspaceActions(model: model, ids: model.selection.isEmpty ? model.current.map { [$0.id] } ?? [] : model.orderedSelection)
+          Divider()
+        }
         if typeSize.isAccessibilitySize {
           if model.browsingLibrary {
             Button("Open in Editor") { if let asset = model.current { model.openPhoto(asset) } }
@@ -342,12 +286,36 @@ struct LibraryToolbar: View {
               .disabled(model.selection.isEmpty)
           }
           Menu("Preview size") { PreviewSizeMenu(model: model) }
-          Button("Undo edit") { model.undo() }.disabled(!model.canUndo)
-          Button("Redo edit") { model.redo() }.disabled(!model.canRedo)
           Divider()
         }
+        if !model.browsingLibrary {
+          if let photo = model.current {
+            Menu("Focused Photo: " + photo.name) {
+              Button("Rotate This Photo", systemImage: "rotate.right") { model.rotatePhoto(photo.id) }
+              Button("Refine This Photo", systemImage: "crop") { model.openPhoto(photo, refine: true) }
+            }
+          }
+          resetAllButton
+        }
+        Menu("View", systemImage: "eye") {
+          if !model.browsingLibrary {
+            Picker("Preview", selection: $model.mode) {
+              ForEach(WorkspaceMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+          }
+          if let operationOnly { Toggle("Show operation photos only", isOn: operationOnly) }
+          Menu("Thumbnail size") { PreviewSizeMenu(model: model) }
+          Toggle("Show filenames", isOn: $showFilenames)
+          Toggle("Show favourite buttons", isOn: $showFavouriteButtons)
+          #if os(iOS)
+          if model.mode == .frame { Toggle("Reframe thumbnails", isOn: $model.thumbnailEditing) }
+          #endif
+          Text(frameHint)
+        }
+        Button("Undo edit") { model.undo() }.disabled(!model.canUndo)
+        Button("Redo edit") { model.redo() }.disabled(!model.canRedo)
         Button("Undo History…", systemImage: "clock.arrow.circlepath") { model.historyPresented = true }
-        Button("Projects & Clear Photos…") { model.projectsView = true }
+        Button("Projects…") { model.projectsView = true }
         Button("Privacy Review…") { model.sensitiveReviewPresented = true }
         Button("Select visible photos") { model.selectVisiblePhotos() }
         Button("Clear selection") { model.selection = [] }
@@ -356,12 +324,10 @@ struct LibraryToolbar: View {
           model.selection.isEmpty)
         Button("Reset selected framing") { model.reset(model.selection) }.disabled(
           model.selection.isEmpty)
-        Button("Reset all manual framing") {
-          model.reset(Set(model.edits.overrides.filter { $0.value.crop.framing == .manual }.keys))
-        }
+        Button("Reset Manual Framing for All Workspace Photos") { model.resetWorkspaceManualFraming() }
       } label: {
         Image(systemName: "ellipsis.circle")
-      }.comfortableHitTarget().disabled(model.gifSelectionContext != nil).accessibilityLabel("Gallery actions")
+      }.comfortableHitTarget().disabled(model.gifSelectionContext != nil).accessibilityLabel(sizeClass == .compact ? "Photo actions and view options" : "View and gallery options")
     }
   }
   var frameHint: String {
@@ -408,12 +374,14 @@ struct PreviewSizeSlider: View {
 }
 struct ImageTile: View {
   @Bindable var model: Workspace
+  @AppStorage("workspace.showFilenames") private var showFilenames = true
+  @AppStorage("workspace.showFavouriteButtons") private var showFavouriteButtons = false
   let asset: SourceAsset
   var displaySize: Double? = nil
   @Environment(\.horizontalSizeClass) private var sizeClass
   var tileDimension: Double { displaySize ?? model.tileSize }
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 4) {
       ZStack(alignment: .topTrailing) {
         FramingSurface(
           model: model, asset: asset, interactive: allowsDirectFraming,
@@ -425,20 +393,14 @@ struct ImageTile: View {
         .overlay(MacPhotoSelectionCapture(capturesPlainClicks: model.mode == .browse || model.selecting, onSelect: nativeSelect))
         #endif
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(alignment: .bottomLeading) {
-          if model.batchInputIDs?.contains(asset.id) == true {
-            Label("Batch input", systemImage: "square.stack").font(.caption2).padding(4)
-              .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5)).padding(5).allowsHitTesting(false)
-          }
-        }
         .overlay(
           RoundedRectangle(cornerRadius: 8).stroke(
-            model.selected == asset.id ? Color.accentColor : model.selection.contains(asset.id) ? Color.accentColor.opacity(0.45) : .clear,
-            lineWidth: model.selected == asset.id ? 3 : 1.5))
+            model.selection.contains(asset.id) ? Color.accentColor : model.selected == asset.id ? Color.secondary.opacity(0.5) : .clear,
+            lineWidth: 1))
         if model.sensitivity.flagged.contains(asset.id)
           || model.proposals[asset.id]?.needsReview == true || model.privacyCoverageNeedsReview(asset.id)
           || model.isEdited(asset.id)
-          || (model.selection.contains(asset.id) && model.selecting)
+          || model.selection.contains(asset.id)
         {
           HStack(spacing: 4) {
             if model.sensitivity.flagged.contains(asset.id) {
@@ -457,30 +419,26 @@ struct ImageTile: View {
             } else if let proposal = model.proposals[asset.id], proposal.crop.framing != .centre {
               Image(systemName: "sparkles").help("Vision framing proposal")
             }
-            if model.selected == asset.id { Image(systemName: "circle.inset.filled").help("Active photo") }
-            if model.selection.contains(asset.id), model.selecting {
+            if model.selection.contains(asset.id) {
               Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor)
             }
-          }.font(.caption).padding(6).background(.regularMaterial, in: Capsule()).padding(7)
+          }.font(.caption).symbolRenderingMode(.hierarchical).padding(6).background(.regularMaterial, in: Capsule()).padding(7)
         }
       }
-      HStack {
-        Text(asset.name).font(.caption).lineLimit(1)
+      if showFilenames { HStack {
+        Text(asset.name).font(.caption).lineLimit(1).truncationMode(.middle)
           #if os(macOS)
           .overlay(MacPhotoSelectionCapture(capturesPlainClicks: true, onSelect: nativeSelect))
           #endif
         Spacer()
-        Button {
+        if showFavouriteButtons || model.favourites.contains(asset.id) { Button {
           model.toggleFavourite(asset.id)
         } label: {
           Image(systemName: model.favourites.contains(asset.id) ? "heart.fill" : "heart")
             .foregroundStyle(model.favourites.contains(asset.id) ? .pink : .secondary)
-        }.buttonStyle(.plain).accessibilityLabel("Favourite \(asset.name)")
-      }
-    }.padding(6).background(
-      model.selected == asset.id ? Color.accentColor.opacity(0.06) : Color.clear,
-      in: RoundedRectangle(cornerRadius: 12)
-    )
+        }.buttonStyle(.plain).accessibilityLabel("Favourite \(asset.name)") }
+      } }
+    }.padding(6)
     .onAppear { model.visibility(asset.id, visible: true) }.onDisappear {
       model.visibility(asset.id, visible: false)
     }
@@ -497,6 +455,12 @@ struct ImageTile: View {
     #endif
     .accessibilityElement(children: .contain)
     .accessibilityLabel(asset.name)
+    .accessibilityValue([
+      model.batchInputIDs?.contains(asset.id) == true ? "Included in this operation" : nil,
+      model.selection.contains(asset.id) ? "Selected" : nil,
+      model.selected == asset.id ? "Active photo" : nil
+    ].compactMap { $0 }.joined(separator: ", "))
+    .accessibilityAction(named: model.favourites.contains(asset.id) ? "Remove favourite" : "Add favourite") { model.toggleFavourite(asset.id) }
     .accessibilityAction(named: "Select photo") { model.select(asset) }
     .accessibilityAction(named: "Refine framing") {
       model.openPhoto(asset, refine: true)
@@ -570,14 +534,19 @@ struct ImageTile: View {
 }
 struct ImageCollection: View {
   @Bindable var model: Workspace
+  @State private var operationOnly = true
+  var canFilterOperation: Bool { !model.browsingLibrary && model.workflow == .batch && model.gifSelectionContext == nil }
+  var displayedAssets: [SourceAsset] { model.galleryPhotos(operationOnly: operationOnly) }
   var importAction: (() -> Void)? = nil
   @FocusState private var galleryFocused: Bool
   @Environment(\.dynamicTypeSize) private var typeSize
   var body: some View {
     VStack(spacing: 0) {
-      if model.gifSelectionContext == nil { LibraryToolbar(model: model).fixedSize(horizontal: false, vertical: true) }
-      WorkspaceFilterControls(model: model)
-      Divider()
+      if model.mode != .compare {
+        if model.gifSelectionContext == nil { LibraryToolbar(model: model, operationOnly: canFilterOperation ? $operationOnly : nil).fixedSize(horizontal: false, vertical: true) }
+        WorkspaceFilterControls(model: model)
+        Divider()
+      }
       if model.workspaceAssets.isEmpty {
         ContentUnavailableView {
           Label(model.gifSelectionContext == nil ? "Your photo workspace" : "Choose photos · " + (model.gifSelectionContext?.task.rawValue ?? "Task"), systemImage: "photo.on.rectangle.angled")
@@ -588,37 +557,40 @@ struct ImageCollection: View {
             Button("Add Photos", action: importAction).buttonStyle(.borderedProminent)
               .controlSize(.large)
           }
+          if model.gifSelectionContext == nil { DemoWorkspaceButton(model: model) }
         }.frame(maxHeight: .infinity)
-      } else if model.filtered.isEmpty {
+      } else if displayedAssets.isEmpty {
         ContentUnavailableView {
           Label("No matching photos", systemImage: "line.3.horizontal.decrease.circle")
         } description: {
           Text(
-            model.library == .privacyReview
-              ? "No photos are flagged. Show All Photos, then right-click or long-press a photo to flag it for privacy review or edit Privacy. Automatic checks are available only when Apple’s capability and system settings allow them."
-              : model.query.isEmpty
-                ? "There are no photos in this category yet."
-                : "Search uses recognised labels. Some photos may still be waiting for indexing.")
+            !model.query.isEmpty
+              ? "No photos match the current search and filters. Search checks filenames and locally recognised content; some photos may still be waiting for content indexing."
+              : model.workspaceFilter.period != .any || model.workspaceFilter.orientation != .any || !model.workspaceFilter.format.isEmpty
+                ? "No photos match the current filters. Clear filters to see all workspace photos."
+                : model.library == .privacyReview
+                  ? "No photos are flagged for privacy review. Use a photo’s actions menu to flag it for review."
+                  : "There are no photos in this view yet.")
         } actions: {
           Button("Show All Photos") {
-            model.library = .all
-            model.query = ""
+            operationOnly = false
+            model.showAllWorkspacePhotos()
           }
         }.frame(maxHeight: .infinity)
       } else if model.mode == .compare, let asset = model.current {
-        CompareWorkspace(model: model, asset: asset)
+        CompareWorkspace(model: model, asset: asset, photos: displayedAssets)
       } else {
         GeometryReader { geometry in
           let requested = typeSize.isAccessibilitySize ? max(230, model.tileSize) : model.tileSize
           let size = min(requested, max(80, geometry.size.width - 32))
           ScrollView {
             LazyVGrid(
-              columns: [GridItem(.adaptive(minimum: CGFloat(size)), spacing: 12)], spacing: 16
+              columns: [GridItem(.adaptive(minimum: CGFloat(size)), spacing: 8)], spacing: 10
             ) {
-              ForEach(model.filtered) { asset in
+              ForEach(displayedAssets) { asset in
                 ImageTile(model: model, asset: asset, displaySize: size).id(asset.id)
               }
-            }.padding(16)
+            }.padding(10)
           }
           #if os(macOS)
           .focusable().focused($galleryFocused).focusEffectDisabled()
@@ -636,44 +608,105 @@ struct ImageCollection: View {
     }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
 }
+extension Workspace {
+  /// Comparison changes gallery focus only, never captured inputs or selection.
+  func focusComparisonPhoto(_ id: UUID, in photos: [SourceAsset]) {
+    guard photos.contains(where: { $0.id == id }) else { return }
+    selected = id
+  }
+  func returnFromComparison() { mode = .browse }
+}
+
 struct CompareWorkspace: View {
   @Bindable var model: Workspace
   let asset: SourceAsset
-  @State private var reveal = 0.5
+  let photos: [SourceAsset]
   var body: some View {
-    VStack {
-      GeometryReader { g in
-        ZStack {
-          FramingSurface(model: model, asset: asset, interactive: false)
-          FramingSurface(model: model, asset: asset, interactive: false, original: true).mask(
-            alignment: .leading
-          ) { Rectangle().frame(width: g.size.width * reveal) }
-          Rectangle().fill(.white).frame(width: 1).position(
-            x: g.size.width * reveal, y: g.size.height / 2)
-          HStack {
-            Text("Before")
-            Spacer()
-            Text("After")
-          }.font(.caption.weight(.medium)).padding(10).background(.regularMaterial).frame(
-            maxHeight: .infinity, alignment: .top)
+    VStack(spacing: 10) {
+      HStack {
+        Button("Back to Gallery", systemImage: "chevron.left") { model.returnFromComparison() }
+          .comfortableHitTarget()
+        Spacer()
+        Text(asset.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+      }
+      GeometryReader { geometry in
+        let vertical = geometry.size.width < 560
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        layout {
+          comparisonPanel("Before", original: true)
+          comparisonPanel("After", original: false)
         }
       }
-      Slider(value: $reveal, in: 0...1) { Text("Comparison position") }
-      HStack {
-        Button("Previous") { model.navigate(-1) }
-        Spacer()
-        Text(asset.name).font(.caption)
-        Spacer()
-        Button("Next") { model.navigate(1) }
+      ScrollViewReader { proxy in
+        ScrollView(.horizontal) {
+          LazyHStack(spacing: 8) {
+            ForEach(photos) { photo in
+              Button { model.focusComparisonPhoto(photo.id, in: photos) } label: {
+                VStack(spacing: 4) {
+                  FramingSurface(model: model, asset: photo, interactive: false, original: true, maximum: 160)
+                    .frame(width: 76, height: 56).clipped()
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(photo.id == asset.id ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: photo.id == asset.id ? 2 : 1))
+                  Text(photo.name).font(.caption2).lineLimit(1).frame(width: 76)
+                }
+              }.buttonStyle(.plain).id(photo.id)
+                .accessibilityLabel("Compare " + photo.name)
+                .accessibilityAddTraits(photo.id == asset.id ? [.isSelected] : [])
+            }
+          }.padding(2)
+        }.frame(height: 82)
+          .onAppear { proxy.scrollTo(asset.id, anchor: .center) }
+          .onChange(of: asset.id) { _, id in proxy.scrollTo(id, anchor: .center) }
       }
-    }.padding()
+    }.padding(12)
+  }
+  func comparisonPanel(_ title: String, original: Bool) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+      FramingSurface(model: model, asset: asset, interactive: false, original: original)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.primary.opacity(0.03))
+    }.frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
+/// Nonblocking routine completion feedback. Dismissal is local presentation state;
+/// errors, progress and export results remain owned by their dedicated controls.
+struct StatusNotice: View {
+  @Bindable var model: Workspace
+  var excludingSummary: String? = nil
+  @State private var dismissedStatus: String?
+  var body: some View {
+    Group {
+      if model.status != "Your photos. Your way." && model.status != excludingSummary
+          && (dismissedStatus != model.status || !model.canDismissRoutineWorkspaceStatus) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          Text(model.status).font(.caption).foregroundStyle(.secondary)
+          if model.canDismissRoutineWorkspaceStatus {
+            Spacer(minLength: 0)
+            Button { dismissedStatus = model.status } label: { Image(systemName: "xmark") }
+              .buttonStyle(.borderless).comfortableHitTarget()
+              .accessibilityLabel("Dismiss completed activity message")
+              .help("Dismiss this message")
+          }
+        }
+      }
+    }
+    .onChange(of: model.status) { _, _ in dismissedStatus = nil }
+    .onChange(of: model.isImporting) { _, importing in if importing { dismissedStatus = nil } }
+    .onChange(of: model.sourceSessionID) { _, _ in dismissedStatus = nil }
+  }
+}
+
 struct ExportStatus: View {
   @Bindable var model: Workspace
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(model.status).font(.caption).foregroundStyle(.secondary)
+      if let output = model.latestExport, !model.running { ExportCompletionView(model: model, output: output) }
+      StatusNotice(model: model, excludingSummary: model.latestExport?.summary)
+      if !model.removalUndoSourceIDs.isEmpty {
+        Button("Undo Remove", systemImage: "arrow.uturn.backward") { model.undoWorkspaceRemoval() }
+          .disabled(!model.canUndoWorkspaceRemoval)
+          .accessibilityHint("Restore removed photos to the workspace without changing their edits")
+      }
       #if os(iOS)
         if model.isImporting { ImportProgressView(model: model) }
       #endif

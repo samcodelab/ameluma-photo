@@ -521,7 +521,7 @@ Batch Edit, Photo Editor, Collages and Mac Automations share sources and the pro
 
 ## Library and tabbed editor navigation
 
-Editor is the user-facing name of the single-photo workflow. Mac/iPad use closable photo tabs; iPhone uses Open Photos. Tabs are separate from gallery focus and batch selection. Closing tabs retains project edits and sources. Optional schema-4 tab IDs restore without changing legacy effective output. Privacy is an Editor tool; Privacy Review is a gallery filter. Never change tabs while a privacy/annotation draft is active.
+Editor is the user-facing name of the single-photo workflow. Mac uses compact closable photo tabs. iPhone and iPad edit one photo at a time with a visible Back to Workspace action; do not present document tabs or an Open Photos switcher on mobile. Preserve existing stored navigation IDs for project compatibility. Tabs are separate from gallery focus and batch selection. Closing tabs retains project edits and sources. Optional schema-4 tab IDs restore without changing legacy effective output. Privacy is an Editor tool; Privacy Review is a gallery filter. Never change tabs while a privacy/annotation draft is active.
 
 
 ## Product rename

@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 /// One full-resolution operation at a time; thumbnail cache has a strict cost/count budget.
 public actor ImageProcessor {
     private let context = CIContext(options: [.cacheIntermediates: false])
+    private let filterContext = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!, .workingFormat: CIFormat.RGBAh, .cacheIntermediates: false])
     private let cache = NSCache<NSString, CGImage>()
     private let maximumSourcePixels: Int
     private var privateMode = false
@@ -101,6 +102,10 @@ public actor ImageProcessor {
         }
         return CGSize(width: max(1, w), height: max(1, h))
     }
+    public func retouchSource(_ image: CGImage, at point: NormalizedPoint, diameter: Double) throws -> NormalizedPoint {
+        try Task.checkCancellation()
+        return try RetouchRenderer.suggestedSource(in: image, at: point, diameter: diameter, context: context)
+    }
     public func render(_ url: URL, configuration c: ProcessingConfiguration, previewMaximum: Int? = nil, decodeMaximum: Int? = nil) throws -> CGImage {
         try Task.checkCancellation()
         guard c.width > 0, c.height > 0, c.width <= 20000, c.height <= 20000, Double(c.width) * Double(c.height) <= 100_000_000, c.quality.isFinite, (0...1).contains(c.quality), c.percentage.isFinite, c.percentage > 0, c.crop.centerX.isFinite, c.crop.centerY.isFinite, c.crop.zoom.isFinite, (1...20).contains(c.crop.zoom), c.straighten.isFinite, c.crop.straighten.isFinite, abs(c.straighten + c.crop.straighten) <= 45, c.crop.aspectRatio.map({ $0.isFinite && $0 > 0 }) ?? true else { throw ProcessingError.invalidConfiguration }
@@ -117,7 +122,9 @@ public actor ImageProcessor {
             let orientation = props?[kCGImagePropertyOrientation] as? Int ?? 1
             image = CIImage(cgImage: decoded).oriented(forExifOrientation: Int32((1...8).contains(orientation) ? orientation : 1))
         }
+        guard c.lookStrength.isFinite, (0...1).contains(c.lookStrength) else { throw ProcessingError.invalidConfiguration }
         image = try c.adjustments.apply(to: transform(image, configuration: c))
+        if let look = c.look { image = try look.apply(to: image, strength: c.lookStrength) }
         // Nominal geometry is computed before downsampling so percentage/longest-edge match export.
         let fullSize = Self.transformedSize(nominal, configuration: c)
         let fullOutput = Self.outputSize(source: fullSize, configuration: c)
@@ -133,6 +140,14 @@ public actor ImageProcessor {
         image = image.transformed(by: CGAffineTransform(scaleX: layout.scaleX * canvasScaleX / sourceScaleX, y: layout.scaleY * canvasScaleY / sourceScaleY))
         image = image.transformed(by: CGAffineTransform(translationX: layout.contentRect.minX * canvasScaleX, y: size.height - layout.contentRect.maxY * canvasScaleY))
         let bounds = CGRect(origin: .zero, size: size)
+        if c.filterEdit?.presetID != nil || c.autoEnhance?.enabled == true {
+            let spaceName = cg.colorSpace?.name as String? ?? ""
+            if cg.contentHeadroom > 1 || CGImageSourceCopyAuxiliaryDataInfoAtIndex(source,0,kCGImageAuxiliaryDataTypeHDRGainMap) != nil || spaceName.localizedCaseInsensitiveContains("PQ") || spaceName.localizedCaseInsensitiveContains("HLG") || spaceName.localizedCaseInsensitiveContains("2100") { throw CreativeFilterError.hdr }
+            // New SDR recipes operate on the framed photo, before canvas, retouch,
+            // protective overlays and watermarks. Legacy looks retain their old order.
+            if let enhancement = c.autoEnhance { image = try enhancement.apply(to: image) }
+            image = try CreativeFilterRenderer.apply(c.filterEdit, to: image, fullSize: CGSize(width:image.extent.width/canvasScaleX,height:image.extent.height/canvasScaleY))
+        }
         var colour = c.background
         if !c.format.preservesAlpha && colour.alpha < 1 {
             colour.red = colour.red * colour.alpha + 1 - colour.alpha; colour.green = colour.green * colour.alpha + 1 - colour.alpha; colour.blue = colour.blue * colour.alpha + 1 - colour.alpha; colour.alpha = 1
@@ -144,14 +159,32 @@ public actor ImageProcessor {
             image=image.composited(over:shadow)
         }
         image = image.composited(over: background).cropped(to: bounds)
+        image = try RetouchRenderer.apply(to: image, strokes: c.retouchStrokes, context: context, sourceMasks: c.masks)
         image = try PrivacyRenderer.apply(to: image, masks: c.masks)
         if !c.annotations.isEmpty || c.canvasStyle != CanvasStyle() { image = try AnnotationRenderer.apply(to: image, annotations: c.annotations, canvas: c.canvasStyle) }
         image = try WatermarkRenderer.apply(to: image, configuration: c.watermark)
         if !c.format.preservesAlpha { image = image.composited(over: background).cropped(to: bounds) }
         try Task.checkCancellation()
         let space = c.colourPolicy == .preserve && cg.colorSpace?.model == .rgb ? cg.colorSpace : CGColorSpace(name: CGColorSpace.sRGB)
-        guard let space, let result = context.createCGImage(image, from: bounds, format: .RGBA8, colorSpace: space) else { throw ProcessingError.encoding }
+        let renderingContext = (c.filterEdit?.presetID != nil && (c.filterEdit?.intensity ?? 0) > 0) || c.autoEnhance?.enabled == true ? filterContext : context
+        guard let space, let result = renderingContext.createCGImage(image, from: bounds, format: .RGBA8, colorSpace: space) else { throw ProcessingError.encoding }
         return result
+    }
+    public func validateCreativeSource(_ url: URL) throws {
+        _ = try identify(url)
+        guard let source=CGImageSourceCreateWithURL(url as CFURL,nil) else { throw ProcessingError.invalidImage }
+        if CGImageSourceCopyAuxiliaryDataInfoAtIndex(source,0,kCGImageAuxiliaryDataTypeHDRGainMap) != nil { throw CreativeFilterError.hdr }
+        let p=CGImageSourceCopyPropertiesAtIndex(source,0,nil) as? [CFString:Any] ?? [:]
+        let profile=p[kCGImagePropertyProfileName] as? String ?? ""
+        if ["PQ","HLG","2100"].contains(where:{profile.localizedCaseInsensitiveContains($0)}) { throw CreativeFilterError.hdr }
+    }
+    public func resolveAutoEnhance(_ url: URL, configuration: ProcessingConfiguration) throws -> AutoEnhanceEdit {
+        var c = configuration; c.filterEdit = nil; c.look = nil; c.autoEnhance = nil
+        c.watermark.enabled = false; c.annotations = []; c.masks = []; c.retouchStrokes = []
+        let cg = try render(url, configuration:c, previewMaximum:1024, decodeMaximum:1200)
+        try Task.checkCancellation()
+        let filters = CIImage(cgImage:cg).autoAdjustmentFilters(options:[.enhance:true,.redEye:false,.crop:false,.level:false])
+        return AutoEnhanceEdit(resolvedAdjustments:filters.compactMap(SerializedAdjustment.capture))
     }
     public func quickFix(_ fix: QuickFix, url: URL, configuration: ProcessingConfiguration) throws -> ProcessingConfiguration {
         var c = configuration

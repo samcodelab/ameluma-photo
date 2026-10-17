@@ -15,6 +15,7 @@ files['Resources/Assets.xcassets']=add('assetsfile','{isa = PBXFileReference; la
 legal_files = ['Resources/Legal/PrivacyPolicy.md', 'Resources/Legal/Help.md', 'Resources/Distribution.plist']
 for file in legal_files:
     files[file] = add(file, f'{{isa = PBXFileReference; lastKnownFileType = text; path = "{file}"; sourceTree = SOURCE_ROOT;}}')
+files['Resources/DemoWorkspace']=add('demoFolder','{isa = PBXFileReference; lastKnownFileType = folder; path = Resources/DemoWorkspace; sourceTree = SOURCE_ROOT;}')
 products=[];targets=[]
 package=add('package','{isa = XCLocalSwiftPackageReference; relativePath = Packages/FramepebbleCore;}')
 for platform, app, bundle in [('Mac','macOS/FramepebbleMacApp.swift','com.broadframestudio.framepebble'),('iOS','iOS/FramepebbleIOSApp.swift','com.broadframestudio.framepebble.ios')]:
@@ -30,7 +31,8 @@ for platform, app, bundle in [('Mac','macOS/FramepebbleMacApp.swift','com.broadf
     privacybuild=add(name+'privacybuild', f'{{isa = PBXBuildFile; fileRef = {files["Resources/PrivacyInfo.xcprivacy"]};}}')
     assetsbuild=add(name+'assetsbuild', f'{{isa = PBXBuildFile; fileRef = {files["Resources/Assets.xcassets"]};}}')
     legalbuilds = [add(name+file, f'{{isa = PBXBuildFile; fileRef = {files[file]};}}') for file in legal_files]
-    resources=add(name+'resources' , f'{{isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = {arr([privacybuild,assetsbuild]+legalbuilds)}; runOnlyForDeploymentPostprocessing = 0;}}')
+    demobuild = add(name+'demoResource', f'{{isa = PBXBuildFile; fileRef = {files["Resources/DemoWorkspace"]};}}')
+    resources=add(name+'resources' , f'{{isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = {arr([privacybuild,assetsbuild,demobuild]+legalbuilds)}; runOnlyForDeploymentPostprocessing = 0;}}')
     configs=[]
     for mode in ['Debug','Release']:
         settings=f'PRODUCT_NAME = "{app_name}"; PRODUCT_MODULE_NAME = {name}; EXECUTABLE_NAME = {name}; PRODUCT_BUNDLE_IDENTIFIER = {bundle if mode == "Debug" else "com.broadframestudio.framepebble"}; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "{app_name}"; INFOPLIST_KEY_CFBundleName = "{app_name}"; MARKETING_VERSION = 0.1; CURRENT_PROJECT_VERSION = 1; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SWIFT_VERSION = 6.0; ENABLE_TESTABILITY = {"YES" if mode == "Debug" else "NO"}; CODE_SIGN_STYLE = Automatic;'
@@ -62,7 +64,7 @@ ref = f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{
 (root/'Framepebble.xcodeproj/xcshareddata/xcschemes/FramepebbleCoreiOSTests.xcscheme').write_text(f'<?xml version="1.0" encoding="UTF-8"?><Scheme version="1.3"><BuildAction><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="YES">{ref}</BuildActionEntry></BuildActionEntries></BuildAction><TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB"><Testables><TestableReference skipped="NO">{ref}</TestableReference></Testables></TestAction></Scheme>')
 name = 'FramepebbleMacTests'
 mac_builds=[]
-for p in sorted((root/'Tests/macOS').glob('*.swift')) + [root/'Tests/DistributionResourceTests.swift']:
+for p in sorted((root/'Tests/macOS').glob('*.swift')) + [root/'Tests/DistributionResourceTests.swift', root/'Tests/PanelBehaviorTests.swift', root/'Tests/DemoWorkspaceTests.swift', root/'Tests/DemoComparisonCaptureTests.swift'] + sorted((root/'Tests').glob('*UsabilityTests.swift')):
     file=str(p.relative_to(root))
     files[file]=add(file,f'{{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "{file}"; sourceTree = SOURCE_ROOT;}}')
     mac_builds.append(add(name+file,f'{{isa = PBXBuildFile; fileRef = {files[file]};}}'))

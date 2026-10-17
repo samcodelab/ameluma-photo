@@ -1,5 +1,34 @@
 # Using Ameluma Photo
 
+## Photo filters
+
+Choose **Filters** in the Editor toolbox. There are 24 original presets in Essentials, Film, Cinema and Monochrome, plus Original. The Mac inspector shows a two-column grid; iPhone and portrait iPad show a compact photographic strip. No third-party preset definitions, LUTs or branded film emulations are bundled. Names are working product names, not a claim of trademark clearance.
+
+Choose a preset, then adjust **Intensity** from 0–100%. The first selection starts at 70%; switching presets retains the current intensity. Candidate tiles show 70%; the selected tile reflects its current intensity. Original and Reset Filter remove only the creative look. At 0%, the selected look remains saved but is bypassed exactly. Older six-look projects retain their original rendering until you explicitly choose another look or Original.
+
+**Auto Enhance** is an independent correction. Its resolved native adjustments are saved; changing other edits does not rerun analysis. Use Recalculate Enhance explicitly. Original does not disable Auto Enhance. Hold **Compare** to bypass Auto Enhance and the creative look while retaining all other edits; an accessibility action toggles this comparison. The editor’s separate Original comparison shows the source appearance.
+
+Workspace Actions → **Apply Filter to Selected…** captures explicit inputs. Confirm the preset and percentage before replacing only their creative filters. Validation is incremental, then successful instructions publish together as one atomic editing/history change. Cancel stops scheduling and keeps validated changes; results report completed, skipped and failed photos. Newer edits are skipped. Retry Failed or Skipped explicitly captures those photos again. Auto Enhance remains a separate operation and analyses each photo independently.
+
+Processing stays local. These presets are SDR looks in an sRGB half-float working pipeline; HDR/gain-map sources are rejected until a versioned SDR development step exists. Standard supported JPEG, PNG, HEIC, TIFF and natively supported WebP inputs use the same renderer for preview and export. Unsupported recipes block affected rendering/export and remain preserved in saved projects; choose Original to recover. Source files remain untouched. Projects with new filters need a supporting app version to reproduce them.
+
+On iPhone, start with Edit a photo or Prepare a batch. Resize and Convert are compact quick tasks; Retouch and Privacy remain tools inside the Editor. Right-click or long-press one photo for Retouch Photo. Task selection keeps unrelated workspace selection and captured batch inputs. Empty workspaces offer the Demo Workspace; on iPhone, Back to Start returns to the task choices.
+
+After a photo or batch export, the completion card lists only successful files from that operation. Review & Share opens those files for manual approval; Show in Finder is available on Mac. A cancelled operation keeps completed files, and a wholly failed new export does not reuse old files. The completion card is temporary and disappears when dismissed or when a new export or project begins. Existing export history remains separate.
+
+Editing panels follow the current task. On Mac, the sidebar button makes more room for the photo; inspector tools use icons with help and accessibility labels. On iPhone, choose a tool below the photo to show its controls. At accessibility text sizes, use the expanded Tools presentation. Open photos, editing targets and batch inputs remain separate.
+
+Fresh workspaces start at 100% original dimensions with no canvas padding. Existing saved projects and presets retain their output. Choose a fixed size preset or another sizing mode explicitly to resize or add a canvas. In wide editors, common options sit near the tool rail; close them when they cover the photo and tap the tool to show them again. On a phone, tapping the active Adjust tool hides or restores its compact controls. The full inspector remains available from its settings button. Batch Inputs/Workspace changes only which thumbnails are shown, not selection or captured operation inputs. The Demo menu identifies the sample workspace and returns to your own workspace after current operations or drafts finish.
+
+
+In iPhone landscape, photo tools move to a side rail and document controls move into the navigation bar. Small or short screens open expanded controls to preserve room for the image. GIFs use a frame chooser and Tools menu when the full strip and inspector will not fit. Collage Export opens output options before creating the file.
+
+The Mac collage inspector groups Canvas, Appearance and Title controls. Title opens automatically for compositions that already contain one; collapsing it keeps the title. Fit and the viewing zoom buttons change only the workspace view, not output dimensions. Inspect Pixels in collage Actions opens full-resolution inspection. Shape, text and photo-mosaic creation remain in Actions → Create.
+
+The operation heading identifies the photos affected by Batch Edit or Convert. Change Photos changes those inputs explicitly. Filtering, switching Mac editor tabs or opening another photo on mobile does not change captured inputs. Workspace selections use checkmarks; the active photo has a separate focus outline. Gallery actions include Show filenames for a cleaner thumbnail view.
+
+Export opens the output options for the current task. Conversion retains source dimensions unless Also Resize is enabled. GIF Timing, Canvas and Text panels distinguish frame settings from animation settings; Select Frames enables multi-frame timing changes. Collage properties distinguish the whole composition, the selected photo and output settings. Saved Collages and Choose Layout are separate views. Missing GIF sources can be replaced directly from their recovery action without opening project housekeeping.
+
 Import photos/files or a folder. The app makes local source copies and begins on-device classification. Existing editing settings remain in place when adding images.
 
 Use the search field for recognized label words such as dog or beach; suggestions show labels actually found. Combine words only when both labels are present. Search is not arbitrary language understanding. In Batch Edit, choose the labelled inputs: all images, selected images or search results. Editor always acts on its visible current photo. Select visible results from the More menu to edit/export only matches.
@@ -10,7 +39,7 @@ Choose a size preset or enter pixels. Fit keeps the full image with padding; Fil
 
 Smart and Keep Subjects use native spatial detections/saliency. Batch automatic actions keep manual overrides. Per-image Smart/Keep Subjects intentionally replaces that image's manual crop. Review the Needs Review category and use Previous/Next to inspect it. Accept a proposal, refine manually, or reset/centre it. Vision can be wrong even when no review flag appears.
 
-Enable a text/image watermark and configure its relative size, opacity and anchor. Logos are copied locally. Watermark presets and full export presets are saved locally. Processed previews retain watermarks and other treatments while framing; Updating processed preview identifies a render still catching up. JPEG/HEIC flatten transparency; use PNG/TIFF when alpha is needed.
+Choose Add Watermark to enable a text/image watermark and configure its relative size and opacity. Remove is beside the watermark heading and supports Undo. Expand Placement & pattern for anchor, rotation and tiling. Logos are copied locally. Watermark presets and full export presets are saved locally. Processed previews retain watermarks and other treatments while framing; Updating processed preview identifies a render still catching up. JPEG/HEIC flatten transparency; use PNG/TIFF when alpha is needed.
 
 Choose quality or a target KB limit. The encoder searches within a minimum-quality floor and fails if the requested size is infeasible. Reduce output dimensions or raise the limit rather than expecting arbitrary images to fit any size.
 
@@ -30,7 +59,7 @@ Use Collages and Choose Source Photos independently of batch inputs, choose a qu
 
 Privacy Review is a library filter for flagged photos. Privacy is a tool inside Editor. Right-click (or long-press) a photo and choose Edit with Privacy Tool; flagged photos use Reveal & Edit with Privacy Tool. If nothing is flagged, show All Photos and flag or edit a photo from its context menu. Automatic findings require Apple’s capability and system settings; manual flags remain available.
 
-Privacy editing uses the main Mac/iPad workspace and a full-screen iPhone editor. The editor keeps a draft until Apply. Drawing selects the new area immediately; click empty photo space to return to Draw. Select chooses existing areas; drag their bodies to move them or their eight handles to resize. Change the selected effect or use the numbered area controls. Undo, Redo and Delete stay above the preview. Cancel, Escape and Close Editor discard all changes made during this editing session, preserving any previously applied masks. Apply commits the draft as one project Undo step. Apply & Crop explicitly applies the draft before opening precision cropping. Freehand draws a path; annotations support basic fonts/alignment/colour. Inspect the final output before sharing.
+Privacy editing uses the main Mac/iPad workspace and a full-screen iPhone editor. The editor keeps a draft until Apply. Drawing selects the new area immediately; click empty photo space to return to Draw. Select chooses existing areas; drag their bodies to move them or their eight handles to resize. Change the selected effect or use the numbered area controls. Undo, Redo and Delete stay with the tool controls. Cancel, Escape and Close Editor discard all changes made during this editing session, preserving any previously applied masks. Apply commits the draft as one project Undo step. Switching from a changed privacy/annotation draft to another tool offers Apply or Discard; on Mac and iPhone, Apply & Crop also explicitly applies the draft before opening precision cropping. New privacy areas start with Pixelate and Freeform. Trace around an area and lift to close its outline; incomplete straight-line traces do not create a mask. Rectangle, ellipse and other effects remain available, and existing areas keep their saved settings. Annotations support basic fonts/alignment/colour. Inspect the final output before sharing.
 
 Opaque covers and cropping offer stronger concealment than blur/pixelation. Masked exports flatten the pixels and omit copied source metadata. Do not share editable project instructions when you intend to share only a concealed image.
 
@@ -60,7 +89,7 @@ Use Preview size above the gallery to enlarge or shrink tiles. This changes disp
 
 ## Gallery and selection
 
-Browse shows originals; Frame shows the intended output; Compare shows before and after. Select switches editing/export scope to selected photos. Done keeps that scope—check Apply to before export. On iPhone, open Refine for touch cropping. On iPad, Frame → Reframe thumbnails deliberately enables dragging/pinching the selected photo; Done Reframing returns to normal gallery scrolling. The inspector adapts to available space. Search categories come from Vision and can be wrong or incomplete.
+Browse shows originals; Frame shows the intended output; Compare shows before and after. Select changes Workspace selection. Captured Batch Edit and Convert inputs remain fixed; use Change operation photos to replace them explicitly. Check the labelled count before export. On iPhone, open Refine for touch cropping. On iPad, Frame → Reframe thumbnails deliberately enables dragging/pinching the selected photo; Done Reframing returns to normal gallery scrolling. The inspector adapts to available space. Search categories come from Vision and can be wrong or incomplete.
 
 Drawing now immediately selects the new mask or annotation. Clicking the selected area keeps it selected; clicking empty photo space clears selection and returns to drawing without creating an extra object. The next drawing keeps the last selected effect/shape or annotation kind. Verified with live Mac synthetic-image interaction.
 
@@ -86,29 +115,31 @@ To resize a selected privacy area or annotation without changing its proportions
 
 ### Start in the gallery
 
-Choose **Workspace** in Workspace to see the full gallery. On Mac, double-click a photo to open Editor; on iPhone tap it outside selection mode. Right-click or long-press for **Open in Editor** or **Edit with Privacy Tool**. Use **Gallery** to return. Select multiple photos and choose **Batch Edit Selected** for a batch. Browsing does not reset edits, and the library’s project/clear actions never delete original files.
+Choose **Workspace** in Workspace to see the full gallery. On Mac, double-click a photo to open Editor; on iPhone tap it outside selection mode. Right-click or long-press for **Open in Editor** or **Edit with Privacy Tool**. Use **Back to Workspace** to return on iPhone and iPad, or **Workspace** on Mac. Select multiple photos and choose **Batch Edit Selected** for a batch. Browsing does not reset edits, and the library’s project/clear actions never delete original files.
 
 ### Editor tools
 
-Use **Adjust**, **Crop & Frame**, **Resize**, **Annotate**, **Privacy**, or **Watermark & Format** above the photo. The photo moves only while Crop & Frame is active, so adjusting lighting cannot accidentally change framing. On Mac and wide iPad, framing controls act on the large main preview. Original is a comparison view; choosing Crop & Frame returns to the processed result. Open photos appear in closable editor tabs on Mac and iPad. On iPhone, use Open Photos to switch or close the current photo. Numeric crop positions use percentages. Batch inheritance and category reset controls are available under the defaults/overrides disclosure.
+Use **Adjust**, **Crop & Frame**, **Resize**, **Annotate**, **Privacy**, or **Watermark & Format** above the photo. The photo moves only while Crop & Frame is active, so adjusting lighting cannot accidentally change framing. On Mac and wide iPad, framing controls act on the large main preview. Original is a comparison view; choosing Crop & Frame returns to the processed result. Mac uses compact closable photo tabs. iPhone and iPad edit one photo at a time: use Back to Workspace, then choose another photo. Numeric crop positions use percentages. Batch inheritance and category reset controls are available under the defaults/overrides disclosure.
 
 ### Larger text on iPhone
 
-With accessibility text sizes, Editor separates the filename and navigation controls, and offers all editing tools through **Tools**. Adjustment values move onto their own full-width row. Gallery controls stack vertically, keeping the photo and selection actions readable. Use the compare button’s VoiceOver label to switch between the original and edited view.
+With accessibility text sizes, Editor keeps the filename in the navigation toolbar, moves comparison and history into the photo menu, and offers editing tools through **Tools**. Adjustment values move onto their own full-width row. Gallery controls stack vertically, keeping the photo and selection actions readable. Use the compare button’s VoiceOver label to switch between the original and edited view.
 
 When the editing toolbar cannot fit, use **More** for the remaining tools. At accessibility text sizes, use **Tools**. The gallery’s action menu also contains photo editing, privacy, preview size and Undo/Redo controls when larger text makes separate rows impractical. **Use Batch Framing** removes only the current photo’s framing override.
 
 
-### Editor tabs and privacy tools
+### Editor navigation and privacy tools
 
-Double-click a library photo (tap on iPhone) to open it in Editor. Reopening the same photo activates its existing tab. Tabs retain their own tool context while the app is running. Close a tab to close its view; its edits remain in the project, and original files are never deleted. Closing the last tab returns to the library. Mac Command-W closes the current photo tab. Open-photo IDs and the active tab are saved with the project; older projects open normally with no tabs. Tool context starts with Adjust after reopening a saved project.
+Open a workspace photo in Editor. iPhone and iPad show one photo at a time, with Back to Workspace in the navigation toolbar. Returning keeps edits, workspace selection and captured batch inputs. Choose another photo from the workspace to edit it. Apply or Cancel a drawing draft before leaving.
 
-Privacy Review remains a gallery filter, not a separate editing workflow. Right-click/long-press **Edit with Privacy Tool** opens that photo’s editor tab with Privacy active. Apply or Cancel the privacy/annotation draft before changing tabs. Batch selection and export scope are not changed by opening or closing a photo tab. Workspace filtering retains hidden selections; the summary reports their count.
+On Mac, photos use compact closable tabs. Reopening a photo activates its existing tab; closing it retains its sources and edits. Command-W closes the current tab. Legacy saved open-photo IDs remain compatible on every platform.
+
+Privacy is an Editor tool; Privacy Review remains a gallery filter. Right-click/long-press **Edit with Privacy Tool** opens that photo with Privacy active. Apply or Cancel the draft before navigating. Workspace filtering retains hidden selections; the summary reports their count.
 
 
 ### Restore an original photo
 
-In Editor, choose **Restore Original…** below the preview (on iPhone or in a narrow window, open **Edits**). Confirm to restore the active photo’s uncropped, unrotated appearance and native dimensions, removing lighting/colour adjustments, canvas effects, watermarks, annotations and privacy masks. Other photos and batch defaults remain unchanged. Export format, compression and metadata protection remain as configured. The Original comparison toggle only previews the source; Restore Original changes the editing instructions. Undo brings back the previous edits. Neither action modifies the original file.
+In Editor, open **Edits** in the photo header and choose **Restore Original…** (on iPhone or at accessibility sizes, use the photo-name menu). Confirm to restore the active photo’s uncropped, unrotated appearance and native dimensions, removing lighting/colour adjustments, canvas effects, watermarks, annotations and privacy masks. Other photos and batch defaults remain unchanged. Export format, compression and metadata protection remain as configured. The Original comparison toggle only previews the source; Restore Original changes the editing instructions. Undo brings back the previous edits. Neither action modifies the original file.
 
 
 ### Expand a crop back to the full image
@@ -145,9 +176,9 @@ Collages offers visible Photo Layout, Shape Collage, Text Collage and Photo Mosa
 
 Inspect Pixels renders full-resolution output for Fit, 100% and zoom/pan inspection. At 100%, one image pixel maps to one display pixel; this is separate from crop zoom and thumbnail size. Encoded Output Preview uses the same viewer, offers a profile selector and previous/next batch samples, and displays actual dimensions and byte count. Large full-resolution renders use more memory and may take time. On Mac, focus the photo and hold M to compare with the original.
 
-On iPhone, Adjust, Crop and Privacy stay in the bottom tool strip; Tools contains Resize, Annotate, Watermark and Export Settings. At accessibility text sizes, Tools and View menus preserve space for the photograph. Watermark editing provides direct move, resize and rotation controls for a single watermark; tiled patterns use inspector settings.
+On iPhone, Adjust, Crop and Retouch stay in the bottom tool strip; Tools contains Resize, Annotate, Privacy, Watermark and Export Settings. At accessibility text sizes, Tools and View menus preserve space for the photograph. Watermark editing provides direct move, resize and rotation controls for a single watermark; tiled patterns use inspector settings.
 
-Photo tabs have thumbnails, drag ordering, Close Others and a searchable open-photo list. Collage tabs also support ordering and Close Others. Closing tabs never deletes their sources or saved edits. Project names appear above the library and can be changed in Projects. Source storage accounting and Clear Imported Photos are in the separate Local Source Storage section.
+Mac photo tabs support drag ordering, Close Others and a searchable open-photo list. iPhone and iPad use a single-photo editor with Back to Workspace. Collage tabs also support ordering and Close Others. Closing tabs never deletes their sources or saved edits. Project names appear above the library and can be changed in Projects. Source storage accounting and Clear Imported Photos are in the separate Local Source Storage section.
 
 ### Fixed batch inputs and privacy coverage
 
@@ -190,6 +221,43 @@ Remove from Workspace hides a photo from ordinary workspace actions. GIFs, colla
 
 Relink keeps the source UUID and editing instructions but replaces its managed pixels. Review the affected photo and every current or saved GIF/collage. GIF flags include masks captured when a frame was added, even if the workspace photo no longer has masks. Framing and protective coverage require explicit review. Old exported files remain unchanged; current sharing approval is revoked. Missing GIF preview errors identify the failed frame, with Replace Photo and Locate Missing Photo actions. Saved GIFs remain available from the empty creator as well as More.
 
-Convert is available from Workspace Actions, Mac/iPad Quick Tasks and the iPhone home. It captures explicit inputs and uses source dimensions by default, retaining visual edits and crop geometry. Also Resize enables deliberate resizing. Existing projects and presets retain their saved output sizing. Existing explicit export profiles use their own sizes. Editor photos inherit batch defaults except for individual field overrides; edits in Editor target that photo only. Tool-first Edit, Batch, Convert, Censor and Collage selection uses the same workspace. Adding photos to an existing collage preserves its current cells and settings.
+Convert is available from Workspace Actions, Mac/iPad Quick Tasks and the iPhone home. It captures explicit inputs and uses source dimensions by default, retaining visual edits and crop geometry. Also Resize enables deliberate resizing. Existing projects and presets retain their saved output sizing. Existing explicit export profiles use their own sizes. Editor photos inherit batch defaults except for individual field overrides; edits in Editor target that photo only. Tool-first Edit, Batch, Convert, Resize and Collage selection uses the same workspace. Convert and Resize are available from Quick Tasks and the iPhone Home screen; Privacy is an Editor tool. Adding photos to an existing collage preserves its current cells and settings.
 
 Project instructions reference local working copies and are not self-contained cross-device projects. To move work between devices, source files must be transferred and relinked separately. Sensitive-content checking requires the appropriate signing capability and system policy; manual review remains available. GIF review is always manual. GIF presets primarily change dimensions, not a photographic-quality guarantee. Explicit Mac browser-image drops may download an HTTPS image from its website; image processing remains local. Physical-device performance, Pencil/trackpad and complete VoiceOver accessibility still require appropriate verification.
+
+On iPad, landscape Editor places a narrow toolbox at the right edge with settings beside it. In portrait or narrow windows, tool settings open from the selected tool or its adjacent Options button. Collapse the landscape settings panel for more canvas space; tap the selected tool to reopen it.
+
+### Retouch: Heal and Clone
+
+Open a photo in Editor and choose Retouch (the bandage icon). Heal samples nearby texture and adapts its broad colour and lighting to the destination. Paint over a small blemish, or use Set Source to choose the texture yourself. Clone copies a source you choose: tap Set Source, tap clean photo detail, then paint over the destination. On Mac, Option-click also sets the source.
+
+Size, hardness and opacity control the brush. Aligned Source keeps the offset between source and destination across strokes; switch it off to start each stroke from the same source. Source Position provides numeric sampling coordinates. The source indicator shows where sampling occurs. iPhone keeps the canvas visible and opens detailed controls from Brush; iPad uses the adjacent inspector or an anchored Options popover.
+
+Undo/Redo works per stroke and the stroke list can remove individual strokes. Apply commits the draft; Cancel discards that session's changes. Retouch instructions are saved with the photo and retained in GIF frame snapshots. They are omitted from reusable batch presets. Originals remain untouched, and cloning from a privacy-masked source samples its concealed appearance.
+
+Healing is local texture correction, not generative object removal. Texture boundaries and large removals may need a manually chosen source or several smaller strokes. Retouch coordinates belong to the finished photo: check or redo strokes after changing the crop, rotation or canvas. Strokes are limited to 200 per photo and 2,000 recorded points per stroke. Pencil pressure sensitivity and physical-device performance have not been verified.
+
+
+### Editor layout and tool options
+
+Workspace navigation starts collapsed while editing on Mac and iPad. Use the sidebar button to show it; a deliberate choice lasts for the current window. Drawing drafts temporarily hide navigation, and accessibility text sizes on iPad use a single-column workspace. Photo tabs, batch inputs and creation frames remain separate.
+
+Undo and Redo are visible in the photo header. They use the active photo, draft or creation history. Edits contains copy/paste, detailed history and Restore Original; on iPhone these actions are in the photo-name menu. On iPhone, Adjust, Crop and Retouch are directly available; Tools includes Resize, Privacy, Annotate, Watermark and Output. Privacy and annotation drafts use a fitted canvas with the same toolbox and explicit Apply/Cancel controls. Apply or discard changed drafts before switching to ordinary editing tools.
+
+On wide screens, options sit beside the toolbox. Portrait iPad options are anchored to the selected tool; more detailed properties can scroll. On iPhone, Options opens a readable sheet while keeping the underlying draft. View zoom is independent of cropping: drawing tools show a multiplier relative to Fit, not actual pixel magnification. Use Inspect actual pixels in ordinary editing for full-resolution inspection.
+
+Batch headers show the operation count. Open the photo-count menu for fixed-input details and Change Photos. Workspace selection and its hidden count are shown separately. Compact stack badges mark operation membership independently of checkmarked selection. Gallery actions → View → Show operation photos only changes the view, not membership or selection. Thumbnail size and filename controls are in View. GIFs keep frame duration near the strip; Options opens Timing, Canvas or Text. On iPhone, collage Canvas/Photo/Output controls open their properties directly; the actions menu contains Open Collages.
+
+
+### Workspace controls and properties
+
+On iPhone, View and gallery options → View contains Browse, Frame and Compare. Batch Settings opens the batch properties; the focused-photo menu in gallery options offers Rotate and Refine for that photo only. On portrait or narrow iPad, the editing-settings toolbar button opens a sheet instead of reserving a gallery column. Landscape iPad keeps adjacent properties when enough width is available.
+
+Batch Resize & Canvas uses compact fields and disclosures for Framing, Rotate & Flip and canvas appearance. Format and Export settings remain available. Mixed-value details explain sparse edits; changing one field preserves other photo-specific edits. Gallery View offers filename and favourite-button visibility. Favourite photos retain their heart; every photo can be favourited through its context menu or accessibility action. Presets and Help & Review are collapsible sidebar sections.
+
+
+### Focused adjustments
+
+Adjust groups existing controls into Light and Colour. Open either heading to show or hide its controls. On iPhone at standard text sizes, the inline Adjust panel displays one chosen parameter: tap its name for the other adjustments, edit its value or slider, or reset that parameter. All adjustment controls opens the complete inspector. Larger text uses the complete inspector. Choosing a parameter or collapsing a group does not change edits, batch inputs or Workspace selection.
+
+On iPhone the gallery’s ellipsis menu combines photo actions and view options; Select remains visible. On larger screens Actions and View options remain separate. The operation’s photo-count menu identifies its scope and provides explicit input changes; selection checkmarks and the selected/hidden count remain independent.

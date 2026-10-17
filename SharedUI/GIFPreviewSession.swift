@@ -2,7 +2,26 @@ import SwiftUI
 import FramepebbleCore
 import ImageIO
 
-struct GIFPreviewInput: Equatable { var project: GIFProject; var sources: [SourceAsset]; var allowed: Bool }
+struct GIFPreviewInput: Equatable {
+  var project: GIFProject
+  var sources: [SourceAsset]
+  var allowed: Bool
+
+  init(project: GIFProject, sources: [SourceAsset], allowed: Bool) {
+    self.project = project
+    let referencedIDs = Set(project.frames.map(\.sourceID))
+    self.sources = sources.filter { referencedIDs.contains($0.id) }
+    self.allowed = allowed
+  }
+
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    // The export filename has no effect on pixels or playback. Keep all other
+    // project fields and referenced source revisions in the freshness identity.
+    var left = lhs.project; var right = rhs.project
+    left.name = ""; right.name = ""
+    return left == right && lhs.sources == rhs.sources && lhs.allowed == rhs.allowed
+  }
+}
 
 /// Owns only preview resources and freshness. Editing instructions stay in Workspace/Core.
 @MainActor @Observable final class GIFPreviewSession {

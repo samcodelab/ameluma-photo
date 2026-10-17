@@ -4,11 +4,16 @@ import SwiftUI
 struct CollageGallery: View {
   @Bindable var model: Workspace
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.dynamicTypeSize) private var typeSize
   @State private var category = "All"
+  @State private var showingSaved = false
   @State private var query = ""
   @State private var createNew = false
   @State private var orientation = "Any"
   @State private var recommendedOnly = true
+  var matchingSaved: [SavedCollage] {
+    model.savedCollages.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
+  }
   var templates: [CollageTemplate] {
     let result = CollageTemplate.catalog.filter {
       (category == "All" || $0.category == category) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) &&
@@ -26,10 +31,24 @@ struct CollageGallery: View {
     NavigationStack {
       ScrollView {
         VStack(alignment:.leading,spacing:20) {
-          if !model.savedCollages.isEmpty {
+          if typeSize.isAccessibilitySize {
+            Picker("Browse collages", selection: $showingSaved) {
+              Text("Choose Layout").tag(false); Text("Saved Collages").tag(true)
+            }.pickerStyle(.menu)
+          } else { Picker("Browse collages", selection: $showingSaved) {
+            Text("Choose Layout").tag(false); Text("Saved Collages").tag(true)
+          }.pickerStyle(.segmented) }
+          if showingSaved && model.savedCollages.isEmpty {
+            ContentUnavailableView("No saved collages", systemImage: "rectangle.split.2x2")
+          }
+          if showingSaved && !model.savedCollages.isEmpty && matchingSaved.isEmpty {
+            ContentUnavailableView.search(text: query)
+            Button("Clear Search") { query = "" }
+          }
+          if showingSaved && !matchingSaved.isEmpty {
             Text("Your Collages").font(.title2.bold())
             LazyVGrid(columns:[GridItem(.adaptive(minimum:160))],spacing:14) {
-              ForEach(model.savedCollages) { item in
+              ForEach(matchingSaved) { item in
                 Button {
                   model.activateCollage(item.id); dismiss()
                 } label: {
@@ -42,8 +61,9 @@ struct CollageGallery: View {
               }
             }
           }
+          if !showingSaved {
           Text("Layout Gallery · \(CollageTemplate.catalog.count) layouts").font(.title2.bold())
-          Text("Preview an arrangement, then apply it to the current composition or create a separate collage. Layout changes can be undone.").font(.callout).foregroundStyle(.secondary)
+          Text("Choose a layout. Changes can be undone.").font(.callout).foregroundStyle(.secondary)
           if model.activeCollageID != nil {
             Picker("Layout action", selection: $createNew) {
               Text("Apply to Current Collage").tag(false)
@@ -54,10 +74,14 @@ struct CollageGallery: View {
           Picker("Orientation", selection: $orientation) {
             ForEach(["Any", "Square", "Landscape", "Portrait"], id: \.self) { Text($0) }
           }
-          Text("Layout previews use up to 24 of your chosen photos. Saved compositions show their actual content unless Private Editing Mode is enabled.").font(.caption).foregroundStyle(.secondary)
+
           Picker("Layout category",selection:$category) {
             ForEach(["All","Grids","Editorial","Strips","Mosaics","Freeform"],id:\.self) { Text($0) }
           }.pickerStyle(.menu)
+          if templates.isEmpty {
+            ContentUnavailableView("No matching layouts", systemImage: "rectangle.split.2x2", description: Text("Try another search, orientation or category."))
+            Button("Clear Search & Filters") { query = ""; category = "All"; orientation = "Any" }
+          }
           LazyVGrid(columns:[GridItem(.adaptive(minimum:160))],spacing:14) {
             ForEach(templates) { template in
               Button {
@@ -78,8 +102,9 @@ struct CollageGallery: View {
               }
             }
           }
+          }
         }.padding()
-      }.searchable(text:$query,prompt:"Find a layout").navigationTitle("Collages").compactNavigationTitle()
+      }.searchable(text:$query,prompt: showingSaved ? "Find a saved collage" : "Find a layout").navigationTitle("Collages").compactNavigationTitle()
         .toolbar { Button("Done") { dismiss() } }
     }.background(.background)
     #if os(macOS)

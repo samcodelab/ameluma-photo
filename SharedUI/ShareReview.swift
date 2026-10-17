@@ -1,5 +1,6 @@
 import FramepebbleCore
 import SwiftUI
+import Observation
 import UniformTypeIdentifiers
 
 #if os(macOS)
@@ -8,6 +9,51 @@ import UniformTypeIdentifiers
   import UIKit
   import Photos
 #endif
+/// Session-local publication ledger: already saved outputs are never submitted twice.
+/// A failed or cancelled operation retains successful additions for an explicit retry.
+@MainActor @Observable final class ReviewedPhotoSaveSession {
+  private(set) var saving = false
+  private(set) var saved: Set<URL> = []
+  private(set) var failures: [URL: String] = [:]
+  private(set) var status = ""
+
+  func remaining(in urls: [URL]) -> [URL] {
+    var seen = Set<URL>()
+    return urls.filter { !saved.contains($0) && seen.insert($0).inserted }
+  }
+  func save(_ urls: [URL], authorize: () async -> Bool,
+            publish: (URL) async throws -> Void) async {
+    guard !saving else { return }
+    let inputs = remaining(in: urls)
+    guard !inputs.isEmpty else { return }
+    saving = true
+    defer { saving = false }
+    guard await authorize() else {
+      status = "Photo additions permission is required. No new files were saved."
+      return
+    }
+    for url in inputs {
+      if Task.isCancelled { break }
+      do {
+        try await publish(url)
+        // Photos may complete a submitted change even if the task was cancelled.
+        saved.insert(url)
+        failures.removeValue(forKey: url)
+      } catch is CancellationError { break }
+      catch { failures[url] = error.localizedDescription }
+      status = outcome(for: urls)
+    }
+    status = outcome(for: urls) + (Task.isCancelled ? " · Cancelled; completed additions kept." : "")
+    AccessibilityNotification.Announcement(status).post()
+  }
+  private func outcome(for urls: [URL]) -> String {
+    let ids = Set(urls)
+    let count = saved.intersection(ids).count
+    let failed = ids.filter { failures[$0] != nil }.count
+    return "\(count) saved to Photos · \(failed) failed · \(ids.count - count - failed) remaining"
+  }
+}
+
 /// Every external handoff in this view uses already validated final outputs, never source URLs.
 struct ShareReview: View {
   let urls: [URL]
@@ -15,6 +61,7 @@ struct ShareReview: View {
   var analyzer: any SensitiveImageAnalyzing = AppleSensitiveAnalyzer()
   @State private var capability: SensitiveAnalysisAvailability = .unavailable(
     "Checking capability…")
+  @State private var showsCheck = false
   @State private var checkBeforeSharing = false
   @State private var checked = false
   @State private var checking = false
@@ -28,6 +75,9 @@ struct ShareReview: View {
   @State private var copying = false
   @State private var copyTask: Task<Void, Never>?
   @State private var copiedURLs: [URL] = []
+  @State private var photoSave = ReviewedPhotoSaveSession()
+  @State private var savingPhotos = false
+  @State private var photoSaveTask: Task<Void, Never>?
   @Environment(\.dismiss) private var dismiss
   var hasAnimations: Bool { urls.contains { $0.pathExtension.lowercased() == "gif" } }
   var body: some View {
@@ -35,12 +85,13 @@ struct ShareReview: View {
       List {
         if !summary.isEmpty { Section("This export") { Text(summary).font(.caption) } }
         Section {
-          Text("Review before sharing").font(.headline)
+          Text("Your files are ready").font(.headline)
           Text(
             "Review the final images and exclude anything you do not want to share. An optional on-device check can flag sensitive content when the system allows it. Unflagged images are not guaranteed safe."
           ).font(.caption)
         }
-        Section("Optional sensitive-content check") {
+        Section {
+          DisclosureGroup(checkBeforeSharing ? "On-device check enabled" : "Optional sensitive-content check", isExpanded: $showsCheck) {
           if hasAnimations { Text("Animations require manual review of every frame. Automatic checks are unavailable for GIFs.").font(.caption) }
           if case .unavailable(let reason) = capability {
             Text(reason).font(.caption).foregroundStyle(.secondary)
@@ -67,11 +118,15 @@ struct ShareReview: View {
             ).foregroundStyle(.orange)
           }
         }
-        ForEach(urls, id: \.self) { url in
+        }
+        ForEach(Array(urls.enumerated()), id: \.element) { index, url in
           HStack {
             if url.pathExtension.lowercased() == "gif", session.revealed.contains(url) { GIFOutputPreview(url: url) }
             else { OutputThumbnail(url: url, revealed: session.revealed.contains(url)) }
             VStack(alignment: .leading) {
+              Text(url.lastPathComponent).font(.subheadline.weight(.medium))
+                .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+              Text("File \(index + 1) of \(urls.count)").font(.caption).foregroundStyle(.secondary)
               if flagged.contains(url) {
                 Label("May contain sensitive content", systemImage: "exclamationmark.shield").font(
                   .caption)
@@ -87,7 +142,7 @@ struct ShareReview: View {
           }
         }
         Section {
-          Button("Approve selected images") { session.approve() }.disabled(
+          Button("Approve \(session.included.count) \(session.included.count == 1 ? "File" : "Files")") { session.approve() }.disabled(
             session.included.isEmpty || checking || (checkBeforeSharing && !checked))
           if !session.approvedOutputs.isEmpty && !checking && (!checkBeforeSharing || checked) {
             let chosen = session.approvedOutputs
@@ -100,18 +155,27 @@ struct ShareReview: View {
               Label("Share reviewed outputs", systemImage: "square.and.arrow.up")
             }
             #if os(iOS)
-              Button("Save reviewed images to Photos") {
-                Task {
-                  do {
+              let remaining = photoSave.remaining(in: chosen)
+              Button(remaining.isEmpty ? "Saved to Photos" : photoSave.failures.isEmpty
+                     ? "Save reviewed images to Photos" : "Retry \(remaining.count) unsaved \(remaining.count == 1 ? "file" : "files") to Photos") {
+                guard !savingPhotos else { return }
+                savingPhotos = true
+                photoSaveTask = Task {
+                  defer { savingPhotos = false }
+                  await photoSave.save(chosen, authorize: {
                     let permission = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-                    guard permission == .authorized || permission == .limited else {
-                      status = "Photo additions permission is required."
-                      return
-                    }
-                    for url in chosen { try await PhotoLibraryExporter.save(url) }
-                    status = "Saved \(chosen.count) reviewed images."
-                  } catch { status = error.localizedDescription }
+                    return permission == .authorized || permission == .limited
+                  }, publish: { url in try await PhotoLibraryExporter.save(url) })
                 }
+              }.disabled(savingPhotos || remaining.isEmpty)
+              if savingPhotos {
+                ProgressView("Saving reviewed files to Photos…")
+                Button("Cancel Photos Save") { photoSaveTask?.cancel() }
+              }
+              if !photoSave.status.isEmpty { Text(photoSave.status).font(.caption) }
+              ForEach(chosen.filter { photoSave.failures[$0] != nil }, id: \.self) { url in
+                Text(url.lastPathComponent + ": " + (photoSave.failures[url] ?? ""))
+                  .font(.caption).foregroundStyle(.red)
               }
             #endif
             if !status.isEmpty { Text(status) }
@@ -125,7 +189,7 @@ struct ShareReview: View {
             }
           }
         }
-      }.navigationTitle("Prepare to Share").compactNavigationTitle().toolbar {
+      }.navigationTitle("Review & Share").compactNavigationTitle().toolbar {
         Button("Done") { dismiss() }
       }.onAppear { session = ShareReviewSession(outputs: urls) }
         .task { capability = await analyzer.availability() }
@@ -133,11 +197,12 @@ struct ShareReview: View {
           checked = false
           session.revokeApproval()
         }
-        .onDisappear { checkTask?.cancel(); copyTask?.cancel() }
+        .onDisappear { checkTask?.cancel(); copyTask?.cancel(); photoSaveTask?.cancel() }
         .fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { result in
           switch result {
           case .success(let folder): copyReviewed(to: folder)
-          case .failure(let error): status = "Destination selection failed: " + error.localizedDescription
+          case .failure(let error):
+            if !error.isUserCancellation { status = "Destination selection failed: " + error.localizedDescription }
           }
         }
     }.frame(minWidth: 320, minHeight: 440)
@@ -243,4 +308,38 @@ struct OutputThumbnail: View {
 struct ReviewedOutputs: Identifiable {
   let id = UUID()
   let urls: [URL]
+}
+
+/// A finish line for one captured export. Never reads historical results or source URLs.
+struct ExportCompletionView: View {
+  @Bindable var model: Workspace
+  let output: ShareOutputSession
+  @Environment(\.dynamicTypeSize) private var typeSize
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(alignment: .firstTextBaseline) {
+        Label("\(output.outputs.count) \(output.outputs.count == 1 ? "file" : "files") ready", systemImage: "checkmark.circle.fill")
+          .font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+        Spacer()
+        Button { model.latestExport = nil } label: { Image(systemName: "xmark") }
+          .comfortableHitTarget().accessibilityLabel("Dismiss export result")
+      }
+      Text(output.summary).font(.caption).foregroundStyle(.secondary)
+      ViewThatFits(in: .horizontal) {
+        HStack { actions }
+        VStack(alignment: .leading) { actions }
+      }
+    }.padding(12).background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: EditorChrome.surfaceRadius))
+      .accessibilityIdentifier("export.completion")
+  }
+  @ViewBuilder var actions: some View {
+    Button("Review & Share", systemImage: "square.and.arrow.up") {
+      model.sharingSession = ShareOutputSession(outputs: output.outputs, summary: output.summary)
+    }.buttonStyle(.bordered)
+    #if os(macOS)
+    Button("Show in Finder", systemImage: "folder") {
+      NSWorkspace.shared.activateFileViewerSelecting(output.outputs)
+    }.buttonStyle(.borderless)
+    #endif
+  }
 }

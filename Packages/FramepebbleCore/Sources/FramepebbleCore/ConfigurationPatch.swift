@@ -20,6 +20,7 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
   case colourPolicy = "colourPolicy"
   case metadata = "metadata"
   case privacyExport = "privacyExport"
+  case retouchStrokes = "retouchStrokes"
   case masks = "masks"
   case annotations = "annotations"
   case canvasStyle = "canvasStyle"
@@ -33,6 +34,10 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
   case crop_straighten = "crop.straighten"
   case crop_flipHorizontal = "crop.flipHorizontal"
   case crop_flipVertical = "crop.flipVertical"
+  case filterEdit = "filterEdit"
+  case autoEnhance = "autoEnhance"
+  case look = "look"
+  case lookStrength = "lookStrength"
   case adjustments_exposure = "adjustments.exposure"
   case adjustments_brightness = "adjustments.brightness"
   case adjustments_contrast = "adjustments.contrast"
@@ -56,6 +61,10 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
   case watermark_tiled = "watermark.tiled"
   public var displayName: String {
     switch self {
+    case .filterEdit: return "Creative filter"
+    case .autoEnhance: return "Auto Enhance"
+    case .look: return "Photo filter"
+    case .lookStrength: return "Filter strength"
     case .privacyExport: return "Privacy protection"
     case .masks: return "Privacy masks"
     case .quarterTurns: return "Rotation"
@@ -71,7 +80,7 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
     }
   }
   public var category: EditCategory {
-    if rawValue.hasPrefix("adjustments.") { return .adjustments }
+    if rawValue.hasPrefix("adjustments.") || self == .filterEdit || self == .autoEnhance || self == .look || self == .lookStrength { return .adjustments }
     if rawValue.hasPrefix("watermark.") { return .watermark }
     if rawValue.hasPrefix("crop.") { return .framing }
     switch self {
@@ -80,6 +89,7 @@ public enum ConfigurationField: String, CodingKey, Codable, Sendable, CaseIterab
       return .sizeAndCanvas
     case .quarterTurns, .flipHorizontal, .flipVertical, .straighten: return .orientation
     case .masks, .privacyExport: return .privacy
+    case .retouchStrokes: return .retouch
     case .annotations: return .annotations
     default: return .output
     }
@@ -92,6 +102,7 @@ public enum EditCategory: String, Codable, CaseIterable, Sendable {
   case sizeAndCanvas = "Size & Canvas"
   case watermark = "Watermark"
   case privacy = "Privacy Masks"
+  case retouch = "Retouch"
   case annotations = "Annotations"
   case output = "Format & Compression"
 }
@@ -123,6 +134,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
     if previous.colourPolicy != value.colourPolicy { fields.insert(.colourPolicy) }
     if previous.metadata != value.metadata { fields.insert(.metadata) }
     if previous.privacyExport != value.privacyExport { fields.insert(.privacyExport) }
+    if previous.retouchStrokes != value.retouchStrokes { fields.insert(.retouchStrokes) }
     if previous.masks != value.masks { fields.insert(.masks) }
     if previous.annotations != value.annotations { fields.insert(.annotations) }
     if previous.canvasStyle != value.canvasStyle { fields.insert(.canvasStyle) }
@@ -138,6 +150,10 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       fields.insert(.crop_flipHorizontal)
     }
     if previous.crop.flipVertical != value.crop.flipVertical { fields.insert(.crop_flipVertical) }
+    if previous.filterEdit != value.filterEdit { fields.insert(.filterEdit) }
+    if previous.autoEnhance != value.autoEnhance { fields.insert(.autoEnhance) }
+    if previous.look != value.look { fields.insert(.look) }
+    if previous.lookStrength != value.lookStrength { fields.insert(.lookStrength) }
     if previous.adjustments.exposure != value.adjustments.exposure {
       fields.insert(.adjustments_exposure)
     }
@@ -204,6 +220,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .colourPolicy: value.colourPolicy = values.colourPolicy
       case .metadata: value.metadata = values.metadata
       case .privacyExport: value.privacyExport = values.privacyExport
+      case .retouchStrokes: value.retouchStrokes = values.retouchStrokes
       case .masks: value.masks = values.masks
       case .annotations: value.annotations = values.annotations
       case .canvasStyle: value.canvasStyle = values.canvasStyle
@@ -217,6 +234,10 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .crop_straighten: value.crop.straighten = values.crop.straighten
       case .crop_flipHorizontal: value.crop.flipHorizontal = values.crop.flipHorizontal
       case .crop_flipVertical: value.crop.flipVertical = values.crop.flipVertical
+      case .filterEdit: value.filterEdit = values.filterEdit
+      case .autoEnhance: value.autoEnhance = values.autoEnhance
+      case .look: value.look = values.look
+      case .lookStrength: value.lookStrength = values.lookStrength
       case .adjustments_exposure: value.adjustments.exposure = values.adjustments.exposure
       case .adjustments_brightness: value.adjustments.brightness = values.adjustments.brightness
       case .adjustments_contrast: value.adjustments.contrast = values.adjustments.contrast
@@ -263,6 +284,10 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
     }
     for field in fields {
       switch field {
+      case .filterEdit: values.filterEdit = try read(\.filterEdit, field)
+      case .autoEnhance: values.autoEnhance = try read(\.autoEnhance, field)
+      case .look: values.look = try read(\.look, field)
+      case .lookStrength: values.lookStrength = try read(\.lookStrength, field)
       case .width: values.width = try read(\.width, field)
       case .height: values.height = try read(\.height, field)
       case .quarterTurns: values.quarterTurns = try read(\.quarterTurns, field)
@@ -281,6 +306,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .colourPolicy: values.colourPolicy = try read(\.colourPolicy, field)
       case .metadata: values.metadata = try read(\.metadata, field)
       case .privacyExport: values.privacyExport = try read(\.privacyExport, field)
+      case .retouchStrokes: values.retouchStrokes = try read(\.retouchStrokes, field)
       case .masks: values.masks = try read(\.masks, field)
       case .annotations: values.annotations = try read(\.annotations, field)
       case .canvasStyle: values.canvasStyle = try read(\.canvasStyle, field)
@@ -330,6 +356,10 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
     var payload = container.nestedContainer(keyedBy: ConfigurationField.self, forKey: .values)
     for field in fields {
       switch field {
+      case .filterEdit: try payload.encode(values.filterEdit, forKey: field)
+      case .autoEnhance: try payload.encode(values.autoEnhance, forKey: field)
+      case .look: try payload.encode(values.look, forKey: field)
+      case .lookStrength: try payload.encode(values.lookStrength, forKey: field)
       case .width: try payload.encode(values.width, forKey: field)
       case .height: try payload.encode(values.height, forKey: field)
       case .quarterTurns: try payload.encode(values.quarterTurns, forKey: field)
@@ -348,6 +378,7 @@ public struct ConfigurationPatch: Codable, Equatable, Sendable {
       case .colourPolicy: try payload.encode(values.colourPolicy, forKey: field)
       case .metadata: try payload.encode(values.metadata, forKey: field)
       case .privacyExport: try payload.encode(values.privacyExport, forKey: field)
+      case .retouchStrokes: try payload.encode(values.retouchStrokes, forKey: field)
       case .masks: try payload.encode(values.masks, forKey: field)
       case .annotations: try payload.encode(values.annotations, forKey: field)
       case .canvasStyle: try payload.encode(values.canvasStyle, forKey: field)

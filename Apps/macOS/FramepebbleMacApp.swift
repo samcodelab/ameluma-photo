@@ -22,13 +22,17 @@ import SwiftUI
 
 @main struct FramepebbleMacApp: App {
   @NSApplicationDelegateAdaptor(FramepebbleDelegate.self) private var delegate
-  @State private var model = Workspace(startInLibrary: true)
+  @State private var personalWorkspace = Workspace(startInLibrary: true)
+  private var model: Workspace { personalWorkspace.demoWorkspace ?? personalWorkspace }
   var body: some Scene {
     Window("Ameluma Photo", id: "studio") {
       if NSClassFromString("XCTestCase") != nil {
         Text("Automated tests are running.").padding(40)
       } else {
-        MacWorkspace(model: model).task {
+        MacWorkspace(model: model)
+          .toolbar { ToolbarItem(placement: .principal) { DemoWorkspaceMenu(owner: personalWorkspace) } }
+          .onChange(of: model.isDemoWorkspace) { _, _ in delegate.workspace = model }
+          .task {
           await model.start()
           delegate.workspace = model
           if !model.isReviewSession { Automations.shared.start() }
@@ -92,26 +96,34 @@ import SwiftUI
         }
       }
     MenuBarExtra("Ameluma Photo", systemImage: "photo.badge.arrow.down") {
-      FramepebbleStatusMenu(model: model)
+      FramepebbleStatusMenu(model: personalWorkspace)
     }
   }
 }
 struct MacWorkspace: View {
   @Bindable var model: Workspace
   @State private var showAutomations = false
-  @State private var showInspector = true
-  @State private var inspectorWidth: CGFloat = 350
+  @State private var batchInspector = true
+  @State private var photoInspector = false
+  private var showInspector: Bool {
+    get { model.workflow == .photo ? photoInspector : batchInspector }
+    nonmutating set { if model.workflow == .photo { photoInspector = newValue } else { batchInspector = newValue } }
+  }
+  @State private var inspectorWidth: CGFloat = EditorPanelLayout.inspectorWidth
+  @State private var sidebarPreference: Bool?
+  @State private var exportPresented = false
   @State private var resizeStart: CGFloat?
   var body: some View {
+    GeometryReader { geometry in
+    let sidebarVisible = EditorPanelLayout.navigationVisible(width: geometry.size.width, editing: !model.browsingLibrary || model.overlayEditor, preference: sidebarPreference)
+    let fittedInspectorWidth = EditorPanelLayout.fittedInspectorWidth(requested: inspectorWidth, available: geometry.size.width - (sidebarVisible ? 221 : 0) - (model.workflow == .photo ? 49 : 0))
     HStack(spacing: 0) {
+      if sidebarVisible {
       LibrarySidebar(model: model, openAutomations: { showAutomations = true }).disabled(model.overlayEditor).frame(width: 220)
       Divider()
+      }
       if model.overlayEditor {
-        VStack(spacing: 0) {
-          PhotoDocumentTabs(model: model).padding(12).disabled(true)
-          PhotoEditorTools(model: model).padding(.horizontal, 16).disabled(true)
-          OverlayEditor(model: model, embedded: true)
-        }
+        OverlayEditor(model: model, embedded: true)
       } else if model.browsingLibrary {
         VStack(spacing: 0) {
           ImageCollection(model: model, importAction: importImages)
@@ -126,7 +138,7 @@ struct MacWorkspace: View {
         CollageEditor(model: model, embedded: true)
       } else {
         Group {
-          if model.workflow == .photo { PhotoEditorWorkspace(model: model, openSettings: { showInspector = true }) }
+          if model.workflow == .photo { PhotoEditorWorkspace(model: model, openSettings: { showInspector = true }, showsToolbox: false, showsQuickControls: !showInspector) }
           else { ImageCollection(model: model, importAction: importImages) }
         }.safeAreaInset(
           edge: .bottom, spacing: 0
@@ -137,37 +149,46 @@ struct MacWorkspace: View {
           Rectangle().fill(Color.secondary.opacity(0.2)).frame(width: 5).contentShape(Rectangle())
             .gesture(
               DragGesture(minimumDistance: 0).onChanged { value in
-                if resizeStart == nil { resizeStart = inspectorWidth }
-                inspectorWidth = min(470, max(310, (resizeStart ?? 350) - value.translation.width))
+                if resizeStart == nil { resizeStart = fittedInspectorWidth }
+                inspectorWidth = min(420, max(280, (resizeStart ?? 300) - value.translation.width))
               }.onEnded { _ in resizeStart = nil }
             )
             .accessibilityLabel("Resize inspector")
           VStack(spacing: 0) {
+            if model.workflow == .batch {
+              InspectorToolPicker(model: model).padding(10)
+              Divider()
+            }
             if model.precision {
-              ScrollView { PrecisionEditor(model: model, showsPreview: model.workflow != .photo) }
+              ScrollView { PrecisionEditor(model: model, showsPreview: model.workflow != .photo).padding(12) }
             } else {
-              SettingsEditor(model: model, focused: model.workflow == .photo)
+              SettingsEditor(model: model, focused: model.workflow == .photo, showsContext: model.workflow == .photo, compactPanel: true)
             }
             Divider()
-            VStack(spacing: 10) {
-              ExportPlanView(model: model)
-              Button("Export " + model.actionLabel + "…", action: exportImages).buttonStyle(
-                .borderedProminent
-              ).controlSize(.large).frame(maxWidth: .infinity).disabled(
-                model.targets.isEmpty || model.running)
+            VStack(spacing: 8) {
               if !model.pendingExports.isEmpty {
                 Button("Retry unfinished exports…") { exportImages(retry: true) }.disabled(
                   model.running)
               }
               ExportStatus(model: model)
             }.padding(14)
-          }.frame(width: inspectorWidth)
+          }.frame(width: fittedInspectorWidth)
+        }
+        if model.workflow == .photo {
+          Divider()
+          PhotoEditorTools(model: model, openSettings: { if model.inspectorTask != .adjust || model.precision { showInspector = true } }, vertical: true)
+            .frame(width: 48).padding(.vertical, 8).background(.bar)
         }
       }
-    }.frame(minWidth: showInspector && !model.browsingLibrary ? 1040 : 740, minHeight: 600)
+    }
+    }.frame(minWidth: showInspector && (model.workflow == .photo || model.workflow == .batch) ? 1040 : 740, minHeight: 600)
       .background(Color(nsColor: .windowBackgroundColor)).disabled(model.clearingWorkspace)
       .toolbar {
         ToolbarItemGroup {
+          Button {
+            sidebarPreference = !EditorPanelLayout.navigationVisible(width: NSApp.keyWindow?.contentView?.bounds.width ?? 1280, editing: !model.browsingLibrary || model.overlayEditor, preference: sidebarPreference)
+          } label: { Image(systemName: "sidebar.left") }
+            .help("Show or hide navigation").accessibilityLabel("Toggle navigation sidebar")
           if model.browsingLibrary && !model.overlayEditor {
             Button(action: importImages) { Label("Import", systemImage: "plus") }.keyboardShortcut("o")
             Button("Projects", systemImage: "folder") { model.projectsView = true }
@@ -175,15 +196,14 @@ struct MacWorkspace: View {
           if !model.browsingLibrary && !model.overlayEditor && (model.workflow == .photo || model.workflow == .batch) {
             Button(action: importImages) { Label("Import", systemImage: "plus") }.keyboardShortcut(
               "o")
-            Button("Rotate " + model.actionLabel, systemImage: "rotate.right") { model.rotateTargets() }
-              .disabled(model.targets.isEmpty).help("Rotate the labelled target clockwise")
-            Button("Auto-frame " + model.actionLabel, systemImage: "sparkles") { model.autoFrame(.smart) }.disabled(
-              model.analysing || model.targets.isEmpty)
             Button("Share " + model.actionLabel, systemImage: "square.and.arrow.up") { prepareShare() }.disabled(
               model.targets.isEmpty || model.running)
-            Button(action: exportImages) { Label("Export " + model.actionLabel, systemImage: "square.and.arrow.down") }
+            Button { exportPresented = true } label: { Label("Export " + model.actionLabel, systemImage: "square.and.arrow.down") }
               .keyboardShortcut("e").disabled(model.targets.isEmpty || model.running)
             Menu {
+              Button("Rotate " + model.actionLabel, systemImage: "rotate.right") { model.rotateTargets() }.disabled(model.targets.isEmpty)
+              Button("Auto-frame " + model.actionLabel, systemImage: "sparkles") { model.autoFrame(.smart) }.disabled(model.analysing || model.targets.isEmpty)
+              Divider()
               Button("Automations", systemImage: "folder.badge.gearshape") {
                 showAutomations = true
               }
@@ -202,6 +222,31 @@ struct MacWorkspace: View {
             }.accessibilityLabel(showInspector ? "Hide editing controls" : "Show editing controls")
           }
         }
+      }
+      .sheet(isPresented: $exportPresented) {
+        NavigationStack {
+          VStack(spacing: 0) {
+            SettingsEditor(model: model, focused: true, task: .output)
+            Divider()
+            if model.running {
+              VStack(alignment: .leading, spacing: 8) {
+                Text(model.status).font(.caption)
+                ProgressView(value: Double(model.completed), total: Double(max(1, model.total)))
+                Button("Cancel export") { model.task?.cancel() }
+              }.padding([.horizontal, .top])
+            } else if let output = model.latestExport {
+              ExportCompletionView(model: model, output: output).padding([.horizontal, .top])
+            } else if model.status != "Your photos. Your way." {
+              StatusNotice(model: model).padding([.horizontal, .top])
+            }
+            HStack {
+              Button("Cancel") { exportPresented = false }.keyboardShortcut(.cancelAction)
+              Spacer()
+              Button("Save " + model.actionLabel + "…") { exportImages() }
+                .buttonStyle(.borderedProminent).disabled(model.running || model.targets.isEmpty)
+            }.padding()
+          }.navigationTitle("Export").toolbar { Button("Done") { exportPresented = false } }
+        }.frame(width: 480, height: 640).privacyCurtain(model: model)
       }
       .onDrop(of: BrowserDropImporter.acceptedTypes, isTargeted: nil) { providers in
         BrowserDropImporter.start(providers, model: model)
@@ -223,6 +268,10 @@ struct MacWorkspace: View {
       .sheet(isPresented: Binding(get: { model.copySourceID != nil }, set: { if !$0 { model.copySourceID = nil } })) {
         CopyEditsChooser(model: model)
       }
+      .sheet(isPresented: Binding(get: { model.relinkSourceID != nil }, set: { if !$0 { model.relinkSourceID = nil } })) {
+        if let id = model.relinkSourceID { SourceRecoveryView(model: model, sourceID: id).privacyCurtain(model: model) }
+      }
+      .sheet(item: $model.filterBatchRequest) { FilterBatchSheet(model: model, request: $0) }
       .sheet(isPresented: $model.projectsView) {
         ProjectsView(model: model).privacyCurtain(model: model)
       }
@@ -238,6 +287,7 @@ struct MacWorkspace: View {
         }
       }
 
+      .onChange(of: model.inspectorTask) { _, task in if task == .filters { showInspector = true } }
       .onChange(of: model.precision) { _, enabled in if enabled { showInspector = true } }
 
   }

@@ -2,7 +2,7 @@ import Foundation
 import FramepebbleCore
 
 extension Workspace {
-  var creationSourceIDs: Set<UUID> {
+  var creationDependencyIDs: Set<UUID> {
     var ids = Set((gifProject?.frames ?? []).map(\.sourceID))
     for project in archivedGIFs + gifUndo + gifRedo { ids.formUnion(project.frames.map(\.sourceID)) }
     for project in [collage] + savedCollages.map(\.project) + collageUndo + collageRedo {
@@ -12,6 +12,7 @@ extension Workspace {
     ids.formUnion(pendingExports.map { $0.source.id })
     return ids
   }
+  var creationSourceIDs: Set<UUID> { creationDependencyIDs.union(removalUndoSourceIDs) }
   func rebuildDuplicateIndex() async {
     await duplicates.rebuild(assets)
     duplicatesNeedRebuild = false
@@ -45,7 +46,8 @@ extension Workspace {
     let folder = directory.deletingLastPathComponent().appendingPathComponent("Projects")
     let encoded = ["document": try JSONEncoder().encode(document()),
       "gifHistory": try JSONEncoder().encode(gifUndo + gifRedo),
-      "watermarkHistory": try JSONEncoder().encode(history.referencedWatermarkURLs)]
+      "watermarkHistory": try JSONEncoder().encode(history.referencedWatermarkURLs),
+      "removalUndoSources": try JSONEncoder().encode(assets.filter { removalUndoSourceIDs.contains($0.id) })]
     let envelope = try encoded.mapValues { try JSONSerialization.jsonObject(with: $0) }
     let retained = try await cleanup.retainedSnapshotNames(projects: folder, reusableConfiguration: JSONSerialization.data(withJSONObject: envelope))
     return try await cleanup.removeUnreferenced(in: directory, retaining: retained)
@@ -54,6 +56,7 @@ extension Workspace {
 
 extension Workspace {
   func invalidateCreations(afterRelinking id: UUID) {
+    Task { await FilterPreviewService.shared.purge([id]) }
     func flagGIF(_ project: inout GIFProject) {
       let frames = project.frames.filter { $0.sourceID == id }
       guard !frames.isEmpty else { return }

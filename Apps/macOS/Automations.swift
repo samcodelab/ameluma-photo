@@ -62,6 +62,7 @@ actor AutomationScanner {
   var task: Task<Void, Never>?
   private var stopping = false
   var busy = false
+  private(set) var editingRecipeIDs: Set<UUID> = []
   var approvalTask: Task<Void, Never>?
   private var events: FolderEvents?
   let processor = ImageProcessor()
@@ -108,7 +109,7 @@ actor AutomationScanner {
   }
   func refreshEvents() {
     events = FolderEvents(
-      folders: recipes.filter(\.enabled).compactMap { try? resolve($0.inputBookmark) }
+      folders: recipes.filter { $0.enabled && !editingRecipeIDs.contains($0.id) }.compactMap { try? resolve($0.inputBookmark) }
     ) { [weak self] in await self?.reconcile() }
   }
   func stop() async {
@@ -124,6 +125,32 @@ actor AutomationScanner {
       try JSONEncoder().encode(AutomationLedger(recipes: recipes)).write(
         to: ledger, options: .atomic)
     } catch { message = "Could not save automation state: \(error.localizedDescription)" }
+  }
+  func beginEditing(_ id: UUID) {
+    editingRecipeIDs.insert(id)
+    refreshEvents()
+  }
+  func cancelEditing(_ id: UUID) {
+    editingRecipeIDs.remove(id)
+    refreshEvents()
+  }
+  /// Commit all editable properties together, retaining jobs/counters that may have finished meanwhile.
+  @discardableResult func commitEditedRecipe(_ draft: AutomationRecipe) -> Bool {
+    guard let i = recipes.firstIndex(where: { $0.id == draft.id }) else { message = "This automation is no longer available."; return false }
+    var value = draft
+    let current = recipes[i]
+    value.history = current.history; value.pending = current.pending; value.failures = current.failures
+    value.completed = current.completed; value.lastActivity = current.lastActivity; value.error = current.error
+    value.enabled = false
+    var updated = recipes; updated[i] = value
+    do {
+      try JSONEncoder().encode(AutomationLedger(recipes: updated)).write(to: ledger, options: .atomic)
+      recipes = updated
+      editingRecipeIDs.remove(draft.id)
+      refreshEvents()
+      message = "Saved automation. Monitoring is paused; choose Enable when ready."
+      return true
+    } catch { message = "Could not save automation: " + error.localizedDescription; return false }
   }
   func resolve(_ data: Data?) throws -> URL {
     guard let data else { throw ProcessingError.destination }
@@ -229,7 +256,7 @@ actor AutomationScanner {
     guard !busy, !stopping else { return }
     busy = true
     defer { busy = false }
-    for recipe in recipes where recipe.enabled || recipe.id == force {
+    for recipe in recipes where (recipe.enabled || recipe.id == force) && !editingRecipeIDs.contains(recipe.id) {
       guard let i = recipes.firstIndex(where: { $0.id == recipe.id }) else { continue }
       do {
         let (input, output) = try validate(recipe)
@@ -246,7 +273,7 @@ actor AutomationScanner {
         for file in try await scanner.candidates(recipe, input: input) {
           guard !stopping else { break }
           try Task.checkCancellation()
-          guard recipes.contains(where: { $0.id == recipe.id && ($0.enabled || $0.id == force) })
+          guard !editingRecipeIDs.contains(recipe.id), recipes.contains(where: { $0.id == recipe.id && ($0.enabled || $0.id == force) })
           else { break }
           let digest = try await scanner.digest(file)
           guard !recipes[i].history.contains(digest),
@@ -375,6 +402,7 @@ struct AutomationDashboard: View {
   @State private var preview: CGImage?
   @State private var deleting: UUID?
   @State private var dashboardSection = "Workflows"
+  @State private var selectedRecipe: UUID?
   @Environment(\.dismiss) private var dismiss
   var body: some View {
     NavigationStack {
@@ -387,70 +415,33 @@ struct AutomationDashboard: View {
           }.pickerStyle(.segmented)
           Text(automations.message).font(.caption)
           Button("New Automation") {
-            automations.recipes.append(AutomationRecipe())
+            let recipe = AutomationRecipe()
+            automations.recipes.append(recipe); selectedRecipe = recipe.id
             automations.save()
           }
         }
-        ForEach(automations.recipes.filter { dashboardSection == "Workflows" || (dashboardSection == "Pending Reviews" ? !$0.pending.isEmpty : !$0.failures.isEmpty) }) { recipe in
-          Section(recipe.name) {
-            Label(
-              recipe.error != nil ? "Needs attention" : recipe.enabled ? "Monitoring" : "Paused",
-              systemImage: recipe.enabled ? "circle.fill" : "pause.circle")
-            Text("Input: \(recipe.inputLabel) → Output: \(recipe.outputLabel)")
-            Text(recipe.mode == .automatic ? "Publication: Automatic" : "Publication: Review Before Export").font(.caption.weight(.semibold))
-            Text(
-              "\(recipe.completed) completed · \(recipe.pending.count) pending · \(recipe.failures.count) failed"
-            ).font(.caption)
-            if let date = recipe.lastActivity {
-              Text("Last activity: \(date.formatted())").font(.caption).foregroundStyle(.secondary)
-            }
-            if let error = recipe.error { Text(error).foregroundStyle(.orange) }
-            HStack {
-              Button(recipe.enabled ? "Pause" : "Enable") { automations.toggle(recipe.id) }
-              Button("Edit") { editing = recipe.id }
-              Button("Run Now") { Task { await automations.reconcile(force: recipe.id) } }
-              Button("Test") { Task { preview = await automations.test(recipe.id) } }
-            }.disabled(automations.busy)
-            HStack {
-              Button("Duplicate") {
-                var copy = recipe
-                copy.id = UUID()
-                copy.name += " Copy"
-                copy.enabled = false
-                copy.history = []
-                copy.pending = []
-                copy.failures = []
-                copy.completed = 0
-                automations.recipes.append(copy)
-                automations.save()
+        Section("Workflows") {
+          ForEach(automations.recipes.filter { dashboardSection == "Workflows" || (dashboardSection == "Pending Reviews" ? !$0.pending.isEmpty : !$0.failures.isEmpty) }) { recipe in
+            Button { selectedRecipe = recipe.id; preview = nil } label: {
+              HStack {
+                Label(recipe.name, systemImage: recipe.enabled ? "circle.fill" : "pause.circle")
+                Spacer()
+                Text("\(recipe.pending.count) pending · \(recipe.failures.count) failed").font(.caption).foregroundStyle(.secondary)
+                if selectedRecipe == recipe.id { Image(systemName: "checkmark") }
               }
-              Button("Delete", role: .destructive) { deleting = recipe.id }.disabled(
-                automations.busy)
-            }
-            ForEach(dashboardSection == "Pending Reviews" ? recipe.pending : dashboardSection == "Failed Jobs" ? recipe.failures : recipe.pending + recipe.failures) { job in
-              DisclosureGroup(job.error == nil ? "Pending review" : "Failed job") {
-                AutomationReviewPreview(automations: automations, job: job)
-                Button(job.error == nil ? "Approve export" : "Retry export") {
-                  automations.approve(recipe.id, job: job)
-                }
-                Button("Exclude from workflow") {
-                  if let i = automations.recipes.firstIndex(where: { $0.id == recipe.id }) {
-                    automations.recipes[i].history.insert(job.digest)
-                    automations.recipes[i].pending.removeAll { $0.id == job.id }
-                    automations.recipes[i].failures.removeAll { $0.id == job.id }
-                    automations.save()
-                  }
-                }
-              }.disabled(automations.busy)
-            }
+            }.buttonStyle(.plain)
           }
+        }
+        ForEach(automations.recipes.filter { $0.id == selectedRecipe }) { recipe in
+          recipeDetail(recipe)
         }
         if let preview {
           Section("Test preview — nothing written to destination") {
             Image(decorative: preview, scale: 1).resizable().scaledToFit().frame(maxHeight: 320)
           }
         }
-      }.buttonStyle(.bordered).navigationTitle("Automations").toolbar {
+      }.onAppear { if selectedRecipe == nil { selectedRecipe = automations.recipes.first?.id } }
+        .buttonStyle(.bordered).navigationTitle("Automations").toolbar {
         if !embedded { Button("Done") { dismiss() } }
       }.sheet(
         item: Binding(get: { editing.map { RecipeSelection(id: $0) } }, set: { editing = $0?.id })
@@ -471,6 +462,61 @@ struct AutomationDashboard: View {
     }
     .frame(minWidth: 600, minHeight: 600)
   }
+  private func recipeDetail(_ recipe: AutomationRecipe) -> some View {
+          Section(recipe.name) {
+            Label(
+              recipe.error != nil ? "Needs attention" : recipe.enabled ? "Monitoring" : "Paused",
+              systemImage: recipe.enabled ? "circle.fill" : "pause.circle")
+            Text("Input: \(recipe.inputLabel) → Output: \(recipe.outputLabel)")
+            Text(recipe.mode == .automatic ? "Publication: Automatic" : "Publication: Review Before Export").font(.caption.weight(.semibold))
+            Text(
+              "\(recipe.completed) completed · \(recipe.pending.count) pending · \(recipe.failures.count) failed"
+            ).font(.caption)
+            if let date = recipe.lastActivity {
+              Text("Last activity: \(date.formatted())").font(.caption).foregroundStyle(.secondary)
+            }
+            if let error = recipe.error { Text(error).foregroundStyle(.orange) }
+            HStack {
+              Button(recipe.enabled ? "Pause" : "Enable") { automations.toggle(recipe.id) }
+              Button("Edit") { editing = recipe.id }
+              Button("Process Eligible Photos") { Task { await automations.reconcile(force: recipe.id) } }
+              Button("Test Preview") { Task { preview = await automations.test(recipe.id) } }
+            }.disabled(automations.busy)
+            HStack {
+              Button("Duplicate") {
+                var copy = recipe
+                copy.id = UUID()
+                copy.name += " Copy"
+                copy.enabled = false
+                copy.history = []
+                copy.pending = []
+                copy.failures = []
+                copy.completed = 0
+                automations.recipes.append(copy)
+                automations.save()
+              }
+              Button("Delete", role: .destructive) { deleting = recipe.id }.disabled(
+                automations.busy)
+            }
+            ForEach(dashboardSection == "Pending Reviews" ? recipe.pending : dashboardSection == "Failed Jobs" ? recipe.failures : recipe.pending + recipe.failures) { job in
+              DisclosureGroup((job.error == nil ? "Pending review · " : "Failed · ") + job.source.name) {
+                AutomationReviewPreview(automations: automations, job: job)
+                Button(job.error == nil ? "Approve export" : "Retry export") {
+                  automations.approve(recipe.id, job: job)
+                }
+                Button("Exclude from workflow") {
+                  if let i = automations.recipes.firstIndex(where: { $0.id == recipe.id }) {
+                    automations.recipes[i].history.insert(job.digest)
+                    automations.recipes[i].pending.removeAll { $0.id == job.id }
+                    automations.recipes[i].failures.removeAll { $0.id == job.id }
+                    automations.save()
+                  }
+                }
+              }.disabled(automations.busy)
+            }
+          }
+  }
+
 }
 struct RecipeSelection: Identifiable { let id: UUID }
 struct AutomationEditor: View {
@@ -480,26 +526,32 @@ struct AutomationEditor: View {
     directory: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
       .appendingPathComponent("Framepebble/RecipeEditing", isDirectory: true))
   @Environment(\.dismiss) private var dismiss
-  var recipe: Binding<AutomationRecipe> {
-    Binding(
-      get: { automations.recipes.first { $0.id == id } ?? AutomationRecipe() },
-      set: { value in
-        if let i = automations.recipes.firstIndex(where: { $0.id == id }) {
-          automations.recipes[i] = value
-          automations.recipes[i].enabled = false
-          automations.refreshEvents()
-          automations.save()
-        }
-      })
+  @State private var draft: AutomationRecipe
+  @State private var saveError: String?
+  private let wasEnabled: Bool
+  init(automations: Automations, id: UUID) {
+    self.automations = automations; self.id = id
+    let saved = automations.recipes.first { $0.id == id } ?? AutomationRecipe()
+    _draft = State(initialValue: saved); wasEnabled = saved.enabled
+  }
+  var recipe: Binding<AutomationRecipe> { Binding(get: { draft }, set: { draft = $0 }) }
+  func chooseFolder(input: Bool) {
+    let panel = NSOpenPanel(); panel.canChooseDirectories = true; panel.canChooseFiles = false
+    guard panel.runModal() == .OK, let url = panel.url else { return }
+    do {
+      let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+      if input { draft.inputBookmark = bookmark; draft.inputLabel = url.lastPathComponent }
+      else { draft.outputBookmark = bookmark; draft.outputLabel = url.lastPathComponent }
+    } catch { saveError = error.localizedDescription }
   }
   var body: some View {
     NavigationStack {
       VStack {
         Form {
           TextField("Name", text: recipe.name)
-          Button("Input: \(recipe.inputLabel.wrappedValue)") { automations.choose(id, input: true) }
+          Button("Input: \(recipe.inputLabel.wrappedValue)") { chooseFolder(input: true) }
           Button("Output: \(recipe.outputLabel.wrappedValue)") {
-            automations.choose(id, input: false)
+            chooseFolder(input: false)
           }
           Toggle("Include subfolders", isOn: recipe.recursive)
           Toggle("Process existing images", isOn: recipe.processExisting)
@@ -524,20 +576,24 @@ struct AutomationEditor: View {
           }
           TextField("Naming template", text: recipe.profile.namingTemplate)
           Text(
-            "A fixed processing pipeline uses the same Studio settings. Manual review holds snapshots until approval. Monitoring is paused while editing."
+            "Changes are not saved until Save. Monitoring is suspended while editing. Save keeps it paused; Cancel restores the saved recipe and its previous monitoring state. Review-required jobs still need approval."
           ).font(.caption)
-        }.frame(height: 350)
+          if let saveError { Text(saveError).foregroundStyle(.orange) }
+        }.formStyle(.grouped).frame(minHeight: 200, idealHeight: 300, maxHeight: 350)
         SettingsEditor(model: workspace, recipeEditing: true)
       }.navigationTitle("Automation Recipe").toolbar {
-        Button("Save") {
-          recipe.configuration.wrappedValue = workspace.settings
-          dismiss()
+        Button(wasEnabled ? "Cancel & Resume" : "Cancel") { automations.cancelEditing(id); dismiss() }
+        Button("Save & Keep Paused") {
+          draft.configuration = workspace.settings
+          if automations.commitEditedRecipe(draft) { dismiss() }
+          else { saveError = automations.message }
         }
       }.onAppear {
-        workspace.settings = recipe.configuration.wrappedValue
-        recipe.enabled.wrappedValue = false
-      }
-    }.frame(minWidth: 600, minHeight: 750)
+        workspace.settings = draft.configuration
+        automations.beginEditing(id)
+      }.onDisappear { automations.cancelEditing(id); workspace.persistenceTask?.cancel() }
+        .interactiveDismissDisabled()
+    }.frame(minWidth: 560, minHeight: 600)
   }
 }
 

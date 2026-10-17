@@ -64,6 +64,7 @@ import XCTest
     var config = m.configuration(forID: asset.id); config.watermark.imageURL = watermark; m.setImageConfiguration(config, for: asset.id)
     config.watermark.imageURL = nil; m.setImageConfiguration(config, for: asset.id)
     m.removeFromWorkspace([asset.id]); m.gifProject = nil; m.archivedGIFs = []; m.gifUndo = []; m.gifRedo = []
+    m.removalUndo = nil // Explicitly expire membership Undo before testing unused-copy reclamation.
     _ = try await m.freeUnusedWorkingCopies()
     XCTAssertTrue(m.assets.isEmpty); XCTAssertFalse(FileManager.default.fileExists(atPath: asset.url.path))
     XCTAssertTrue(FileManager.default.fileExists(atPath: watermark.path), "Session Undo watermark dependencies must survive cleanup")
@@ -83,7 +84,11 @@ import XCTest
     let m = try model(), bytes = try imageData(), blue = try imageData(blue: true)
     await m.importData(bytes, name: "photo.png"); let first = try XCTUnwrap(m.assets.first)
     m.removeFromWorkspace([first.id]); await m.importData(bytes, name: "again.png")
-    let second = try XCTUnwrap(m.assets.first); XCTAssertNotEqual(first.id, second.id)
+    XCTAssertEqual(m.workspaceAssets.first?.id, first.id, "Active membership Undo retains the same source for duplicate restoration")
+    m.removeFromWorkspace([first.id]); m.removalUndo = nil
+    _ = try await m.freeUnusedWorkingCopies()
+    await m.importData(bytes, name: "again.png")
+    let second = try XCTUnwrap(m.assets.first); XCTAssertNotEqual(first.id, second.id, "Expired, unreferenced working copies may be reclaimed and imported afresh")
     m.startGIF(ids: [second.id]); m.removeFromWorkspace([second.id]); await m.importData(bytes, name: "retained.png")
     XCTAssertEqual(m.assets.count, 1); XCTAssertEqual(m.workspaceAssets.first?.id, second.id)
     m.skipDuplicates = false; await m.importData(bytes, name: "anyway.png"); XCTAssertEqual(m.assets.count, 2)

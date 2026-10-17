@@ -1,0 +1,146 @@
+{
+  "generatedOn": "2026-10-16",
+  "tool": "OpenAI built-in image_gen",
+  "useCase": "photorealistic-natural",
+  "assets": [
+    {
+      "name": "01-coastal-hero",
+      "category": "Hero portrait",
+      "prompt": "Use case: photorealistic-natural. Create ONE individual high-resolution photographic image for Ameluma Photo editing demonstrations. Signature hero portrait: adult woman with short dark curly hair, subtle freckles, rust-red linen shirt, wind lifting curls on an Australian coastal headland, soft turquoise ocean and pale sandstone behind her. Candid confident expression looking toward camera, waist-up portrait, subject off-centre with breathing space for crop experiments. Natural golden side light, realistic skin pores, fine hair, restrained film-like colours, detailed camera photograph, portrait orientation at highest available resolution. Clean original photo only: no text, UI, borders, collage, watermark or logos. Fictional person, no celebrity likeness."
+    },
+    {
+      "name": "02-tidal-rocks",
+      "category": "Landscape",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Sandstone tidal rock pools with turquoise sea and breaking white surf, dawn, wide landscape framing, fine geological texture. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "03-mountain-lake",
+      "category": "Landscape",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Still alpine lake, dark pines, layered blue mountains and delicate morning mist, landscape orientation, restrained natural colours. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "04-red-dunes",
+      "category": "Landscape",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Sculptural red desert dunes with small tufts of dry grass, warm late afternoon sidelight and a pale blue sky, wide horizontal composition. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "05-forest-path",
+      "category": "Landscape",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Lush fern forest footpath after rain, wet leaves and dappled sun, vertical photograph with depth and natural green tones. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "06-golden-dog",
+      "category": "Pets",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Golden retriever sitting on a coastal walking path, ears lifted by wind, expressive eyes, detailed golden fur, sea softly blurred behind, eye-level landscape photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "07-window-cat",
+      "category": "Pets",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Tabby cat relaxing on a linen windowsill in morning sun, whiskers sharply detailed, warm timber and soft cream background, vertical photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "08-running-dog",
+      "category": "Pets",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Black and white border collie running across a grassy field, full body and all paws anatomically accurate, action frozen clearly with distant hills softly blurred, horizontal. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "09-peach-breakfast",
+      "category": "Food",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Rustic breakfast with sliced ripe peaches, yoghurt in a ceramic bowl and linen napkin on an oak table, softly lit from a window, overhead horizontal photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "10-tomato-toast",
+      "category": "Food",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Two slices of sourdough with tomatoes and basil on an off-white ceramic plate, warm kitchen window light, close three-quarter angle, vertical photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "11-citrus-still-life",
+      "category": "Food",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Loose oranges and one sliced blood orange with green leaves on textured pale stone, directional daylight, delicate shadows, square still life photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "12-harbour-ferry",
+      "category": "Travel",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Small unbranded passenger ferry crossing a sparkling harbour with pale waterfront houses in the distance, bright clear morning, horizontal travel photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "13-mediterranean-lane",
+      "category": "Travel",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Quiet Mediterranean lane with pale stucco walls, terracotta pots and blue wooden door, beautiful afternoon sunlight, vertical travel photograph, no people or readable signs. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "14-coastal-road",
+      "category": "Travel",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Winding coastal road through grassy headlands beside turquoise water seen from a high viewpoint, one small unbranded car in distance, landscape photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "15-weekend-market",
+      "category": "Travel",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Colourful flower and produce market stall with crates of lemons and wrapped bouquets, natural candid scene with one adult seller, no readable signage, horizontal photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "16-concrete-curves",
+      "category": "Architecture",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Elegant curved pale concrete stairwell, geometric shadows and blue sky, precise architectural photograph, vertical orientation, believable construction. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "17-glass-facade",
+      "category": "Architecture",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Contemporary glass building reflecting clouds and neighbouring sandstone architecture, strong vertical lines and realistic perspective, landscape photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "18-sunlit-interior",
+      "category": "Architecture",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Quiet modern living room with oak chair, linen curtains, one ceramic vase and long late-afternoon shadows, clean natural interior photograph, horizontal. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "19-rainy-night",
+      "category": "Night",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Rainy city street at blue hour with warm shop window light and reflections on wet pavement, distant pedestrians, realistic night photography, no readable signs or logos, vertical. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "20-harbour-blue-hour",
+      "category": "Night",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Small sailing boats at a sheltered harbour at blue hour, warm waterfront lights mirrored in water, rich navy sky with detail preserved, horizontal photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "21-camp-lantern",
+      "category": "Night",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. One glowing camping lantern beside a tent on a dark grassy hillside under an early evening starry sky, realistic exposure and warm cool colour contrast, horizontal photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "22-backlit-portrait",
+      "category": "Editing challenge",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Adult man with wavy hair and olive skin in a cream shirt on a beach, strongly backlit, intentionally underexposed face and midtones while bright sky retains detail, realistic recoverable exposure challenge, vertical photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "23-warm-cast-kitchen",
+      "category": "Editing challenge",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Fresh pears in a ceramic bowl on kitchen bench under tungsten light, deliberately excessive warm yellow white balance, detailed texture and no clipped highlights, horizontal photograph for colour correction testing. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "24-tilted-seascape",
+      "category": "Editing challenge",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Ocean horizon and sandstone beach with gentle waves, intentional visibly tilted horizon about seven degrees and excess empty sky for straighten and crop practice, landscape photograph. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "25-flat-garden",
+      "category": "Editing challenge",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Pretty garden of pink and purple flowers on an overcast day, deliberately flat low contrast and muted slightly washed-out colour with retained detail, horizontal photograph for contrast and colour editing. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "26-busy-cafe-portrait",
+      "category": "Editing challenge",
+      "prompt": "Use case: photorealistic-natural. Asset: ONE individual high-quality photo for Ameluma Photo demo workspace. Adult woman with dark skin and a teal top seated at an outdoor cafe, intentionally loose framing with subject small near right third, empty table and distracting chairs at left, soft daylight, realistic horizontal photograph for subject crop practice. Cohesive contemporary editorial photography with natural textures, realistic optics and believable detail, varied authentic everyday subjects. Highest available resolution. Clean photo only, edge-to-edge image. No collage, contact sheet, panels, borders, text, UI, watermarks or logos. People must be fictional adults, no celebrity likeness."
+    },
+    {
+      "name": "27-coastal-hero-landscape",
+      "category": "Hero portrait",
+      "prompt": "Use case: identity-preserve. Edit target: supplied coastal hero portrait. Create ONE landscape companion photograph, wide horizontal 3:2 composition, highest available resolution. Preserve the same fictional adult woman's face, short dark curly windblown hair, freckles, rust-red linen shirt, cream trousers, natural skin detail, relaxed expression and golden coastal light. Pull back and extend the scene naturally into a landscape environmental portrait: woman on the left third, visible from head to upper thighs with comfortable breathing room; expansive turquoise ocean, pale sandstone cliffs and headland across the right two thirds, detailed natural coastal scenery and gentle surf. Maintain coherent perspective and believable proportions. A polished natural camera photograph for a photo editor's main demo image, with space for varied crop experiments. Do not crop the vertical original to simulate landscape. No text, UI, collage, panels, borders, logos or watermarks.",
+      "referenceImage": "Photos/01-coastal-hero.jpg",
+      "tool": "OpenAI built-in image_gen",
+      "useCase": "identity-preserve",
+      "generatedOn": "2026-10-16"
+    }
+  ]
+}

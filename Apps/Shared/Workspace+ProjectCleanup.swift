@@ -10,9 +10,10 @@ extension Workspace {
     func clearImportedPhotos() async {
         guard !clearingWorkspace else { return }
         clearingWorkspace = true
+        expireWorkspaceRemovalUndo()
         sourceSessionID = UUID()
         defer { clearingWorkspace = false }
-        await stopWork()
+        await stopWork(); latestExport = nil
         await flush() // Publish the final cancelled-import arrivals before resetting.
         do {
             let folder = directory.deletingLastPathComponent().appendingPathComponent("Projects")

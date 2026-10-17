@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "hero": "27-coastal-hero-landscape.jpg",
+  "photos": [
+    {
+      "filename": "01-coastal-hero.jpg",
+      "title": "Coastal Hero",
+      "category": "Hero portrait",
+      "exercise": "Portrait colour, skin detail and subject framing",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "395f2bb603653f059c216f497f56c2e788a4e979635c0004c9cd32497cf1657e",
+      "generatedOriginalSHA256": "5dff646012e33fdbeb3829b5a32cf36012c3a12239627b1dc05ca965f34e6366"
+    },
+    {
+      "filename": "27-coastal-hero-landscape.jpg",
+      "title": "Coastal Hero Landscape",
+      "category": "Hero portrait",
+      "exercise": "Landscape hero, environmental portrait crops and coastal colour",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "6e6cee66bf3c035f6cdc436337350bd72dd28f1fc16c7814d26fedbd94e73213",
+      "generatedOriginalSHA256": "04312fb4edeb5159ab0ebbf09fcd445c2b6f9a9cf0fdb841241028b2a1a24167"
+    },
+    {
+      "filename": "02-tidal-rocks.jpg",
+      "title": "Tidal Rocks",
+      "category": "Landscape",
+      "exercise": "Highlights, water texture and landscape crops",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "6fec2755557064e691661c5b48805a04ea63be897b0756829d92a483d5c32e8f",
+      "generatedOriginalSHA256": "2592ad8359cddb4229e038ee6607a0cc13037c20ea7ee8c7fd603752f7eaf03e"
+    },
+    {
+      "filename": "03-mountain-lake.jpg",
+      "title": "Mountain Lake",
+      "category": "Landscape",
+      "exercise": "Shadow detail and atmosphere",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "15c9ac3257331da64fb490e62c50f839d9abce166e0cff4d9ab2b9d803e14296",
+      "generatedOriginalSHA256": "e0a09503ac093604937a229b14f8888789c8d21a897b6d67c81cbc132e848b6f"
+    },
+    {
+      "filename": "04-red-dunes.jpg",
+      "title": "Red Dunes",
+      "category": "Landscape",
+      "exercise": "Warm tones and geometric crops",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "ee0e7f1a5119d426b347ec79d9ee598ec1f812ed6ef9de180152720c7ba46ca4",
+      "generatedOriginalSHA256": "1608cf3d881bc35493ae03901f2a5b737935a15b60c4fe108952a5460113e59f"
+    },
+    {
+      "filename": "05-forest-path.jpg",
+      "title": "Forest Path",
+      "category": "Landscape",
+      "exercise": "Greens, contrast and vertical framing",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "7dd06a05fe82661ae3f6dab40e97e45d563b10ca555446ed8cffd6bc9413550c",
+      "generatedOriginalSHA256": "5301f584f9df0dbb6152af2cd0ca7d8f51d1998979519a732e2d16e7b52139ea"
+    },
+    {
+      "filename": "06-golden-dog.jpg",
+      "title": "Golden Dog",
+      "category": "Pets",
+      "exercise": "Fur detail and subject framing",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "d907f1242d804c96189dc36374864be2cd39de8026072fd8df2544f0074fb607",
+      "generatedOriginalSHA256": "646b06ec8bae09a47c64d9c06a73be4fea9c6433cf81c2ed98e7f8bdd1b788db"
+    },
+    {
+      "filename": "07-window-cat.jpg",
+      "title": "Window Cat",
+      "category": "Pets",
+      "exercise": "Whiskers, highlights and portrait cropping",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "dd34079a9906fa70b3ee0311993473cd452e239d482834ef93203c1cdbf91796",
+      "generatedOriginalSHA256": "858b38005302a4deed952dca895257364e65a6a691d9caf5b09ba86fc4ee42ba"
+    },
+    {
+      "filename": "08-running-dog.jpg",
+      "title": "Running Dog",
+      "category": "Pets",
+      "exercise": "Action framing and fine fur detail",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "5c7dec40b6480b370951a72687899e0812f019b60618fcf876cf7f0e77b0b4b5",
+      "generatedOriginalSHA256": "80e47fb1f573e5c33a66bad6e46d6074bcfa946a2d8bafb261d649dd5c9fabf4"
+    },
+    {
+      "filename": "09-peach-breakfast.jpg",
+      "title": "Peach Breakfast",
+      "category": "Food",
+      "exercise": "Food colour and overhead crops",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "b4b9c4d075a7093d6636975489586ab3db68db0b5b2686576a799d0db385b019",
+      "generatedOriginalSHA256": "b5b569593a891bbd8ba6f83905fbd818c65cdc865d7107930cd4af72b1a9f7e6"
+    },
+    {
+      "filename": "10-tomato-toast.jpg",
+      "title": "Tomato Toast",
+      "category": "Food",
+      "exercise": "Texture and warm colour balance",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "f59ca6104330638dffbd9b1e6d4ea57d1aabc73312c460c73f49a0a3a48c5b85",
+      "generatedOriginalSHA256": "79a17f25cf4061cbc689a063421009436d539852ef797982b3cc3cde69557cfd"
+    },
+    {
+      "filename": "11-citrus-still-life.jpg",
+      "title": "Citrus Still Life",
+      "category": "Food",
+      "exercise": "Selective colour and square crops",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "4feaf23ad1c2bc780c0d8bd22019b5f0d4d05a3bdc700cfe0f6798bcdcd034dd",
+      "generatedOriginalSHA256": "d42da7e1ce8bdddd604ca63c97ea096258cf6a1543f2a7261787abc6480c5390"
+    },
+    {
+      "filename": "12-harbour-ferry.jpg",
+      "title": "Harbour Ferry",
+      "category": "Travel",
+      "exercise": "Travel framing and bright highlights",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "552954176472ac1da359784bcfd49d1312e6627aab027414785605da45c64c4b",
+      "generatedOriginalSHA256": "7056b9d4c6e3215885da6a016fa3763cc7cf026c8af11227c0de3e579731fa4e"
+    },
+    {
+      "filename": "13-mediterranean-lane.jpg",
+      "title": "Mediterranean Lane",
+      "category": "Travel",
+      "exercise": "Architecture perspective and vertical crops",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "211713b14fd6bd8df9972f6991053f071a8d1617e2529337d855393ab69f70a0",
+      "generatedOriginalSHA256": "3e25606e5e67c5010e50e5f6bf576b4f82b8949897daf948d96ef77294239072"
+    },
+    {
+      "filename": "14-coastal-road.jpg",
+      "title": "Coastal Road",
+      "category": "Travel",
+      "exercise": "Wide landscape and road framing",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "582a41367540375eab87570716b09d14c2965810c544828fbcff406bc59621d5",
+      "generatedOriginalSHA256": "7d7f7a2449c86f7fa4aa1130fa0fc1b5b6a7e881bcc47194f77ba91c6abb9f54"
+    },
+    {
+      "filename": "15-weekend-market.jpg",
+      "title": "Weekend Market",
+      "category": "Travel",
+      "exercise": "Colour, busy backgrounds and selection",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "53bab561689085b9f9dad7e4ad5834a9e884b7685c4567b0c1223228ab3bde9f",
+      "generatedOriginalSHA256": "bd760ba50b2ff60cfeea52b01e710bbbcb217afdbcafe41d9225040bcad01196"
+    },
+    {
+      "filename": "16-concrete-curves.jpg",
+      "title": "Concrete Curves",
+      "category": "Architecture",
+      "exercise": "Geometry and vertical perspective",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "00aa876b0f7d727739707245476674b3ff14c9dff7ffe8e8f94e747c1fe7e797",
+      "generatedOriginalSHA256": "a3f45bf783020ec3826deb423606918e5ce111907b1585adf266cc5a50fd68d9"
+    },
+    {
+      "filename": "17-glass-facade.jpg",
+      "title": "Glass Facade",
+      "category": "Architecture",
+      "exercise": "Reflections and straight lines",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "554acef32d1c311c7074e122b3165c60f6c59f7e16f3e02dd1b79f5b6f9b2d54",
+      "generatedOriginalSHA256": "ac6313b0b4f11f36786bc1a26a15ba6980850a989dfbc31ea2debb7c5da048a4"
+    },
+    {
+      "filename": "18-sunlit-interior.jpg",
+      "title": "Sunlit Interior",
+      "category": "Architecture",
+      "exercise": "Interior white balance and shadow detail",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "b08ec0f04e336d9e49ffe1b67c446e2af61738cf9330ca2fab927d34be255593",
+      "generatedOriginalSHA256": "466aeb0b9b039b101c5d7500a1fb47c17bbbabfd281c9facdafd148c1b7d651b"
+    },
+    {
+      "filename": "19-rainy-night.jpg",
+      "title": "Rainy Night",
+      "category": "Night",
+      "exercise": "Night colour and reflections",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "c49d67de579e1d4f6812c2d15c7dc8ee7e7c14443cb5964cf5f42f06ceb6e302",
+      "generatedOriginalSHA256": "9d93a58c1fa4f35ef6dc53b284def63cffd3de6e60b91187fa4474ecdfc5ddea"
+    },
+    {
+      "filename": "20-harbour-blue-hour.jpg",
+      "title": "Harbour Blue Hour",
+      "category": "Night",
+      "exercise": "Blue-hour colour and shadow detail",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "5bd49a15727ee0923771f5e8c048e1901aca687ff47534edb1910996425c125b",
+      "generatedOriginalSHA256": "2c6a75eb4d86398ddb9708c8db73b6f375a6d6406fea808ab740e34811c3ab4f"
+    },
+    {
+      "filename": "21-camp-lantern.jpg",
+      "title": "Camp Lantern",
+      "category": "Night",
+      "exercise": "Low-light contrast and warm/cool balance",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "a269de3d3d7322f9828e41d3f64b635e727b3e2d1b95ee5c06a08b3fe0c08176",
+      "generatedOriginalSHA256": "9b74af290268dd423783cf59706671552efad40e6748cab25f53ef02212f0045"
+    },
+    {
+      "filename": "22-backlit-portrait.jpg",
+      "title": "Backlit Portrait",
+      "category": "Editing challenge",
+      "exercise": "Lift a deliberately underexposed face",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "30c796241eb6497582512b4a4f9c6940d802f444031098f2f483e668a5cffe5f",
+      "generatedOriginalSHA256": "1ebe62d80238594c704e099b42a9eacd60963dea9ea00b8bcce07d44de23d85e"
+    },
+    {
+      "filename": "23-warm-cast-kitchen.jpg",
+      "title": "Warm Cast Kitchen",
+      "category": "Editing challenge",
+      "exercise": "Correct a deliberately warm white balance",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "aac0724e0b4b51f35f094fcbf9c116d6ebdb4bedf6e740d8c0c8be65aa5300f9",
+      "generatedOriginalSHA256": "3af6d65768dee79886e0044bfb9f63f66fe11b90738652c96796a99dfda73826"
+    },
+    {
+      "filename": "24-tilted-seascape.jpg",
+      "title": "Tilted Seascape",
+      "category": "Editing challenge",
+      "exercise": "Straighten a deliberately tilted horizon and crop excess sky",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "0bb638fdf70513caf18d81c3afc5ab40e319af817a610ae5ccae008648e31eec",
+      "generatedOriginalSHA256": "46e7427ede19ead97a29cbf21aa74030663cdfcc4d165888029132ff151b3be6"
+    },
+    {
+      "filename": "25-flat-garden.jpg",
+      "title": "Flat Garden",
+      "category": "Editing challenge",
+      "exercise": "Restore deliberately flat contrast and muted colour",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "f50184572c0c34e81b123a563107a4aa39c12890e2d211d5d9a29301cab37e3b",
+      "generatedOriginalSHA256": "91446d92f1ec569179e35ce8376d6cf6023f9ebe68acec75976fae6dd127dc83"
+    },
+    {
+      "filename": "26-busy-cafe-portrait.jpg",
+      "title": "Busy Cafe Portrait",
+      "category": "Editing challenge",
+      "exercise": "Crop a loosely framed subject and simplify distractions",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "864dc8b23f4ed5a4aab6cd050d3ed64171010ba3dcfa857434192be3ea2c2691",
+      "generatedOriginalSHA256": "c11a72802bc1745ea2ab047123efea56b28c05d1d54712f343bf395daba1730f"
+    }
+  ],
+  "portraitHero": "01-coastal-hero.jpg",
+  "additions": [
+    "27-coastal-hero-landscape.jpg"
+  ]
+}

@@ -44,3 +44,7 @@ venv/
 
 # Local UI review captures; retain app icons and other product assets
 /docs/screenshots/
+
+# Local browser automation traces and generated review working files
+/.playwright-cli/
+/output/

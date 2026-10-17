@@ -113,6 +113,7 @@ extension Workspace {
   }
   /// Choosing an inspector changes only the visible tool, never the current photo's edits.
   func choosePhotoInspector(_ task: InspectorTask) {
+    photoToolOptionsVisible = true
     precision = false
     inspectorTask = task
   }
@@ -289,12 +290,13 @@ extension Workspace {
     let source = configuration(for: asset)
     guard let variant = profile.processing else { return source }
     var config = ConfigurationPatch(from: ProcessingConfiguration(), to: source)
-      .choosing([.adjustments, .orientation, .privacy, .annotations]).applying(to: variant)
+      .choosing([.adjustments, .orientation, .privacy, .annotations, .retouch]).applying(to: variant)
     config.masks =
       source.masks + variant.masks.filter { mask in !source.masks.contains { $0.id == mask.id } }
     config.annotations =
       source.annotations
       + variant.annotations.filter { item in !source.annotations.contains { $0.id == item.id } }
+    config.retouchStrokes = source.retouchStrokes
     config.privacyExport = source.privacyExport || variant.privacyExport
     if let patch = edits.overrides[asset.id]?.patch {
       config = patch.choosing([.adjustments, .orientation, .watermark, .framing]).applying(
@@ -343,7 +345,7 @@ extension Workspace {
     !configuration(forID: id).masks.isEmpty && privacyCoverageReviewIDs.contains(id)
   }
   func markPrivacyCoverageChanges(from previous: EditingSnapshot, to next: EditingSnapshot) {
-    let spatial: Set<ConfigurationField> = [.width, .height, .resizeBasis, .percentage, .canvasAlignment, .preventUpscaling, .quarterTurns, .flipHorizontal, .flipVertical, .straighten, .crop_mode, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .crop_quarterTurns, .crop_flipHorizontal, .crop_flipVertical, .crop_straighten]
+    let spatial: Set<ConfigurationField> = [.retouchStrokes, .width, .height, .resizeBasis, .percentage, .canvasAlignment, .preventUpscaling, .quarterTurns, .flipHorizontal, .flipVertical, .straighten, .crop_mode, .crop_centerX, .crop_centerY, .crop_zoom, .crop_aspectRatio, .crop_quarterTurns, .crop_flipHorizontal, .crop_flipVertical, .crop_straighten]
     let candidates: Set<UUID>
     if !previous.settings.masks.isEmpty || !next.settings.masks.isEmpty { candidates = Set(assets.map(\.id)) }
     else { candidates = Set(previous.overrides.keys).union(next.overrides.keys).union(privacyCoverageReviewIDs) }
@@ -360,13 +362,13 @@ extension Workspace {
     persist()
   }
   var undoActionTitle: String {
-    if overlayEditor { return "Undo Area Edit" }
+    if overlayEditor { return overlayRetouch ? "Undo Retouch Stroke" : "Undo Area Edit" }
     if workflow == .gif && !browsingLibrary { return "Undo GIF Change" }
     if collageHasFocus { return "Undo · " + activeCollageName }
     return "Undo " + (history.steps.first(where: { $0.isCurrent })?.title ?? "Edit")
   }
   var redoActionTitle: String {
-    if overlayEditor { return "Redo Area Edit" }
+    if overlayEditor { return overlayRetouch ? "Redo Retouch Stroke" : "Redo Area Edit" }
     if workflow == .gif && !browsingLibrary { return "Redo GIF Change" }
     if collageHasFocus { return "Redo · " + activeCollageName }
     return "Redo " + (history.steps.first(where: { $0.isRedo })?.title ?? "Edit")

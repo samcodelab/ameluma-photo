@@ -46,6 +46,7 @@ import XCTest
     var expectedSize = frame.size
     func capture(_ name: String, view: NSView? = nil) async throws {
       let target = view ?? hosting
+      print("Native layout capture: " + name)
       target.layoutSubtreeIfNeeded()
       try await Task.sleep(for: .milliseconds(500))
       target.layoutSubtreeIfNeeded()
@@ -54,7 +55,6 @@ import XCTest
         target.cacheDisplay(in: target.bounds, to: bitmap)
       }
       let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
-      if name == "Mac GIF Creator" { try data.write(to: URL(fileURLWithPath: "/tmp/ameluma-gif-mac.png")) }
       let attachment = XCTAttachment(data: data, uniformTypeIdentifier: UTType.png.identifier)
       attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
       XCTAssertEqual(target.bounds.width, expectedSize.width)
@@ -91,12 +91,17 @@ import XCTest
     model.settings = edited
     model.rotatePhoto(model.assets[0].id)
     try await capture("Batch — History and Reset controls")
-    let historyHost = NSHostingView(rootView: EditingHistoryView(model: model).environment(\.colorScheme, .light))
-    historyHost.frame = NSRect(origin: .zero, size: expectedSize)
-    window.contentView = historyHost
-    try await capture("Undo History timeline", view: historyHost)
+    model.beginConversion(ids: model.assets.prefix(2).map(\.id))
+    try await capture("Panels — Mac Convert narrow")
+    model.switchWorkflow(.batch)
+    expectedSize = NSSize(width: 1440, height: 900)
+    window.setContentSize(expectedSize); hosting.frame = NSRect(origin: .zero, size: expectedSize)
+    model.openPhoto(model.assets[0]); model.choosePhotoInspector(.watermark)
+    model.updateField(\.watermark.enabled, value: true, fields: [.watermark_enabled])
+    try await capture("Panels — Mac Watermark wide")
+    expectedSize = NSSize(width: 1040, height: 700)
+    window.setContentSize(expectedSize); hosting.frame = NSRect(origin: .zero, size: expectedSize)
     model.startGIF(ids: model.assets.prefix(3).map(\.id))
-    window.contentView = hosting
     try await capture("Mac GIF Creator")
     model.archiveCurrentGIF(); let savedGIF = try XCTUnwrap(model.gifProject); model.gifProject = nil
     try await capture("Review — Mac empty GIF saved creations")
@@ -109,9 +114,33 @@ import XCTest
     model.finishGIFSelection(cancel: true)
     model.selection=Set(model.assets.map(\.id))
     model.switchWorkflow(.collages);model.ensureCollageDocument()
+    var singlePhoto = model.collage
+    singlePhoto.title = ""
+    singlePhoto.width = 2048; singlePhoto.height = 2048
+    singlePhoto.arrange([model.assets[0].id], layout: .magazine)
+    model.changeCollage(singlePhoto)
+    expectedSize = NSSize(width: 1440, height: 900)
+    window.setContentSize(expectedSize); hosting.frame = NSRect(origin: .zero, size: expectedSize)
+    hosting.rootView = MacWorkspace(model: model).environment(\.colorScheme, .dark)
+    hosting.appearance = NSAppearance(named: .darkAqua); window.appearance = NSAppearance(named: .darkAqua)
+    try await capture("Polish — Mac single-photo collage")
+    singlePhoto.title = "A day outside"; model.changeCollage(singlePhoto)
+    try await capture("Polish — Mac collage with title")
+    expectedSize = NSSize(width: 1040, height: 700)
+    window.setContentSize(expectedSize); hosting.frame = NSRect(origin: .zero, size: expectedSize)
+    try await capture("Polish — Mac collage narrow")
+    model.selection=Set(model.assets.map(\.id))
     model.newCollage(template:CollageTemplate.catalog[0])
     model.generateCollageArt(shape:.text,text:"HELLO",sourceIDs:Set(model.assets.map(\.id)),count:100,referenceID:nil,reuse:true)
     await model.collageGenerationTask?.value
+    let historyHost = NSHostingView(rootView: EditingHistoryView(model: model).environment(\.colorScheme, .light))
+    historyHost.frame = NSRect(origin: .zero, size: expectedSize)
+    // Keep the editor's host attached while capturing a separate sheet-like history host.
+    // Capture history separately without detaching the live editor.
+    let historyWindow = NSWindow(contentRect: NSRect(origin: .zero, size: expectedSize), styleMask: [.borderless], backing: .buffered, defer: false)
+    historyWindow.isReleasedWhenClosed = false; historyWindow.contentView = historyHost
+    defer { historyWindow.contentView = nil; historyWindow.close() }
+    try await capture("Undo History timeline", view: historyHost)
     let collageHost=NSHostingView(rootView:CollageEditor(model:model,embedded:true).environment(\.colorScheme,.light))
     collageHost.frame=NSRect(origin:.zero,size:expectedSize);window.contentView=collageHost
     try await Task.sleep(for:.seconds(2))
@@ -121,5 +150,79 @@ import XCTest
     try await capture("Collage layout gallery",view:galleryHost)
 
 
+  }
+  func testCreationWorkspacesAtNativeWindowSize() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let model = Workspace(directory: root, startInLibrary: true)
+    for number in 1...8 {
+      let url = model.directory.appendingPathComponent("Landscape \(number).png")
+      let context = try XCTUnwrap(CGContext(data: nil, width: 800, height: 600,
+        bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+      context.setFillColor(CGColor(red: 0.22, green: 0.45, blue: 0.65, alpha: 1))
+      context.fill(CGRect(x: 0, y: 0, width: 800, height: 600))
+      context.setFillColor(CGColor(red: CGFloat(number)/12, green: 0.5, blue: 0.3, alpha: 1))
+      context.move(to: CGPoint(x: 0, y: 0)); context.addLine(to: CGPoint(x: 400, y: 450))
+      context.addLine(to: CGPoint(x: 800, y: 0)); context.closePath(); context.fillPath()
+      context.setFillColor(CGColor(red: 1, green: 0.8, blue: 0.3, alpha: 1))
+      context.fillEllipse(in: CGRect(x: 560, y: 420, width: 90, height: 90))
+      let image = try XCTUnwrap(context.makeImage())
+      let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL,
+        UTType.png.identifier as CFString, 1, nil))
+      CGImageDestinationAddImage(destination, image, nil)
+      XCTAssertTrue(CGImageDestinationFinalize(destination))
+      model.assets.append(SourceAsset(url: url))
+    }
+    model.selected = model.assets[0].id
+    let hosting = NSHostingView(rootView: MacWorkspace(model: model).environment(\.colorScheme, .dark))
+    let frame = NSRect(x: 0, y: 0, width: 1280, height: 820)
+    let window = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    window.appearance = NSAppearance(named: .darkAqua)
+    hosting.appearance = NSAppearance(named: .darkAqua)
+    window.contentView = hosting
+    hosting.frame = frame
+    defer { model.persistenceTask?.cancel(); window.contentView = nil; window.close() }
+    var expectedSize = frame.size
+    func capture(_ name: String, view: NSView? = nil) async throws {
+      let target = view ?? hosting
+      print("Native layout capture: " + name)
+      target.layoutSubtreeIfNeeded()
+      try await Task.sleep(for: .milliseconds(500))
+      target.layoutSubtreeIfNeeded()
+      let bitmap = try XCTUnwrap(target.bitmapImageRepForCachingDisplay(in: target.bounds))
+      window.appearance?.performAsCurrentDrawingAppearance {
+        target.cacheDisplay(in: target.bounds, to: bitmap)
+      }
+      let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+      let attachment = XCTAttachment(data: data, uniformTypeIdentifier: UTType.png.identifier)
+      attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+      XCTAssertEqual(target.bounds.width, expectedSize.width)
+      XCTAssertEqual(target.bounds.height, expectedSize.height)
+    }
+    try await capture("Comparison — Mac Browse")
+    model.openPhoto(model.assets[0]); model.choosePhotoInspector(.adjust)
+    try await capture("Comparison — Mac Edit")
+    model.selection = Set(model.assets.prefix(3).map(\.id))
+    model.beginBatch(ids: model.assets.prefix(3).map(\.id))
+    try await capture("Comparison — Mac Batch")
+    model.startGIF(ids: model.assets.prefix(3).map(\.id))
+    try await capture("Polish — isolated Mac GIF")
+    model.selection = Set(model.assets.map(\.id))
+    model.switchWorkflow(.collages); model.ensureCollageDocument()
+    model.newCollage(template: CollageTemplate.catalog[0])
+    try await capture("Polish — isolated Mac Collage")
+    model.openPhoto(model.assets[0]); model.choosePhotoInspector(.adjust)
+    try await capture("Polish — isolated Mac Adjust")
+    XCTAssertTrue(model.activatePhotoTool(.retouch))
+    try await capture("Context — Mac Retouch")
+    XCTAssertTrue(model.activatePhotoTool(.privacy))
+    try await capture("Context — Mac Privacy")
+    XCTAssertTrue(model.activatePhotoTool(.adjust, resolvingDraft: .discard))
+    model.rotatePhoto(model.assets[0].id)
+    model.choosePhotoInspector(.watermark)
+    model.updateField(\.watermark.enabled, value: true, fields: [.watermark_enabled])
+    try await capture("Polish — isolated Mac Watermark")
   }
 }

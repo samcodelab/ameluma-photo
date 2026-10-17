@@ -7,6 +7,8 @@ enum LibraryScope: String, CaseIterable { case exceptions = "Individual Override
 enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Selected images", results = "Search results", individual = "Current image" }
 
 @MainActor @Observable final class Workspace {
+    var filterBatchRequest: FilterBatchRequest?
+    var filterComparisonActive = false
     var archivedGIFs: [GIFProject] = []
     var gifInteractionStart: GIFProject?
     var gifUndo: [GIFProject] = []
@@ -57,9 +59,11 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var cropKeepsOutputSize: [UUID: Bool] = [:]
     var precision = false
     var thumbnailEditing = false
+    var photoToolOptionsVisible = true
     var overlayEditor = false
     var overlayStartsWithMasks = true
     var overlaySession: OverlayEditingSession?
+    var overlayRetouch = false
     var pendingOverlayDestination: EditorDestination?
     var collageEditor = false
     var collageOutputs: [URL] = []
@@ -86,6 +90,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var pendingPrivacyEditor: EditorDestination?
     let sensitiveAnalyzer: any SensitiveImageAnalyzing
     let sensitivityProcessor = ImageProcessor()
+    var latestExport: ShareOutputSession?
     var sharingSession: ShareOutputSession?
     var copySourceID: UUID?
     func beginSharing(_ outputs: [URL]) {
@@ -97,6 +102,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var duplicates = DuplicateIndex()
     var duplicatesNeedRebuild = true
     var sourceSessionID = UUID()
+    var removalUndo: WorkspaceRemovalUndo?
     var sourceAcquisitions = 0
     var clearingWorkspace = false
     var concealed = false
@@ -104,8 +110,8 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var showGuides = true
     var showSubjects = false
     var favourites: Set<UUID> = []
-    var edits = EditingSnapshot()
-    var history = EditingHistory()
+    var edits = Workspace.freshEditingSnapshot()
+    var history = EditingHistory(snapshot: Workspace.freshEditingSnapshot())
     var historyPresented = false
     var index = ClassificationIndex()
     var proposals: [UUID: FramingProposal] = [:]
@@ -165,15 +171,28 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     var exportProfiles: Set<UUID> = [] { didSet { persist() } }
     var namingTemplate = "{name}{suffix}" { didSet { persist() } }
     private var interactionStart: EditingSnapshot?
+    var interactionInProgress: Bool { interactionStart != nil }
     private var started = false
     @ObservationIgnored private var visibleIDs: Set<UUID> = []
     let processor = ImageProcessor()
     let analyzer = VisionAnalyzer()
     let store = ProjectStore()
     let directory: URL
+    let isDemoWorkspace: Bool
+    var demoWorkspace: Workspace?
+    var switchingDemo = false
     let isReviewSession: Bool
     let projectURL: URL
-    init(directory: URL? = nil, sensitiveAnalyzer: any SensitiveImageAnalyzing = AppleSensitiveAnalyzer(), startInLibrary: Bool = false) {
+    /// Application defaults only. Core decoding and saved presets retain their historical geometry.
+    static func freshEditingSnapshot() -> EditingSnapshot {
+        var value = EditingSnapshot()
+        value.settings.crop.mode = .preserveAspectRatio
+        value.settings.resizeBasis = .percentage
+        value.settings.percentage = 100
+        return value
+    }
+    init(directory: URL? = nil, sensitiveAnalyzer: any SensitiveImageAnalyzing = AppleSensitiveAnalyzer(), startInLibrary: Bool = false, isDemoWorkspace: Bool = false) {
+        self.isDemoWorkspace = isDemoWorkspace
         self.sensitiveAnalyzer = sensitiveAnalyzer
         browsingLibrary = startInLibrary
         #if DEBUG
@@ -329,7 +348,10 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         let initial = configuration(for: first)
         return targets.dropFirst().reduce(into: []) { $0.formUnion(ConfigurationPatch(from: initial, to: configuration(for: $1)).fields) }
     }
-    func isEdited(_ id: UUID) -> Bool { edits.configuration(for: id) != ProcessingConfiguration() }
+    func isEdited(_ id: UUID) -> Bool {
+        let value = edits.configuration(for: id)
+        return value != ProcessingConfiguration() && value != Self.freshEditingSnapshot().settings
+    }
     func setImageAspect(_ ratio: Double, for id: UUID) {
         guard ratio.isFinite, ratio > 0 else { return }
         let c = edits.configuration(for: id)
@@ -362,7 +384,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     func toggleFavourite(_ id: UUID) { if favourites.contains(id) { favourites.remove(id) } else { favourites.insert(id) }; persist() }
     func acceptReview(_ id: UUID) { proposals[id]?.reviewReasons.removeAll { $0 != Self.privacyCoverageReason }; persist() }
     func applyPreset(_ profile: ExportProfile) { namingTemplate = profile.namingTemplate; if let config = profile.processing { applyChange(ConfigurationPatch(values: config, fields: Set(ConfigurationField.allCases.filter { $0.category != .privacy && $0.category != .annotations }))) } }
-    func saveProfile(name: String) { guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }; var p = ExportProfile(); p.name = name; var saved = controlConfiguration; saved.masks = []; saved.annotations = []; saved.privacyExport = false; p.processing = saved; p.namingTemplate = namingTemplate; p.suffix = "-" + name; profiles.append(p); persist() }
+    func saveProfile(name: String) { guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }; var p = ExportProfile(); p.name = name; var saved = controlConfiguration; saved.masks = []; saved.annotations = []; saved.retouchStrokes = []; saved.privacyExport = false; p.processing = saved; p.namingTemplate = namingTemplate; p.suffix = "-" + name; profiles.append(p); persist() }
     func changeCollage(_ proposed: CollageProject) {
         var value = proposed
         let geometryChanged = value.cells != collage.cells || value.width != collage.width || value.height != collage.height || value.spacing != collage.spacing || value.silhouette != collage.silhouette || value.title.isEmpty != collage.title.isEmpty
@@ -374,6 +396,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     func undoCollage() { guard let last=collageUndo.popLast() else{return};collageRedo.append(collage);collage=last;persist() }
     func redoCollage() { guard let next=collageRedo.popLast() else{return};collageUndo.append(collage);collage=next;persist() }
     func quickFix(_ fix: QuickFix) {
+        if fix == .autoEnhance { setAutoEnhance(true, recalculate: true); return }
         guard !quickFixRunning, !running, !overlayEditor else { return }
         let jobs = targets.map { ($0, configuration(for: $0)) }
         guard !jobs.isEmpty else { return }
@@ -472,7 +495,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         return doc
     }
     func document() -> ProjectDocument {
-        var doc = ProjectDocument(); doc.gifProject = gifProject; doc.savedGIFs = archivedGIFs; doc.workspaceSelection = gifSelectionContext?.order ?? orderedSelection; doc.name = projectName; doc.batchInputIDs = batchInputIDs; doc.editorTabIDs = editorTabs; doc.activeEditorPhotoID = editorPhotoID; doc.sources = assets; doc.hiddenSourceIDs = hiddenSourceIDs; doc.conversionInputIDs = conversionInputIDs; doc.conversionResizingEnabled = conversionResizingEnabled; doc.edits = edits; doc.favourites = favourites; doc.classifications = index; doc.proposals = proposals; doc.privacyCoverageReviewIDs = privacyCoverageReviewIDs; doc.profiles = profiles; doc.namingTemplate = namingTemplate; doc.selectedProfiles = exportProfiles; doc.watermarkPresets = watermarkPresets; doc.collage = collage; doc.collages = savedCollages; doc.openCollageIDs = openCollageIDs; doc.activeCollageID = activeCollageID; doc.collageOutputs = collageOutputs; doc.privateEditing = privateEditing; doc.requirePrivacyReview = requirePrivacyReview; doc.pendingExports = pendingExports; doc.completedJobs = results.map { ProcessingJob(id: $0.id, sourceID: $0.source.id, output: $0.output, error: $0.error) }; return doc
+        var doc = ProjectDocument(); doc.gifProject = gifProject; doc.savedGIFs = archivedGIFs; doc.workspaceSelection = gifSelectionContext?.order ?? orderedSelection; doc.name = projectName; doc.batchInputIDs = batchInputIDs; doc.editorTabIDs = editorTabs; doc.activeEditorPhotoID = editorPhotoID; doc.sources = persistedSources; doc.hiddenSourceIDs = hiddenSourceIDs.intersection(Set(doc.sources.map(\.id))); doc.conversionInputIDs = conversionInputIDs; doc.conversionResizingEnabled = conversionResizingEnabled; doc.edits = edits; doc.favourites = favourites; doc.classifications = index; doc.proposals = proposals; doc.privacyCoverageReviewIDs = privacyCoverageReviewIDs; doc.profiles = profiles; doc.namingTemplate = namingTemplate; doc.selectedProfiles = exportProfiles; doc.watermarkPresets = watermarkPresets; doc.collage = collage; doc.collages = savedCollages; doc.openCollageIDs = openCollageIDs; doc.activeCollageID = activeCollageID; doc.collageOutputs = collageOutputs; doc.privateEditing = privateEditing; doc.requirePrivacyReview = requirePrivacyReview; doc.pendingExports = pendingExports; doc.completedJobs = results.map { ProcessingJob(id: $0.id, sourceID: $0.source.id, output: $0.output, error: $0.error) }; return doc
     }
     var completedOutputs: [URL] { results.compactMap(\.output) + collageOutputs }
     func saveProjectCopy() async throws -> URL {
@@ -483,15 +506,15 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
     func stopWork() async { gifExportTask?.cancel(); await gifExportTask?.value; quickFixTask?.cancel(); await quickFixTask?.value; sensitivityTask?.cancel(); await sensitivityTask?.value; cancelImport(); await importTask?.value; await fileImportTask?.value; collageGenerationTask?.cancel(); await collageGenerationTask?.value; collageTask?.cancel(); await collageTask?.value; task?.cancel(); analysisTask?.cancel(); indexingTask?.cancel(); await task?.value; await analysisTask?.value; await indexingTask?.value }
     func newProject() async {
         guard !clearingWorkspace else { return }
-        clearingWorkspace = true; sourceSessionID = UUID(); defer { clearingWorkspace = false }
-        do { await stopWork(); _ = try await saveProjectCopy(); sensitivity = SensitiveReviewState();resetEditorTabs();resetCollageDocuments();gifProject=nil;archivedGIFs=[];gifSelectionContext=nil;projectName="Untitled Project";privacyCoverageReviewIDs=[];batchInputIDs=nil;hiddenSourceIDs=[];conversionInputIDs=nil;conversionResizingEnabled=false;assets=[];selected=nil;selection=[];favourites=[];duplicates=DuplicateIndex();edits=EditingSnapshot();history=EditingHistory();proposals=[:];index=ClassificationIndex();results=[];pendingExports=[];collage=CollageProject();collageOutputs=[];collageUndo=[];collageRedo=[];await flush();status="New project. Previous work remains in Recent Projects." } catch { issues.append("Could not preserve the previous project: \(error.localizedDescription)") }
+        clearingWorkspace = true; expireWorkspaceRemovalUndo(); sourceSessionID = UUID(); defer { clearingWorkspace = false }
+        do { await stopWork(); latestExport = nil; _ = try await saveProjectCopy(); sensitivity = SensitiveReviewState();resetEditorTabs();resetCollageDocuments();gifProject=nil;archivedGIFs=[];gifSelectionContext=nil;projectName="Untitled Project";privacyCoverageReviewIDs=[];batchInputIDs=nil;hiddenSourceIDs=[];conversionInputIDs=nil;conversionResizingEnabled=false;assets=[];selected=nil;selection=[];favourites=[];duplicates=DuplicateIndex();edits=Self.freshEditingSnapshot();history=EditingHistory(snapshot:edits);proposals=[:];index=ClassificationIndex();results=[];pendingExports=[];collage=CollageProject();collageOutputs=[];collageUndo=[];collageRedo=[];await flush();status="New project. Previous work remains in Recent Projects." } catch { issues.append("Could not preserve the previous project: \(error.localizedDescription)") }
     }
     func openProject(_ url:URL) async {
         guard !clearingWorkspace else { return }
-        clearingWorkspace = true; sourceSessionID = UUID(); defer { clearingWorkspace = false }
+        clearingWorkspace = true; expireWorkspaceRemovalUndo(); sourceSessionID = UUID(); defer { clearingWorkspace = false }
         let scoped=url.startAccessingSecurityScopedResource();defer{if scoped{url.stopAccessingSecurityScopedResource()}}
         do {
-            let doc=relocate(try await store.load(url));if doc.privateEditing {concealed=true};await stopWork();_ = try await saveProjectCopy();sensitivity = SensitiveReviewState();resetEditorTabs();projectName=doc.name;batchInputIDs=doc.batchInputIDs;scope = batchInputIDs == nil ? .all : .selected;assets=doc.sources;hiddenSourceIDs=doc.hiddenSourceIDs;conversionInputIDs=doc.conversionInputIDs;conversionResizingEnabled=doc.conversionResizingEnabled ?? false;edits=doc.edits;history=EditingHistory(snapshot:edits);favourites=doc.favourites;index=doc.classifications;proposals=doc.proposals;privacyCoverageReviewIDs=doc.privacyCoverageReviewIDs;profiles=doc.profiles;collage=doc.collage ?? CollageProject();collageOutputs=doc.collageOutputs;collageUndo=[];collageRedo=[];pendingExports=doc.pendingExports;results=[];selected=assets.first?.id;selection=[];watermarkPresets=doc.watermarkPresets;namingTemplate=doc.namingTemplate;exportProfiles=doc.selectedProfiles;privateEditing=doc.privateEditing;requirePrivacyReview=doc.requirePrivacyReview
+            let doc=relocate(try await store.load(url));if doc.privateEditing {concealed=true};await stopWork();latestExport = nil;_ = try await saveProjectCopy();sensitivity = SensitiveReviewState();resetEditorTabs();projectName=doc.name;batchInputIDs=doc.batchInputIDs;scope = batchInputIDs == nil ? .all : .selected;assets=doc.sources;hiddenSourceIDs=doc.hiddenSourceIDs;conversionInputIDs=doc.conversionInputIDs;conversionResizingEnabled=doc.conversionResizingEnabled ?? false;edits=doc.edits;history=EditingHistory(snapshot:edits);favourites=doc.favourites;index=doc.classifications;proposals=doc.proposals;privacyCoverageReviewIDs=doc.privacyCoverageReviewIDs;profiles=doc.profiles;collage=doc.collage ?? CollageProject();collageOutputs=doc.collageOutputs;collageUndo=[];collageRedo=[];pendingExports=doc.pendingExports;results=[];selected=assets.first?.id;selection=[];watermarkPresets=doc.watermarkPresets;namingTemplate=doc.namingTemplate;exportProfiles=doc.selectedProfiles;privateEditing=doc.privateEditing;requirePrivacyReview=doc.requirePrivacyReview
             await rebuildDuplicateIndex()
             restoreEditorTabs(doc)
             restoreGIF(doc)
@@ -673,7 +696,7 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
         guard !running, !clearingWorkspace else { return }
         let jobs = retry ? pendingExports : plannedRequests(targetIDs: targetIDs)
         guard !jobs.isEmpty else { status = "Choose images to export."; return }
-        sharingSession = nil
+        sharingSession = nil; latestExport = nil
         if !retry { pendingExports = jobs }; persist()
         exportingRequests = jobs
         exportingPlanSummary = Self.planSummary(photos: Set(jobs.map { $0.source.id }).count, files: jobs.count, profiles: Set(jobs.map { $0.profile.id }).count)
@@ -697,9 +720,10 @@ enum ApplyScope: String, CaseIterable { case all = "All images", selected = "Sel
             }
             let ids = Set(jobs.map(\.id)); let failures = results.filter { ids.contains($0.id) && $0.error != nil }.count
             status = "\(produced.count) exported · \(failures) failed\(Task.isCancelled ? " · Cancelled; completed files kept" : "")"
+            latestExport = produced.isEmpty ? nil : ShareOutputSession(outputs: produced, summary: status)
             if !produced.isEmpty && !Task.isCancelled { await after?(produced) }
         }
     }
 }
 
-enum InspectorTask: String, CaseIterable { case resize = "Resize", adjust = "Adjust", creative = "Create", watermark = "Watermark", output = "Export" }
+enum InspectorTask: String, CaseIterable { case resize = "Resize", adjust = "Adjust", filters = "Filters", creative = "Create", watermark = "Watermark", output = "Export" }

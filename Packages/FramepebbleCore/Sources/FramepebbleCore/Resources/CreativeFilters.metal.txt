@@ -1,0 +1,29 @@
+#include <metal_stdlib>
+#include <CoreImage/CoreImage.h>
+using namespace metal;
+extern "C" { namespace coreimage {
+[[ stitchable ]] float4 creativeBias(sample_t sample, float3 tint, float3 shadows, float3 highlights) {
+ float4 p = sample; if (p.a <= 0.0f) return float4(0.0f);
+ float3 rgb = p.rgb / p.a;
+ rgb += tint;
+ float y = dot(rgb, float3(.2126f,.7152f,.0722f));
+ rgb += shadows * (1.0f-smoothstep(.15f,.60f,y)) + highlights*smoothstep(.40f,.90f,y);
+ return float4(clamp(rgb,0.0f,1.0f)*p.a,p.a);
+}
+uint creativeHash(uint x) { x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; return x ^ (x >> 16); }
+float creativeNoise(uint2 p, uint seed) { return float(creativeHash(p.x ^ creativeHash(p.y ^ seed))) / 4294967295.0f * 2.0f - 1.0f; }
+[[ stitchable ]] float4 creativeFinish(sample_t original, sample_t graded, float amplitude, float seedHigh, float seedLow, float pixelScale, float intensity, destination dest) {
+ float4 a=original,b=graded; if(a.a<=0.0f) return float4(0.0f);
+ float3 rgb=clamp(b.a>0.0f ? b.rgb/b.a : float3(0.0f),0.0f,1.0f);
+ float y=dot(rgb,float3(.2126f,.7152f,.0722f));
+ uint seed=(uint(seedHigh)<<16)|uint(seedLow);
+ float2 full=dest.coord()*pixelScale;
+ float n=0.0f;
+ // Preview integrates a fixed 4x4 stratified footprint on the full-resolution grid.
+ // Full resolution uses exactly one integer-grid sample.
+ if(pixelScale<=1.001f) n=creativeNoise(uint2(floor(full)),seed);
+ else { for(uint i=0;i<4;i++) for(uint j=0;j<4;j++) n+=creativeNoise(uint2(floor(full+float2(i+.5f,j+.5f)*pixelScale/4.0f)),seed); n/=16.0f; n*=min(1.0f,4.0f/pixelScale); }
+ rgb=clamp(rgb+n*amplitude*(.35f+.65f*(1.0f-y)),0.0f,1.0f);
+ return float4(mix(a.rgb,rgb*a.a,intensity),a.a);
+}
+}}
